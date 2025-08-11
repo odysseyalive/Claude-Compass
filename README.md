@@ -117,7 +117,7 @@ Think about the researcher lost in conflicting sources, the analyst hitting the 
 > - **Create valuable insights** in Claude conversations
 > - **Generate artifacts** for significant analysis or frameworks
 >
-  - *"ex. Generate an artifact from the key takeaways of this conversation, including all relevant citations and URL references
+  - *"ex. Generate an artifact from the key takeaways of this conversation, including all relevant citations and URL references"*
 >
 > - **Download artifacts** as markdown files
 > - **Place in `docs/` directory** with descriptive filenames
