@@ -1,5 +1,3 @@
-![COMPASS Logo](assets/compass_logo.svg)
-
 # COMPASS - Contextual Mapping & Pattern Analysis System
 
 Why leave things to chance? Have you ever wanted your Claude Code environment to feel like a familiar friend with each iteration?
@@ -107,3 +105,5 @@ Because why leave things to chance when you can leave things to memory?
 ---
 
 *"The path through complexity isn't about avoiding the maze - it's about building better maps."*
+
+![COMPASS Logo](assets/compass_logo.svg)
