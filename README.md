@@ -98,33 +98,34 @@ With Serena installed, restart Claude Code in your project. You now have the com
 
 ## Not Just For Coding
 
-COMPASS transcends the boundaries of development work. The same patterns that illuminate tangled code dependencies can untangle complex research narratives. The memory that prevents debugging loops can prevent intellectual circles.
+COMPASS works beyond just coding. The same patterns that make sense of tangled code can organize complex research. The memory that stops you from debugging the same issue twice can stop you from chasing the same research rabbit holes.
 
-Consider the researcher drowning in conflicting sources, the analyst chasing the same dead ends, the writer rebuilding arguments from scratch with each new piece. COMPASS transforms these struggles into systematic knowledge-building, whether you're mapping academic literature networks, tracking evolving policy positions, or synthesizing complex multi-disciplinary insights.
+Think about the researcher lost in conflicting sources, the analyst hitting the same dead ends, the writer starting from scratch with each new project. COMPASS turns these struggles into organized knowledge-building, whether you're tracking research papers, following policy changes, or pulling together insights from different fields.
 
 ### Beyond the Codebase
 
-**Academic Research**: Complex research topics become navigable landscapes. Conflicting studies, evolving methodologies, and interdisciplinary connections map themselves into coherent visual frameworks.
+**Research Projects**: Complex topics become easier to navigate. Different studies, changing methods, and connections between fields turn into clear visual frameworks.
 
-**Document Analysis**: Large document sets reveal their hidden patterns. Regulatory changes, contract comparisons, and policy evolution tracking become systematic rather than overwhelming.
+**Document Work**: Large sets of documents reveal their patterns. Policy changes, contract comparisons, and tracking how things evolve become manageable instead of overwhelming.
 
-**Strategic Analysis**: Business intelligence, competitive landscapes, and market research build institutional memory that persists beyond individual reports or presentations.
+**Business Analysis**: Market research, competitor tracking, and business intelligence build lasting knowledge that goes beyond individual reports.
 
-**Content Creation**: Writing projects develop their own architectural memory. Argument structures, narrative flows, and editorial decisions accumulate into reusable frameworks.
+**Writing Projects**: Your writing develops its own memory. Argument structures, story flows, and editorial decisions become reusable tools.
 
 > **Artifact Integration Workflow**
 >
-> 1. **Create valuable insights** in Claude conversations
-> 2. **Generate artifacts** for significant analysis or frameworks  
-> 3. **Download artifacts** as markdown files
-> 4. **Place in `docs/` directory** with descriptive filenames
-> 5. **Let COMPASS organize** into searchable, cross-referenced knowledge
+> - **Create valuable insights** in Claude conversations
+> - **Generate artifacts** for significant analysis or frameworks
+    ◦ *"ex. Generate an artifact from the key takeaways of this conversation, including all relevant citations and URL references
+> - **Download artifacts** as markdown files
+> - **Place in `docs/` directory** with descriptive filenames
+> - **Let COMPASS organize** into searchable, cross-referenced knowledge
 >
-> *Why this matters*: Your breakthrough insights from one conversation become permanent institutional knowledge. The analytical framework you developed for understanding market dynamics doesn't vanish when the chat ends - it becomes part of your growing analytical toolkit.
+> *Why this matters*: Your breakthrough insights from one conversation become permanent knowledge. The framework you developed for understanding market trends doesn't disappear when the chat ends - it becomes part of your growing toolkit.
 
-The same visual mapping that reveals code bottlenecks can expose logical gaps in arguments. The same documentation that prevents technical debt can prevent intellectual debt. Every complex challenge you work through becomes a pathway for future understanding.
+The same visual mapping that shows code bottlenecks can show gaps in arguments. The same documentation that prevents technical problems can prevent knowledge problems. Every complex challenge you work through becomes a path for future understanding.
 
-COMPASS doesn't distinguish between debugging async race conditions and untangling policy contradictions. Both are patterns waiting to be recognized, mapped, and remembered.
+COMPASS doesn't care if you're debugging code or untangling policy contradictions. Both are patterns waiting to be recognized, mapped, and remembered.
 
 ## The Philosophy
 
