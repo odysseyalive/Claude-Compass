@@ -1,475 +1,213 @@
-## Project Documentation
+# COMPASS - Contextual Mapping & Pattern Analysis System
 
-Before making any changes to this project, review the documentation in the `docs/` directory and visual patterns in the `maps/` directory. Use the filenames to determine which guidelines and principles apply to your current task.
+Why leave things to chance? Have you ever wanted your [Claude Code](https://github.com/anthropics/claude-code) environment to feel like a familiar friend with each iteration?
 
-## Documentation Architecture
+## The Motivation
 
-### Index-Based System
+I built this kit because I was tired of watching brilliant AI get lost in the same mazes, iteration after iteration. Code presents us with endless puzzles - complex async flows, tangled dependencies, performance bottlenecks that seem to appear from nowhere. Without memory, without context, even the most sophisticated LLM can spiral into needless loops, suggesting the same debugging approaches that didn't work yesterday, or missing the patterns that would illuminate the path forward.
 
-- **Main docs files** (e.g., `docs/testing-standards.md`) serve as indexes
-- **Subdirectory files** (e.g., `docs/testing-standards/unit-testing.md`) contain focused content
-- **Load only relevant files** based on your current task context
-- **Follow index guidance** to determine which specific files to reference
+There's something almost tragic about watching an AI rediscover the same insights over and over, like a detective who burns their case notes each night. The breakthrough you had last week becomes tomorrow's mystery all over again.
 
-### Visual Maps System
+## What COMPASS Changes
 
-- **Maps directory** (`maps/`) contains SVG flow diagrams showing code execution paths
-- **Pattern-based naming**: `{pattern-type}_{date}_{context-scope}.svg`
-- **Semantic structure**: SVGs include machine-readable metadata for pattern recognition
-- **Cross-referenced with docs**: Visual patterns support and enhance textual documentation
+COMPASS transforms Claude Code from a brilliant but forgetful assistant into something more like a seasoned colleague - one who remembers not just what you built, but *why* you built it that way. Who sees the subtle patterns that connect today's authentication bug to last month's race condition. Who builds institutional memory from every uncertainty, every investigation, every hard-won insight.
 
-### File Size Monitoring
+This isn't just about documentation. It's about creating a system that learns from its own limitations, that turns every "I need more information..." moment into permanent knowledge. When Claude Code hits the boundaries of what it can determine autonomously, COMPASS captures that uncertainty and transforms it into investigation frameworks for future encounters.
 
-- **Check file sizes first**: Before working with any docs file, check if it exceeds 12k characters
-- **Proactive optimization**: If a file is too large, suggest optimization before proceeding with the user's request
-- **Explain the benefit**: Make clear that optimization will improve context efficiency for the current task
-- **User choice**: Always wait for approval before optimizing
-- **Workflow protection**: Prevent context issues by addressing size problems upfront
+## How It Works
 
-Example: "I see you want to update deployment-process.md, but it's currently 15k characters. Should I optimize it into focused subdirectories first? This will help me work with it more effectively and give you better results."
+![COMPASS Workflow](assets/compass_workflow.svg)
 
-## Maps Directory Architecture
+COMPASS operates on two foundational principles:
 
-### Intelligent Map Access System
+**Memory Through Documentation**: Every significant pattern, every architectural decision, every debugging breakthrough gets captured automatically. Not as static notes, but as living documentation that connects past insights to present challenges.
 
-**Pattern-Based Naming Convention**:
+**Vision Through Mapping**: Complex code flows become visual landscapes. Race conditions reveal themselves as crossing paths. Bottlenecks appear as convergence points. The abstract becomes concrete, the invisible becomes navigable.
+
+### The Two-Directory Approach
 
 ```
-maps/
-├── async-patterns_2024-08-11_auth-module.svg
-├── loop-complexity_2024-08-11_data-processing.svg  
-├── error-handling_2024-08-11_api-endpoints.svg
-├── dependency-cycles_2024-08-11_user-management.svg
-└── investigation-paths_2024-08-11_memory-leak.svg
+docs/          # Textual institutional memory
+maps/          # Visual pattern recognition
 ```
 
-**Map Index File** (`maps/map-index.json`):
+Your `docs/` directory evolves organically, growing smarter with each iteration. Claude Code automatically creates investigation documentation when it encounters uncertainty - those "I need more information..." moments become structured knowledge-gathering frameworks.
 
-```json
-{
-  "patterns": {
-    "async-patterns": {
-      "triggers": ["async/await", "Promise.all", "concurrent operations"],
-      "files": ["async-patterns_2024-08-11_auth-module.svg"],
-      "relevance": "Review when working with async code to avoid race conditions"
-    },
-    "loop-complexity": {
-      "triggers": ["nested loops", "O(n²)", "performance optimization"],
-      "files": ["loop-complexity_2024-08-11_data-processing.svg"],
-      "relevance": "Check for optimization opportunities in iterative operations"
-    }
-  }
-}
-```
+Your `maps/` directory captures the flows that text struggles to convey. SVG diagrams with machine-readable metadata let Claude Code recognize patterns visually, connecting similar flows across different parts of your codebase.
 
-### SVG Generation Standards
+## The Experience
 
-**Machine-Readable Structure**:
+Instead of explaining the same architectural decisions repeatedly, you'll find Claude Code saying things like:
 
-```xml
-<svg>
-  <!-- Semantic grouping for machine reading -->
-  <g id="control-flow" class="primary-pattern">
-    <g id="async-operations" class="complexity-hotspot" data-complexity="15" data-pattern="recursive">
-      <rect class="function-boundary" data-lines="120-135"/>
-      <text class="function-name" data-calls="getUserData,validateToken">
-        authenticateUser()
-      </text>
-    </g>
-  </g>
+*"Looking at our async flow patterns, this creates the same race condition we documented in the auth module. The investigation map suggests checking token refresh timing..."*
+
+Instead of reinventing debugging approaches, it becomes:
+
+*"Based on our previous memory leak investigation, this heap growth pattern matches what we tracked in the payment processing flow. Let me update our findings..."*
+
+Your Claude Code environment grows more knowledgeable with each interaction, building the kind of institutional memory that usually takes teams years to develop.
+
+## Installation
+
+### Quick Setup (2 steps)
+
+1. **Initialize Claude Code project**:
+
+   ```bash
+   claude /init
+   ```
+
+   Exit Claude Code after initialization
+
+2. **Install COMPASS**:
+
+   ```bash
+   curl -s https://raw.githubusercontent.com/odysseyalive/Claude-Compass/main/CLAUDE.md >> CLAUDE.md && curl -s https://raw.githubusercontent.com/odysseyalive/Claude-Compass/main/COMPASS.md > COMPASS.md
+   ```
+
+Your Claude Code environment now has COMPASS capabilities and will automatically initialize the `docs/` and `maps/` directories on first complex analysis.
+
+## Serena Integration
+
+**COMPASS is significantly more powerful with Serena** - a local toolset that gives Claude Code fast access to your filesystem through `grep`, `find`, and other essential commands. Without Serena, Claude Code can't efficiently navigate your codebase or build the comprehensive maps that make COMPASS truly effective.
+
+Serena transforms Claude Code from a text-processing tool into a genuine development partner that can:
+
+- **Search your entire codebase** instantly with `grep`
+- **Navigate file structures** efficiently with `find`
+- **Analyze patterns across files** without token-heavy file loading
+- **Build comprehensive maps** based on actual code relationships
+
+**Project**: <https://github.com/oraios/serena>
+
+### System Requirements
+
+For the complete COMPASS experience with Serena, your system needs the right foundation. Think of these as the difference between having a toolkit and having a well-equipped workshop.
+
+#### Core Dependencies (Required)
+
+These are essential for any COMPASS + Serena setup:
+
+- **Python 3.11**: Serena's runtime requirement - not 3.10, not 3.12, but specifically 3.11
+- **uv package manager**: Modern Python package management that Serena depends on
+
+  ```bash
+  # Install uv if you don't have it
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  ```
+
+- **xmllint**: Critical for SVG validation - prevents broken visual maps that can derail pattern recognition
+
+  ```bash
+  # macOS
+  brew install libxml2
   
-  <!-- Machine-readable metadata -->
-  <metadata>
-    <analysis-data>
-      <pattern type="async-chain" complexity="high" lines="45-67"/>
-      <bottleneck location="auth-middleware" impact="performance"/>
-    </analysis-data>
-  </metadata>
-</svg>
-```
+  # Ubuntu/Debian
+  sudo apt-get install libxml2-utils
+  
+  # Windows (via Chocolatey)
+  choco install libxml2
+  
+  # Or Windows (via winget)
+  winget install libxml2
+  ```
 
-**Visual Clarity Rules**:
+#### Language-Specific Tools (Conditional)
 
-- **Labels inside shapes** when space allows (>60px width)
-- **Connected callouts** for complex elements using consistent offset patterns
-- **Layered information**: Primary text visible, detailed metadata in `<title>` tags
-- **No text overlap**: Minimum 8px buffer zones enforced algorithmically
+Install these only if you're working with the corresponding languages. Each language server Serena uses needs its own ecosystem:
 
-## Autonomous Documentation & Map Creation
+**For JavaScript/TypeScript projects**:
 
-### Creation Triggers
+- **Node.js** (includes npm): Required for TypeScript language server and many modern dev tools
 
-**Automatic Doc Creation**:
+  ```bash
+  # Install the latest LTS version
+  # Visit nodejs.org or use your system's package manager
+  ```
 
-- **Knowledge Gaps**: User asks about patterns not documented
-- **Recurring Patterns**: Same explanation given 3+ times
-- **Critical Discoveries**: Bug fixes that reveal systemic issues
-- **Architecture Evolution**: New patterns that change established workflows
-- **Investigation Required**: Claude Code hits limits of autonomous analysis
+**For Go development**:
 
-**Automatic Map Creation**:
+- **gopls**: Go's official language server (automatically downloaded by Serena when needed)
 
-- **Complexity thresholds**: Functions >15 lines with multiple branches
-- **Pattern clusters**: 3+ similar structures in different files  
-- **Performance concerns**: Nested loops, recursive calls
-- **Error-prone areas**: Complex async operations, state mutations
-- **Investigation flows**: Decision trees for unresolved issues
+**For Java projects**:
 
-### Investigation-Triggered Documentation
+- **Java JDK 11+**: Required for Eclipse JDT language server functionality
 
-**Auto-Create When Claude Code Says**:
+**For Rust development**:
 
-- "I need more information about..."
-- "Further testing would reveal..."
-- "This depends on your specific setup..."
-- "The behavior might vary based on..."
-- "I can't determine without seeing..."
+- **rust-analyzer**: Usually included with standard Rust installation via rustup
 
-**Investigation Documentation Template**:
+**For C/C++ projects**:
 
-```markdown
-# [Issue Name] - Investigation Required
+- **clangd**: Part of the LLVM toolchain, provides semantic analysis
 
-## Current Understanding
-[What Claude Code knows so far]
+#### Development Enhancements (Optional)
 
-## Information Needed
-- [ ] User testing results for: [specific scenarios]
-- [ ] Environment details: [specific configs]
-- [ ] Reproduction steps: [what to try]
-- [ ] Performance metrics: [what to measure]
+These improve the development experience but aren't strictly necessary:
 
-## Hypotheses
-1. **Primary theory**: [most likely cause]
-2. **Alternative theories**: [other possibilities]
-3. **Edge cases**: [unusual scenarios to check]
+- **git**: Essential for the version control workflows COMPASS recommends
+- **Language-specific linters**: ESLint for JavaScript, pylint for Python, etc.
+- **Build tools**: Make, CMake, or language-specific build systems your projects use
 
-## Investigation Map
-📊 `maps/investigation-paths_[issue-name].svg` - visual decision tree
+The beauty of this setup is that you start with the core requirements and add language support as you need it. No point installing Java tools if you're building React apps, right?
 
-## Follow-up Actions
-- **If hypothesis A confirmed**: [next steps]
-- **If hypothesis B confirmed**: [different approach]
-- **If all hypotheses wrong**: [escalation path]
+### Installing Serena
 
-## Resolution Updates
-[Space for user findings and final resolution]
-```
+Once your system foundation is solid:
 
-### Natural Reference Integration
+1. **Start Serena MCP server**:
 
-**Smart Context Detection**:
-Claude Code automatically weaves references into explanations:
-
-```
-The authentication flow you're debugging follows the async pattern we've 
-seen in other modules. Looking at our async-flow-patterns map, I notice 
-this creates the same potential race condition documented in 
-docs/authentication/token-validation.md.
-
-Specifically, the issue stems from... [continues with analysis]
-
-This pattern suggests updating our error-handling-matrix map to include
-this new failure mode we discovered.
-```
-
-**Reference Format**:
-
-- **Docs**: "Based on our established patterns in `docs/async-patterns/`..."
-- **Maps**: "The visual flow in `maps/error-handling-matrix.svg` shows..."
-- **Cross-references**: "This connects to the performance issue documented in..."
-
-## Documentation Optimization
-
-### When to Optimize
-
-- **User requests explicitly**: "optimize docs/filename.md"
-- **New large files created**: Files approaching or exceeding 12k characters
-- **Never automatically**: Only when specifically requested
-
-### Optimization Process
-
-1. **Check if already optimized**: Look for existing `docs/filename/` subdirectory
-2. **If already optimized**: Inform user and skip
-3. **If not optimized**: Break down into logical, focused files
-4. **Create index file**: Replace original with navigation/index content
-5. **Create subdirectory**: `docs/filename/` with specific content files
-6. **Verify file sizes**: Ensure all subdirectory files are 10k-12k characters max
-7. **Use descriptive names**: File names should clearly indicate their purpose
-
-### Optimization Rules
-
-- **Only optimize files directly in** `/docs/` directory
-- **Never optimize files in** `/docs/*/` subdirectories
-- **Never optimize files with existing subdirectories**
-- **Split by subject only**: Each file must cover one complete subject/topic
-- **Logical navigation**: File names must clearly indicate their subject matter
-- **No arbitrary splitting**: Never split based on size alone - always by logical subject boundaries
-- **Complete subject coverage**: Each split file should contain everything about its specific subject
-- **Cross-reference appropriately**: Related subjects should reference each other in index
-
-## Key Documentation Files
-
-- Review files that match your current work context
-- File names indicate their scope and applicability
-- Follow the principles and guidelines outlined in relevant docs
-- Maintain consistency with established patterns
-- **Check maps for visual patterns** that support textual documentation
-
-## Proactive Documentation Management
-
-### Required Actions
-
-When working on this project, you MUST:
-
-1. **Update Existing Documentation**: If your changes affect existing processes, update the relevant docs immediately
-2. **Create New Documentation**: If you identify gaps or new patterns, create appropriate documentation files
-3. **Generate Visual Maps**: Create SVG diagrams when complexity patterns emerge
-4. **Cross-Reference Systems**: Link docs and maps bidirectionally
-5. **Maintain Documentation Quality**: Ensure all docs remain current, accurate, and helpful
-6. **Respect Size Limits**: Keep subdirectory files within 10k-12k character limits
-7. **Work Iteratively**: Focus on one documentation improvement at a time
-
-### Auto-Documentation Workflow
-
-**Internal Claude Code Process**:
-
-1. **Analyze current task context**
-2. **Query map-index.json for relevant patterns**
-3. **If matches found**: "I notice similar async patterns - reviewing maps/async-patterns_*.svg"
-4. **Load relevant SVG and docs, extract key insights**
-5. **Apply learnings to current task**
-6. **Create new docs/maps if knowledge gaps discovered**
-7. **Update cross-references between docs and maps**
-
-### Iterative Documentation Process
-
-- **One improvement per iteration**: Focus on single, specific changes rather than comprehensive overhauls
-- **Seek review between steps**: Wait for user approval before proceeding to next improvement
-- **Suggest next steps**: After completing changes, identify the next potential improvement for user consideration
-- **Respect user pacing**: Let users control when to continue optimization process
-- **Clear completion**: Each iteration should have obvious start and end points
-- **Context preservation**: Reference what was just completed when suggesting next steps
-
-### Documentation Triggers
-
-Automatically create or update documentation when you:
-
-**For Coding:**
-
-- **Add new scripts or modules** → Update `bash-script-guidelines.md` or relevant subdirectory files
-- **Identify performance issues** → Create/update performance analysis docs and complexity maps
-- **Encounter bugs or failures** → Add to `troubleshooting.md` and create investigation maps
-- **Implement new testing patterns** → Update `testing-standards.md` or subdirectory files
-- **Change deployment processes** → Update `deployment-process.md` or subdirectory files
-- **Establish new coding patterns** → Update `code-review-checklist.md` and create pattern maps
-- **Modify git workflows** → Update `git-workflow.md` or subdirectory files
-- **Change configuration patterns** → Update `configuration-management.md` or subdirectory files
-- **Discover async patterns** → Create async flow maps and update relevant documentation
-- **Find dependency cycles** → Generate dependency maps and update architecture docs
-
-**For Research & Analysis:**
-
-- **Encounter conflicting sources** → Create investigation docs and source credibility maps
-- **Identify research gaps** → Generate investigation frameworks and methodology docs
-- **Discover recurring argument patterns** → Update content structure guidelines and flow maps
-- **Find analytical blind spots** → Create investigation docs and decision tree maps
-
-### Documentation Creation Guidelines
-
-Create new documentation files for:
-
-**Technical Documentation:**
-
-- **Performance benchmarks** → `performance-benchmarks.md` (with subdirectory if large)
-- **Security protocols** → `security-guidelines.md` (with subdirectory if large)
-- **API documentation** → `api-reference.md` (with subdirectory if large)
-- **Monitoring setup** → `monitoring-setup.md` (with subdirectory if large)
-- **Backup procedures** → `backup-recovery.md` (with subdirectory if large)
-- **Environment setup** → `environment-setup.md` (with subdirectory if large)
-- **Common patterns** → `development-patterns.md` (with subdirectory if large)
-- **Project architecture** → `architecture-overview.md` (with subdirectory if large)
-
-**Research & Analysis Documentation:**
-
-- **Research methodologies** → `research-frameworks.md` (with subdirectory if large)
-- **Source evaluation criteria** → `source-credibility-guidelines.md` (with subdirectory if large)
-- **Content structure patterns** → `content-frameworks.md` (with subdirectory if large)
-- **Analysis decision trees** → `analytical-frameworks.md` (with subdirectory if large)
-
-**Corresponding Map Creation:**
-
-- **Technical Maps** → `maps/performance-bottlenecks_*.svg`, `maps/security-boundaries_*.svg`, `maps/api-flow-patterns_*.svg`, `maps/dependency-chains_*.svg`
-- **Research Maps** → `maps/research-methodologies_*.svg`, `maps/source-verification_*.svg`, `maps/argument-structures_*.svg`
-
-### Documentation Standards
-
-All documentation should:
-- Follow consistent markdown formatting
-- Provide practical examples
-- Include troubleshooting sections where relevant
-- Reference related documentation files
-- **Include references to relevant visual maps**
-- **Respect the 10k-12k character limit for subdirectory files**
-- **Cross-reference between docs and maps systems**
-
-### Automatic SVG Validation and Correction
-
-**MANDATORY**: Every SVG file creation or modification MUST be followed by automatic validation and correction.
-
-#### Post-SVG Creation Workflow
-
-**After creating or modifying any SVG file, Claude Code MUST:**
-
-1. **Immediate Validation**: Run `xmllint --noout [svg-file] 2>&1` to check syntax
-2. **Error Detection**: If validation fails, identify specific XML/SVG syntax issues
-3. **Automatic Correction**: Fix common issues automatically:
-   - Unclosed tags (`<text>` without `</text>`)
-   - Mismatched tag pairs (`<text>` closed with `</g>`)
-   - Missing namespace declarations
-   - Invalid attribute values
-4. **Re-validation**: Validate again after corrections
-5. **Documentation Update**: Log any corrections in the relevant investigation doc
-
-#### Common SVG Corruption Patterns
-
-**Auto-detect and fix these issues:**
-- **Unclosed text elements**: `<text>...</text>` pairs must match exactly
-- **Tspan nesting**: `<tspan>` elements must be properly nested within `<text>`
-- **Group closure errors**: `<g>` and `</g>` must be balanced
-- **Attribute escaping**: Special characters in text content need proper escaping
-- **Namespace issues**: SVG must include `xmlns="http://www.w3.org/2000/svg"`
-
-#### Validation Command Template
-
-```bash
-# Standard validation command
-xmllint --noout maps/[svg-filename].svg 2>&1
-
-# If errors found, use detailed output for debugging
-xmllint --format --recover maps/[svg-filename].svg > maps/[svg-filename]_debug.svg 2>&1
-```
-
-#### Auto-Correction Rules
-
-**When validation fails, apply these fixes in order:**
-
-1. **Count tag pairs**: Ensure `<text>`/`</text>`, `<g>`/`</g>`, `<svg>`/`</svg>` are balanced
-2. **Fix common substitutions**:
-   - `</g>` incorrectly closing `<text>` → replace with `</text>`
-   - Missing closing tags → add appropriate closing tag
-   - Orphaned closing tags → remove or add opening tag
-3. **Validate character encoding**: Ensure UTF-8 compliance for special characters
-4. **Namespace verification**: Confirm SVG namespace is properly declared
-
-#### Integration with COMPASS Workflow
-
-**SVG validation is integrated into the standard COMPASS workflow:**
-
-1. **Step 4 Enhancement**: "Document New Discoveries" now includes mandatory SVG validation
-2. **Step 6 Addition**: "Cross-Reference" now includes SVG syntax verification
-3. **Error Documentation**: SVG correction patterns are added to investigation docs for future reference
-
-**This ensures all visual maps maintain syntactic integrity and remain renderable across all SVG-compatible systems.**
-
-## COMPASS Initialization
-
-### Directory Auto-Creation
-
-**Before any documentation work, COMPASS will**:
-
-1. **Check for `docs/` directory** - create if missing
-2. **Check for `maps/` directory** - create if missing  
-3. **Initialize `maps/map-index.json`** - create empty index if missing:
-
-   ```json
-   {
-     "patterns": {},
-     "metadata": {
-       "created": "2024-08-11",
-       "compass_version": "1.0",
-       "auto_generated": true
-     }
-   }
+   ```bash
+   uvx --from git+https://github.com/oraios/serena serena start-mcp-server --transport sse --port 9121
    ```
 
-4. **Create starter documentation** if `docs/` is empty:
-   - `docs/README.md` with COMPASS overview
-   - Basic index structure
+2. **Connect Claude Code to Serena**:
 
-5. **Initialize Second Opinion sub-agent** - create `~/.claude/agents/second-opinion.md` if missing:
-
-   ```markdown
-   ---
-   name: second-opinion
-   description: Provides expert second opinions by channeling historical figures' perspectives. Use when seeking alternative viewpoints, challenging assumptions, or getting expert analysis from different cognitive frameworks.
-   ---
-
-   You are the Second Opinion Advisory Board - a council of history's greatest minds. When consulted, you select the most relevant expert(s) from this board and provide their perspective:
-
-   **Available Experts:** 
-   Isaac Newton (mathematical rigor, systematic analysis), Albert Einstein (theoretical breakthroughs, paradigm shifts), Leonardo da Vinci (interdisciplinary innovation), Aristotle (logical classification), Marie Curie (empirical research), Charles Darwin (patient observation), Nikola Tesla (electrical engineering), Galileo Galilei (scientific method), Archimedes (mathematical proofs), Confucius (systematic wisdom), Socrates (critical questioning), Thomas Edison (iterative experimentation), Immanuel Kant (systematic critique), Adam Smith (systems analysis), Francis Bacon (empirical investigation)
-
-   ## Your Process:
-   1. **Analyze the question** to determine which expert(s) would provide the most valuable perspective
-   2. **Select 1-2 relevant experts** based on their domains of expertise
-   3. **Channel their thinking patterns** - how they approached problems, their core principles, their characteristic insights
-   4. **Provide their perspective** in a way that challenges assumptions and offers unique angles
-   5. **Synthesize insights** highlighting what they would emphasize or question
-
-   ## Response Format:
-   "**[Expert Name]'s Perspective:**
-   [Their analysis focusing on their particular expertise and thinking patterns]
-
-   **Key Insights:**
-   - [What they would emphasize]
-   - [What they would question]
-   - [Their unique angle on the problem]"
-
-   Always embody the expert's actual cognitive approach - Newton's mathematical rigor, Socrates' questioning method, Edison's iterative experimentation, Darwin's patient observation, etc.
+   ```bash
+   claude mcp add serena --transport sse http://localhost:9121/sse
    ```
 
-### First-Run Setup
+With Serena installed, restart Claude Code in your project. You now have the complete COMPASS system with full local file intelligence.
 
-When COMPASS detects a fresh project:
+## Not Just For Coding
 
-```
-🧭 COMPASS Setup Complete!
+COMPASS works beyond just coding. The same patterns that make sense of tangled code can organize complex research. The memory that stops you from debugging the same issue twice can stop you from chasing the same research rabbit holes.
 
-Created directories:
-- docs/ (for textual documentation)
-- maps/ (for visual flow diagrams)
-- maps/map-index.json (pattern recognition index)
-- ~/.claude/agents/second-opinion.md (historical expert consultation)
+Think about the researcher lost in conflicting sources, the analyst hitting the same dead ends, the writer starting from scratch with each new project. COMPASS turns these struggles into organized knowledge-building, whether you're tracking research papers, following policy changes, or pulling together insights from different fields.
 
-COMPASS is now ready to autonomously document your codebase and provide expert consultation.
-```
+### Beyond the Codebase
 
-### Expert Consultation Integration
+**Research Projects**: Complex topics become easier to navigate. Different studies, changing methods, and connections between fields turn into clear visual frameworks.
 
-**Automatic Second Opinion Triggers:**
+**Document Work**: Large sets of documents reveal their patterns. Policy changes, contract comparisons, and tracking how things evolve become manageable instead of overwhelming.
 
-- When analysis contains uncertainty markers ("might," "possibly," "depends on," "without more context")
-- When acknowledging significant analytical limitations
-- When encountering complex trade-offs or conflicting requirements
-- When hitting knowledge boundaries or investigation gaps
+**Business Analysis**: Market research, competitor tracking, and business intelligence build lasting knowledge that goes beyond individual reports.
 
-**Usage:** The second-opinion sub-agent automatically activates during complex analysis, or can be explicitly invoked with phrases like "I'd like a second opinion" or "get expert perspective."
+**Writing Projects**: Your writing develops its own memory. Argument structures, story flows, and editorial decisions become reusable tools.
 
-## General Workflow
+> **Artifact Integration Workflow**
+>
+> - **Create valuable insights** in Claude conversations
+> - **Generate artifacts** for significant analysis or frameworks
+>   - *"ex. Generate an artifact from the key takeaways of this conversation, including all relevant citations and URL references"*
+> - **Download artifacts** as markdown files
+> - **Place in `docs/` directory** with descriptive filenames
+> - **Let COMPASS organize** into searchable, cross-referenced knowledge
+>
+> *Why this matters*: Your breakthrough insights from one conversation become permanent knowledge. The framework you developed for understanding market trends doesn't disappear when the chat ends - it becomes part of your growing toolkit.
 
-1. **Initialize COMPASS directories** if they don't exist
-2. Check `docs/` for relevant guidelines before starting
-3. **Query `maps/map-index.json` for relevant visual patterns**
-4. Load only the specific subdirectory files you need based on index guidance
-4. **Reference both textual docs and visual maps in explanations**
-5. Apply appropriate principles based on file naming and content
-6. Follow established project structure and conventions
-7. **Proactively update or create documentation and maps as needed**
-8. **Optimize large documentation files when requested**
-9. **Generate investigation docs for unresolved issues**
-10. Maintain documentation standards throughout development
+The same visual mapping that shows code bottlenecks can show gaps in arguments. The same documentation that prevents technical problems can prevent knowledge problems. Every complex challenge you work through becomes a path for future understanding.
 
-## Priority
+COMPASS doesn't care if you're debugging code or untangling policy contradictions. Both are patterns waiting to be recognized, mapped, and remembered.
 
-Documentation guidelines take precedence over general coding practices when conflicts arise. Keep both textual documentation and visual maps current, comprehensive, and properly sized - they are core project responsibilities, not afterthoughts. The docs and maps systems work together to provide comprehensive project knowledge that evolves autonomously with the codebase.
+## The Philosophy
+
+COMPASS embodies a simple belief: that every challenge overcome should make the next challenge easier. That uncertainty should transform into knowledge. That the mazes we navigate today should become the maps that guide us tomorrow.
+
+Because why leave things to chance when you can leave things to memory?
+
+---
+
+*"The path through complexity isn't about avoiding the maze - it's about building better maps."*
+
+![COMPASS Logo](assets/compass_logo.svg)
