@@ -305,7 +305,6 @@ Create new documentation files for:
 ### Documentation Standards
 
 All documentation should:
-
 - Follow consistent markdown formatting
 - Provide practical examples
 - Include troubleshooting sections where relevant
@@ -313,6 +312,65 @@ All documentation should:
 - **Include references to relevant visual maps**
 - **Respect the 10k-12k character limit for subdirectory files**
 - **Cross-reference between docs and maps systems**
+
+### Automatic SVG Validation and Correction
+
+**MANDATORY**: Every SVG file creation or modification MUST be followed by automatic validation and correction.
+
+#### Post-SVG Creation Workflow
+
+**After creating or modifying any SVG file, Claude Code MUST:**
+
+1. **Immediate Validation**: Run `xmllint --noout [svg-file] 2>&1` to check syntax
+2. **Error Detection**: If validation fails, identify specific XML/SVG syntax issues
+3. **Automatic Correction**: Fix common issues automatically:
+   - Unclosed tags (`<text>` without `</text>`)
+   - Mismatched tag pairs (`<text>` closed with `</g>`)
+   - Missing namespace declarations
+   - Invalid attribute values
+4. **Re-validation**: Validate again after corrections
+5. **Documentation Update**: Log any corrections in the relevant investigation doc
+
+#### Common SVG Corruption Patterns
+
+**Auto-detect and fix these issues:**
+- **Unclosed text elements**: `<text>...</text>` pairs must match exactly
+- **Tspan nesting**: `<tspan>` elements must be properly nested within `<text>`
+- **Group closure errors**: `<g>` and `</g>` must be balanced
+- **Attribute escaping**: Special characters in text content need proper escaping
+- **Namespace issues**: SVG must include `xmlns="http://www.w3.org/2000/svg"`
+
+#### Validation Command Template
+
+```bash
+# Standard validation command
+xmllint --noout maps/[svg-filename].svg 2>&1
+
+# If errors found, use detailed output for debugging
+xmllint --format --recover maps/[svg-filename].svg > maps/[svg-filename]_debug.svg 2>&1
+```
+
+#### Auto-Correction Rules
+
+**When validation fails, apply these fixes in order:**
+
+1. **Count tag pairs**: Ensure `<text>`/`</text>`, `<g>`/`</g>`, `<svg>`/`</svg>` are balanced
+2. **Fix common substitutions**:
+   - `</g>` incorrectly closing `<text>` → replace with `</text>`
+   - Missing closing tags → add appropriate closing tag
+   - Orphaned closing tags → remove or add opening tag
+3. **Validate character encoding**: Ensure UTF-8 compliance for special characters
+4. **Namespace verification**: Confirm SVG namespace is properly declared
+
+#### Integration with COMPASS Workflow
+
+**SVG validation is integrated into the standard COMPASS workflow:**
+
+1. **Step 4 Enhancement**: "Document New Discoveries" now includes mandatory SVG validation
+2. **Step 6 Addition**: "Cross-Reference" now includes SVG syntax verification
+3. **Error Documentation**: SVG correction patterns are added to investigation docs for future reference
+
+**This ensures all visual maps maintain syntactic integrity and remain renderable across all SVG-compatible systems.**
 
 ## COMPASS Initialization
 

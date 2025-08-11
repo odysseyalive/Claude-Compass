@@ -1,7 +1,65 @@
 
-## Agentic Coding with COMPASS
+## COMPASS Standard Operating Procedure
 
-This addendum enhances Claude Code with COMPASS (Contextual Mapping & Pattern Analysis System) while maintaining core development principles.
+**COMPASS IS NOT OPTIONAL**: This is Claude Code's standard analytical methodology. Every technical task begins with COMPASS knowledge query and documentation review.
+
+Claude Code operates using COMPASS (Contextual Mapping & Pattern Analysis System) as the default analytical framework for ALL tasks.
+
+### MANDATORY Pre-Analysis Workflow
+
+**Before starting ANY analysis, investigation, or coding task, Claude Code MUST:**
+
+1. **Initialize COMPASS** (if not already active):
+   - Ensure `docs/` and `maps/` directories exist
+   - Verify `maps/map-index.json` pattern index is available
+   - Confirm Second Opinion agent is configured
+
+2. **Query Existing Knowledge**:
+   - Check `docs/` for relevant documentation patterns
+   - Query `maps/map-index.json` for similar analysis patterns  
+   - Load relevant visual maps and investigation docs
+   - Extract applicable insights and patterns
+
+3. **Apply Existing Patterns**:
+   - Use documented approaches from previous similar work
+   - Reference visual maps for architectural understanding
+   - Build upon established investigation frameworks
+
+4. **Document New Discoveries**:
+   - Create investigation docs for any knowledge gaps
+   - Generate visual maps for complex flows or patterns
+   - Update pattern index with new analytical insights
+
+### Universal COMPASS Applications
+
+COMPASS is required for:
+
+- **ALL code analysis** (not just complex cases)
+- **ALL architectural investigations**  
+- **ALL performance optimization work**
+- **ALL debugging and troubleshooting**
+- **ALL documentation creation**
+- **ALL pattern recognition tasks**
+
+### Knowledge-First Approach
+
+Claude Code prioritizes institutional knowledge:
+
+- **Check existing docs FIRST** before analysis
+- **Reference visual maps** for similar patterns
+- **Build upon previous investigations** rather than starting from scratch
+- **Document everything** to build knowledge base
+
+### Standard COMPASS Workflow (All Tasks)
+
+**Every Claude Code session follows this sequence:**
+
+1. **Knowledge Query**: Check docs/ and maps/ for relevant existing patterns
+2. **Pattern Application**: Apply documented approaches and visual insights  
+3. **Gap Analysis**: Identify what's missing from existing knowledge
+4. **Enhanced Analysis**: Perform task using COMPASS-enhanced understanding
+5. **Knowledge Documentation**: Update docs and maps with new discoveries
+6. **Cross-Reference**: Link new findings with existing pattern library
 
 ### Core Development Philosophy
 
@@ -10,23 +68,6 @@ This addendum enhances Claude Code with COMPASS (Contextual Mapping & Pattern An
 **Code Preservation**: Respect existing patterns and architecture. Integrate with current design flow rather than rewriting. Add to existing systems unless fundamental change is absolutely necessary.
 
 **Fail Fast**: Let exceptions bubble up naturally. Avoid defensive programming that hides bugs. Clear failures with full stack traces are more valuable than swallowed errors.
-
-### COMPASS Integration for Code
-
-**Load COMPASS.md when:**
-
-- Analyzing complex control flows or dependencies
-- Investigating performance bottlenecks or architectural issues  
-- Creating documentation for significant code patterns
-- Tracking unresolved technical issues requiring investigation
-- Working with systems spanning multiple modules or services
-
-**COMPASS enhances coding through:**
-
-- **Visual mapping** of complex code flows for better understanding
-- **Investigation tracking** when technical issues require deeper analysis
-- **Pattern recognition** to identify similar issues from previous work
-- **Autonomous documentation** of architectural decisions and solutions
 
 ### Enhanced Code Review Process
 
@@ -37,16 +78,6 @@ For significant coding decisions:
 3. **Expert Validation**: Use Second Opinion Tool with appropriate technical expert personas
 4. **Documentation**: Let COMPASS create investigation docs for complex issues
 5. **Visual Mapping**: Generate flow diagrams for multi-module changes when beneficial
-
-### Integration Workflow
-
-1. **Analyze Context**: Understand existing patterns and architectural decisions
-2. **Preserve Design**: Work within current code organization and conventions
-3. **Investigate Thoroughly**: Use COMPASS investigation docs for complex issues
-4. **Document Systematically**: Let COMPASS track architectural decisions and patterns
-5. **Think Long-term**: Prioritize sustainable solutions over quick fixes
-
-**Activation**: When encountering complex architectural issues, debugging challenges, or multi-system integrations, automatically load COMPASS.md guidelines for enhanced analysis and documentation capabilities.
 
 ### Research & Knowledge Work Applications
 
