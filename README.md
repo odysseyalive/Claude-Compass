@@ -1,6 +1,6 @@
 # COMPASS - Contextual Mapping & Pattern Analysis System
 
-Why leave things to chance? Have you ever wanted your Claude Code environment to feel like a familiar friend with each iteration?
+Why leave things to chance? Have you ever wanted your [Claude Code](https://github.com/anthropics/claude-code) environment to feel like a familiar friend with each iteration?
 
 ## The Motivation
 
@@ -54,7 +54,7 @@ Your Claude Code environment grows more knowledgeable with each interaction, bui
 1. **Initialize Claude Code project**:
 
    ```bash
-   claude code /init
+   claude /init
    ```
 
    Exit Claude Code after initialization
