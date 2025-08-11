@@ -96,6 +96,36 @@ Serena transforms Claude Code from a text-processing tool into a genuine develop
 
 With Serena installed, restart Claude Code in your project. You now have the complete COMPASS system with full local file intelligence.
 
+## Not Just For Coding
+
+COMPASS transcends the boundaries of development work. The same patterns that illuminate tangled code dependencies can untangle complex research narratives. The memory that prevents debugging loops can prevent intellectual circles.
+
+Consider the researcher drowning in conflicting sources, the analyst chasing the same dead ends, the writer rebuilding arguments from scratch with each new piece. COMPASS transforms these struggles into systematic knowledge-building, whether you're mapping academic literature networks, tracking evolving policy positions, or synthesizing complex multi-disciplinary insights.
+
+### Beyond the Codebase
+
+**Academic Research**: Complex research topics become navigable landscapes. Conflicting studies, evolving methodologies, and interdisciplinary connections map themselves into coherent visual frameworks.
+
+**Document Analysis**: Large document sets reveal their hidden patterns. Regulatory changes, contract comparisons, and policy evolution tracking become systematic rather than overwhelming.
+
+**Strategic Analysis**: Business intelligence, competitive landscapes, and market research build institutional memory that persists beyond individual reports or presentations.
+
+**Content Creation**: Writing projects develop their own architectural memory. Argument structures, narrative flows, and editorial decisions accumulate into reusable frameworks.
+
+> **Artifact Integration Workflow**
+>
+> 1. **Create valuable insights** in Claude conversations
+> 2. **Generate artifacts** for significant analysis or frameworks  
+> 3. **Download artifacts** as markdown files
+> 4. **Place in `docs/` directory** with descriptive filenames
+> 5. **Let COMPASS organize** into searchable, cross-referenced knowledge
+>
+> *Why this matters*: Your breakthrough insights from one conversation become permanent institutional knowledge. The analytical framework you developed for understanding market dynamics doesn't vanish when the chat ends - it becomes part of your growing analytical toolkit.
+
+The same visual mapping that reveals code bottlenecks can expose logical gaps in arguments. The same documentation that prevents technical debt can prevent intellectual debt. Every complex challenge you work through becomes a pathway for future understanding.
+
+COMPASS doesn't distinguish between debugging async race conditions and untangling policy contradictions. Both are patterns waiting to be recognized, mapped, and remembered.
+
 ## The Philosophy
 
 COMPASS embodies a simple belief: that every challenge overcome should make the next challenge easier. That uncertainty should transform into knowledge. That the mazes we navigate today should become the maps that guide us tomorrow.
