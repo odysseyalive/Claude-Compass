@@ -80,7 +80,80 @@ Serena transforms Claude Code from a text-processing tool into a genuine develop
 
 **Project**: <https://github.com/oraios/serena>
 
+### System Requirements
+
+For the complete COMPASS experience with Serena, your system needs the right foundation. Think of these as the difference between having a toolkit and having a well-equipped workshop.
+
+#### Core Dependencies (Required)
+
+These are essential for any COMPASS + Serena setup:
+
+- **Python 3.11**: Serena's runtime requirement - not 3.10, not 3.12, but specifically 3.11
+- **uv package manager**: Modern Python package management that Serena depends on
+
+  ```bash
+  # Install uv if you don't have it
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  ```
+
+- **xmllint**: Critical for SVG validation - prevents broken visual maps that can derail pattern recognition
+
+  ```bash
+  # macOS
+  brew install libxml2
+  
+  # Ubuntu/Debian
+  sudo apt-get install libxml2-utils
+  
+  # Windows (via Chocolatey)
+  choco install libxml2
+  
+  # Or Windows (via winget)
+  winget install libxml2
+  ```
+
+#### Language-Specific Tools (Conditional)
+
+Install these only if you're working with the corresponding languages. Each language server Serena uses needs its own ecosystem:
+
+**For JavaScript/TypeScript projects**:
+
+- **Node.js** (includes npm): Required for TypeScript language server and many modern dev tools
+
+  ```bash
+  # Install the latest LTS version
+  # Visit nodejs.org or use your system's package manager
+  ```
+
+**For Go development**:
+
+- **gopls**: Go's official language server (automatically downloaded by Serena when needed)
+
+**For Java projects**:
+
+- **Java JDK 11+**: Required for Eclipse JDT language server functionality
+
+**For Rust development**:
+
+- **rust-analyzer**: Usually included with standard Rust installation via rustup
+
+**For C/C++ projects**:
+
+- **clangd**: Part of the LLVM toolchain, provides semantic analysis
+
+#### Development Enhancements (Optional)
+
+These improve the development experience but aren't strictly necessary:
+
+- **git**: Essential for the version control workflows COMPASS recommends
+- **Language-specific linters**: ESLint for JavaScript, pylint for Python, etc.
+- **Build tools**: Make, CMake, or language-specific build systems your projects use
+
+The beauty of this setup is that you start with the core requirements and add language support as you need it. No point installing Java tools if you're building React apps, right?
+
 ### Installing Serena
+
+Once your system foundation is solid:
 
 1. **Start Serena MCP server**:
 
