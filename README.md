@@ -1,6 +1,6 @@
-# COMPASS - Contextual Mapping & Pattern Analysis System
-
 ![COMPASS Logo](assets/compass_logo.svg)
+
+# COMPASS - Contextual Mapping & Pattern Analysis System
 
 Why leave things to chance? Have you ever wanted your Claude Code environment to feel like a familiar friend with each iteration?
 
