@@ -88,8 +88,22 @@ For the complete COMPASS experience with Serena, your system needs the right fou
 
 These are essential for any COMPASS + Serena setup:
 
+- **Node.js** (includes npm): Required for TypeScript/JavaScript language server and other core Serena functionality
+
+  ```bash
+  # Recommended: Use nvm for version management
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+  source ~/.bashrc  # or restart your terminal
+  nvm install 20.19.0  # LTS version
+  nvm alias default 20.19.0
+  nvm use 20.19.0
+  
+  # Alternative: Direct install from nodejs.org
+  # But nvm prevents version conflicts between projects
+  ```
+
 - **Python 3.11**: Serena's runtime requirement - not 3.10, not 3.12, but specifically 3.11
-- **uv package manager**: Modern Python package management that Serena depends on
+- **uv package manager**: Modern Python package management that Serena depends on (includes uvx command)
 
   ```bash
   # Install uv if you don't have it
@@ -115,15 +129,6 @@ These are essential for any COMPASS + Serena setup:
 #### Language-Specific Tools (Conditional)
 
 Install these only if you're working with the corresponding languages. Each language server Serena uses needs its own ecosystem:
-
-**For JavaScript/TypeScript projects**:
-
-- **Node.js** (includes npm): Required for TypeScript language server and many modern dev tools
-
-  ```bash
-  # Install the latest LTS version
-  # Visit nodejs.org or use your system's package manager
-  ```
 
 **For Go development**:
 
