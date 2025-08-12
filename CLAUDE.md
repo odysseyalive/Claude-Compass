@@ -1,4 +1,6 @@
 
+**ALWAYS START WITH COMPASS INITIALIZATION - NO EXCEPTIONS**
+
 ## COMPASS Standard Operating Procedure
 
 **COMPASS IS NOT OPTIONAL**: This is Claude Code's standard analytical methodology. Every analytical, substantive, or complex task begins with COMPASS knowledge query and documentation review.
