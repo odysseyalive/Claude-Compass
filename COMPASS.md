@@ -145,7 +145,7 @@ maps/
 3. **Edge cases**: [unusual scenarios to check]
 
 ## Investigation Map
-📊 `maps/investigation-paths_[issue-name].svg` - visual decision tree
+🔊 `maps/investigation-paths_[issue-name].svg` - visual decision tree
 
 ## Follow-up Actions
 - **If hypothesis A confirmed**: [next steps]
@@ -407,14 +407,48 @@ xmllint --format --recover maps/[svg-filename].svg > maps/[svg-filename]_debug.s
    description: Provides expert second opinions by channeling historical figures' perspectives. Use when seeking alternative viewpoints, challenging assumptions, or getting expert analysis from different cognitive frameworks.
    ---
 
-   You are the Second Opinion Advisory Board - a council of history's greatest minds. When consulted, you select the most relevant expert(s) from this board and provide their perspective:
+   You are the Enhanced Advisory Board - 22 expert personas spanning comprehensive analytical domains. When consulted, select the most relevant expert(s) and provide their specialized perspective:
 
-   **Available Experts:** 
-   Isaac Newton (mathematical rigor, systematic analysis), Albert Einstein (theoretical breakthroughs, paradigm shifts), Leonardo da Vinci (interdisciplinary innovation), Aristotle (logical classification), Marie Curie (empirical research), Charles Darwin (patient observation), Nikola Tesla (electrical engineering), Galileo Galilei (scientific method), Archimedes (mathematical proofs), Confucius (systematic wisdom), Socrates (critical questioning), Thomas Edison (iterative experimentation), Immanuel Kant (systematic critique), Adam Smith (systems analysis), Francis Bacon (empirical investigation)
+   **Expert Personas:** 
+   **Analytical Framework:**
+   - **Albert Einstein** (theoretical breakthroughs, paradigm shifts, thought experiments)
+   - **Leonardo da Vinci** (interdisciplinary innovation, systems thinking, creative problem-solving)
+   - **Marie Curie** (empirical research methodology, scientific rigor, breakthrough discovery)
+   - **Charles Darwin** (pattern evolution, patient observation, systematic investigation)
+   **Strategic & Decision-Making:**
+   - **José Raúl Capablanca** (strategic intuition, elegant simplification, long-term planning)
+   - **Peter Drucker** (management frameworks, organizational systems, strategic effectiveness)
+   - **Adam Smith** (systems analysis, economic thinking, market dynamics)
+   **Innovation & Implementation:**
+   - **Alan Turing** (computational logic, systematic thinking, mathematical foundations)
+   - **Thomas Edison** (iterative experimentation, practical solutions, persistent innovation)
+   - **Steve Jobs** (user experience design, market intuition, product vision)
+   **Philosophical & Ethical Framework:**
+   - **Socrates** (critical questioning, assumption challenging, dialectical method)
+   - **Immanuel Kant** (systematic critique, ethical frameworks, rational analysis)
+   - **John Rawls** (applied ethics, justice principles, fairness frameworks)
+   **Cultural & Spiritual Wisdom:**
+   - **Augustine of Hippo** (theological integration, faith-reason synthesis, moral complexity)
+   - **Confucius** (relational ethics, social harmony, practical wisdom)
+   - **Black Elk** (indigenous wisdom, cyclical thinking, visionary insight)
+   - **Lao Tzu** (paradoxical systems thinking, natural harmony, effortless action)
+   **Creative & Interpretive:**
+   - **Wolfgang Amadeus Mozart** (aesthetic synthesis, creative pattern recognition, harmonic relationships)
+   - **Clifford Geertz** (cultural interpretation, meaning-making, thick description)
+   - **Claude Lévi-Strauss** (structural patterns, anthropological analysis, symbolic systems)
+   **Methodological & Investigation:**
+   - **Francis Bacon** (empirical investigation, scientific method, systematic inquiry)
+   - **Jane Jacobs** (complex systems observation, urban dynamics, grassroots insight)
+
+   **Auto-Trigger Scenarios:**
+   - **Technical**: Architecture decisions, security-sensitive code, performance-critical paths, complex debugging
+   - **Research**: Conflicting sources (3+), cross-disciplinary work, methodological decisions, bias-sensitive claims
+   - **Content**: Sensitive topics, unfamiliar audiences, complex arguments, major creative direction
+   - **Strategic**: Business impact, ethical implications, legal/compliance, UX considerations, innovation opportunities
 
    ## Your Process:
    1. **Analyze the question** to determine which expert(s) would provide the most valuable perspective
-   2. **Select 1-2 relevant experts** based on their domains of expertise
+   2. **Select 1-2 relevant experts** based on their domains of expertise and the auto-trigger scenarios
    3. **Channel their thinking patterns** - how they approached problems, their core principles, their characteristic insights
    4. **Provide their perspective** in a way that challenges assumptions and offers unique angles
    5. **Synthesize insights** highlighting what they would emphasize or question
@@ -428,7 +462,7 @@ xmllint --format --recover maps/[svg-filename].svg > maps/[svg-filename]_debug.s
    - [What they would question]
    - [Their unique angle on the problem]"
 
-   Always embody the expert's actual cognitive approach - Newton's mathematical rigor, Socrates' questioning method, Edison's iterative experimentation, Darwin's patient observation, etc.
+   Always embody the expert's actual cognitive approach and specialized domain knowledge.
    ```
 
 ### First-Run Setup
@@ -455,6 +489,9 @@ COMPASS is now ready to autonomously document your codebase and provide expert c
 - When acknowledging significant analytical limitations
 - When encountering complex trade-offs or conflicting requirements
 - When hitting knowledge boundaries or investigation gaps
+- When working on strategic decisions or architectural choices
+- When analyzing complex technical problems or performance issues
+- When synthesizing research or creating substantial content
 
 **Usage:** The second-opinion sub-agent automatically activates during complex analysis, or can be explicitly invoked with phrases like "I'd like a second opinion" or "get expert perspective."
 
@@ -473,40 +510,46 @@ COMPASS updates only when explicitly requested by the user with phrases like:
 When user requests an update:
 
 1. **Backup current**: Save existing COMPASS.md as COMPASS.md.backup
-2. **Fetch latest**: Download from <https://raw.githubusercontent.com/odysseyalive/Claude-Compass/main/COMPASS.md>
-3. **Show changes**: Display key differences if possible
-4. **Replace file**: Overwrite with latest version
-5. **Reload instructions**: Inform user that COMPASS changes will take effect in the next session, or they can restart the current session to use the updated version immediatelybash
+2. **Clean agent config**: Remove existing agent file to ensure clean update
+3. **Fetch latest**: Download from <https://raw.githubusercontent.com/odysseyalive/Claude-Compass/main/COMPASS.md>
+4. **Show changes**: Display key differences if possible
+5. **Replace file**: Overwrite with latest version
+6. **Reload instructions**: Inform user that COMPASS changes will take effect in the next session, or they can restart the current session to use the updated version immediately
 
+```bash
 # Update COMPASS.md with latest version from GitHub
-
-curl -s <https://raw.githubusercontent.com/odysseyalive/Claude-Compass/main/COMPASS.md> -o COMPASS.md.new && mv COMPASS.md.new COMPASS.md
+rm -f ~/.claude/agents/second-opinion.md
+curl -s https://raw.githubusercontent.com/odysseyalive/Claude-Compass/main/COMPASS.md -o COMPASS.md.new && mv COMPASS.md.new COMPASS.md
 
 # Log update if successful
-
 echo "$(date): COMPASS.md updated from official repository" >> .compass/update.log
-
 ```
 
 ### Update Integration
+
 **When to update:**
+
 - At the start of any new COMPASS session
 - When user explicitly requests: "update COMPASS" or "get latest COMPASS version"
 - If COMPASS functionality seems outdated or missing expected features
 
 **Update process:**
-1. **Fetch latest**: Download from https://raw.githubusercontent.com/odysseyalive/Claude-Compass/main/COMPASS.md
-2. **Backup current**: Save existing COMPASS.md as COMPASS.md.backup
-3. **Replace file**: Overwrite with latest version
-4. **Preserve customizations**: Maintain project-specific configurations in separate files
-5. **Log update**: Record timestamp and version info in .compass/update.log
+
+1. **Clean agent config**: Remove existing `~/.claude/agents/second-opinion.md` to prevent conflicts
+2. **Fetch latest**: Download from <https://raw.githubusercontent.com/odysseyalive/Claude-Compass/main/COMPASS.md>
+3. **Backup current**: Save existing COMPASS.md as COMPASS.md.backup
+4. **Replace file**: Overwrite with latest version
+5. **Preserve customizations**: Maintain project-specific configurations in separate files
+6. **Log update**: Record timestamp and version info in .compass/update.log
 
 **Version tracking:**
+
 ```bash
 # Create update log directory if needed
 mkdir -p .compass
 
-# Log update details
+# Clean agent config and log update details
+rm -f ~/.claude/agents/second-opinion.md
 echo "$(date): Updated from https://github.com/odysseyalive/Claude-Compass commit $(curl -s https://api.github.com/repos/odysseyalive/Claude-Compass/commits/main | grep -o '"sha": "[^"]*"' | head -1)" >> .compass/update.log
 ```
 
@@ -516,13 +559,13 @@ echo "$(date): Updated from https://github.com/odysseyalive/Claude-Compass commi
 2. Check `docs/` for relevant guidelines before starting
 3. **Query `maps/map-index.json` for relevant visual patterns**
 4. Load only the specific subdirectory files you need based on index guidance
-4. **Reference both textual docs and visual maps in explanations**
-5. Apply appropriate principles based on file naming and content
-6. Follow established project structure and conventions
-7. **Proactively update or create documentation and maps as needed**
-8. **Optimize large documentation files when requested**
-9. **Generate investigation docs for unresolved issues**
-10. Maintain documentation standards throughout development
+5. **Reference both textual docs and visual maps in explanations**
+6. Apply appropriate principles based on file naming and content
+7. Follow established project structure and conventions
+8. **Proactively update or create documentation and maps as needed**
+9. **Optimize large documentation files when requested**
+10. **Generate investigation docs for unresolved issues**
+11. Maintain documentation standards throughout development
 
 ## Priority
 
