@@ -142,13 +142,24 @@ Claude Code automatically weaves references into explanations by:
 
 ### Directory Auto-Creation
 
+**COMPASS automatically creates these components on first complex analysis:**
+
 1. Check/create `docs/` directory
 2. Check/create `maps/` directory  
 3. Initialize `maps/map-index.json` if missing
 4. Create starter documentation if `docs/` empty
-5. **Initialize Enhanced Advisory Board** - create `~/.claude/agents/second-opinion.md`:
+5. **Initialize Enhanced Advisory Board** - create `~/.claude/agents/second-opinion.md`
 
-```markdown
+### Enhanced Advisory Board Auto-Setup
+
+**When COMPASS initializes, it automatically runs this setup:**
+
+```bash
+# Create Claude agents directory if it doesn't exist
+mkdir -p ~/.claude/agents
+
+# Create Enhanced Advisory Board subagent file
+cat > ~/.claude/agents/second-opinion.md << 'EOF'
 ---
 name: second-opinion
 description: Enhanced expert advisory board with 22 specialist personas across analytical, strategic, cultural, and methodological domains. Auto-triggers for complex analysis, conflicting requirements, and cross-domain work.
@@ -212,6 +223,60 @@ You are the Enhanced Advisory Board - 22 expert personas spanning comprehensive 
 - [Their unique angle]"
 
 Always embody the expert's actual cognitive approach and specialized domain knowledge.
+EOF
+
+echo "✅ Enhanced Advisory Board initialized at ~/.claude/agents/second-opinion.md"
+```
+
+### Verification After Installation
+
+**Run these commands to verify COMPASS is properly initialized:**
+
+```bash
+# Check all COMPASS directories exist
+ls -la docs/ maps/ ~/.claude/agents/
+
+# Verify Enhanced Advisory Board file
+ls -la ~/.claude/agents/second-opinion.md
+
+# Check map index was created
+cat maps/map-index.json
+
+# Preview Advisory Board content
+head -15 ~/.claude/agents/second-opinion.md
+```
+
+**Expected output:**
+
+```
+✅ docs/ directory exists
+✅ maps/ directory exists  
+✅ ~/.claude/agents/second-opinion.md exists (should be ~6KB)
+✅ maps/map-index.json contains pattern index
+✅ Advisory Board shows 22 expert personas
+```
+
+### Manual Setup (Troubleshooting)
+
+**If automatic initialization fails, run these commands manually:**
+
+```bash
+# 1. Create all required directories
+mkdir -p docs maps ~/.claude/agents
+
+# 2. Create basic map index
+cat > maps/map-index.json << 'EOF'
+{
+  "patterns": {},
+  "last_updated": "$(date -Iseconds)",
+  "version": "1.0"
+}
+EOF
+
+# 3. Run the Enhanced Advisory Board setup command from above
+# (Use the full cat > ~/.claude/agents/second-opinion.md command)
+
+# 4. Restart Claude Code to activate the subagent system
 ```
 
 ### Enhanced Advisory Board Integration
@@ -234,6 +299,15 @@ Always embody the expert's actual cognitive approach and specialized domain know
 - **Documentation capture**: All second-opinion subagent consultations documented in investigation files and visual maps for institutional knowledge building
 
 **Usage**: Claude Code users can also explicitly invoke expert consultation with phrases like "I'd like a second opinion" or "get expert perspective" to manually trigger the second-opinion subagent.
+
+**For writing projects specifically**, the system auto-triggers when detecting:
+
+- Complex arguments requiring validation
+- Unfamiliar audiences needing perspective
+- Sensitive topics requiring careful framing  
+- Major creative direction decisions
+
+This ensures your writing projects automatically benefit from expert consultation without manual intervention.
 
 ## COMPASS Update Routine
 
