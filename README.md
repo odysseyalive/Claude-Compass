@@ -67,22 +67,24 @@ Your Claude Code environment grows more knowledgeable with each interaction, bui
 
 Your Claude Code environment now has COMPASS capabilities and will automatically initialize the `docs/` and `maps/` directories on first complex analysis.
 
-## Serena Integration
+## Enhanced Intelligence with Serena
 
-**COMPASS is significantly more powerful with Serena** - a local toolset that gives Claude Code fast access to your filesystem through `grep`, `find`, and other essential commands. Without Serena, Claude Code can't efficiently navigate your codebase or build the comprehensive maps that make COMPASS truly effective.
+**COMPASS reaches its full potential when paired with Serena** - a local integration layer that connects Claude Code directly to your existing development environment. Rather than working around the limitations of text-only analysis, Serena gives Claude Code the same tools you already use daily.
 
-Serena transforms Claude Code from a text-processing tool into a genuine development partner that can:
+Serena transforms Claude Code from a conversation partner into a true development collaborator by connecting it to your familiar toolkit:
 
-- **Search your entire codebase** instantly with `grep`
-- **Navigate file structures** efficiently with `find`
-- **Analyze patterns across files** without token-heavy file loading
-- **Build comprehensive maps** based on actual code relationships
+- **Standard Unix utilities** (`grep`, `find`) for instant codebase navigation
+- **Your language servers** for semantic code understanding
+- **Your development toolchain** for consistent analysis approaches
+- **Your existing workflows** without disrupting established patterns
 
 **Project**: <https://github.com/oraios/serena>
 
-### System Requirements
+### Development Environment Integration
 
-For the complete COMPASS experience with Serena, your system needs the right foundation. Think of these as the difference between having a toolkit and having a well-equipped workshop.
+COMPASS + Serena works with whatever you've already built. If you're working in an environment where you can run `grep`, `find`, and your language toolchain, you're ready to go.
+
+#### Core Connectivity
 
 #### Core Dependencies (Required)
 
@@ -126,9 +128,33 @@ These are essential for any COMPASS + Serena setup:
   winget install libxml2
   ```
 
-#### Language-Specific Tools (Conditional)
+#### Language Intelligence
 
-Install these only if you're working with the corresponding languages. Each language server Serena uses needs its own ecosystem:
+Serena connects to the language servers you probably already have running:
+
+**For JavaScript/TypeScript projects**:
+
+- Uses your existing TypeScript language server setup
+
+**For Go development**:
+
+- Connects to `gopls` (part of standard Go installation)
+
+**For Java projects**:
+
+- Integrates with Eclipse JDT language server (often already configured)
+
+**For Rust development**:
+
+- Works with `rust-analyzer` (standard Rust toolchain component)
+
+**For C/C++ projects**:
+
+- Connects to `clangd` (part of LLVM, commonly available)
+
+### Additional Language Support
+
+For specific languages, you may want to ensure these tools are available in your environment:
 
 **For Go development**:
 
@@ -146,7 +172,7 @@ Install these only if you're working with the corresponding languages. Each lang
 
 - **clangd**: Part of the LLVM toolchain, provides semantic analysis
 
-#### Development Enhancements (Optional)
+#### Development Workflow Tools
 
 These improve the development experience but aren't strictly necessary:
 
@@ -156,31 +182,31 @@ These improve the development experience but aren't strictly necessary:
 
 The beauty of this setup is that you start with the core requirements and add language support as you need it. No point installing Java tools if you're building React apps, right?
 
-### Installing Serena
+### Setting Up Serena
 
-Once your system foundation is solid:
+Once your development environment is ready:
 
-1. **Start Serena MCP server**:
+1. **Start the Serena bridge**:
 
    ```bash
    uvx --from git+https://github.com/oraios/serena serena start-mcp-server --transport sse --port 9121
    ```
 
-2. **Connect Claude Code to Serena**:
+2. **Connect Claude Code**:
 
    ```bash
    claude mcp add serena --transport sse http://localhost:9121/sse
    ```
 
-With Serena installed, restart Claude Code in your project. You now have the complete COMPASS system with full local file intelligence.
+Restart Claude Code in your project, and COMPASS now has direct access to your development toolkit - the same commands and language intelligence you use every day, but integrated into Claude Code's analytical workflow.
 
-## Not Just For Coding
+## Beyond the Codebase
 
 COMPASS works beyond just coding. The same patterns that make sense of tangled code can organize complex research. The memory that stops you from debugging the same issue twice can stop you from chasing the same research rabbit holes.
 
 Think about the researcher lost in conflicting sources, the analyst hitting the same dead ends, the writer starting from scratch with each new project. COMPASS turns these struggles into organized knowledge-building, whether you're tracking research papers, following policy changes, or pulling together insights from different fields.
 
-### Beyond the Codebase
+### Expanding the Framework
 
 **Research Projects**: Complex topics become easier to navigate. Different studies, changing methods, and connections between fields turn into clear visual frameworks.
 
