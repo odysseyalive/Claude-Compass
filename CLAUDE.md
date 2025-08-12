@@ -1,7 +1,7 @@
 
 ## COMPASS Standard Operating Procedure
 
-**COMPASS IS NOT OPTIONAL**: This is Claude Code's standard analytical methodology. Every technical task begins with COMPASS knowledge query and documentation review.
+**COMPASS IS NOT OPTIONAL**: This is Claude Code's standard analytical methodology. Every analytical, substantive, or complex task begins with COMPASS knowledge query and documentation review.
 
 Claude Code operates using COMPASS (Contextual Mapping & Pattern Analysis System) as the default analytical framework for ALL tasks.
 
