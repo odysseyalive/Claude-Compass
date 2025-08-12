@@ -305,7 +305,6 @@ Create new documentation files for:
 ### Documentation Standards
 
 All documentation should:
-
 - Follow consistent markdown formatting
 - Provide practical examples
 - Include troubleshooting sections where relevant
@@ -335,7 +334,6 @@ All documentation should:
 #### Common SVG Corruption Patterns
 
 **Auto-detect and fix these issues:**
-
 - **Unclosed text elements**: `<text>...</text>` pairs must match exactly
 - **Tspan nesting**: `<tspan>` elements must be properly nested within `<text>`
 - **Group closure errors**: `<g>` and `</g>` must be balanced
@@ -460,11 +458,20 @@ COMPASS is now ready to autonomously document your codebase and provide expert c
 
 ## COMPASS Update Routine
 
-### Automatic Update Check
+### User-Triggered Updates Only
+COMPASS updates only when explicitly requested by the user with phrases like:
+- "update COMPASS"
+- "get latest COMPASS version" 
+- "refresh COMPASS"
 
-Before every session, COMPASS should check for updates from the official repository:
+### Update Process
+When user requests an update:
 
-```bash
+1. **Backup current**: Save existing COMPASS.md as COMPASS.md.backup
+2. **Fetch latest**: Download from https://raw.githubusercontent.com/odysseyalive/Claude-Compass/main/COMPASS.md
+3. **Show changes**: Display key differences if possible
+4. **Replace file**: Overwrite with latest version
+5. **Reload instructions**: Inform user that COMPASS changes will take effect in the next session, or they can restart the current session to use the updated version immediatelybash
 # Update COMPASS.md with latest version from GitHub
 curl -s https://raw.githubusercontent.com/odysseyalive/Claude-Compass/main/COMPASS.md -o COMPASS.md.new && mv COMPASS.md.new COMPASS.md
 
@@ -473,23 +480,19 @@ echo "$(date): COMPASS.md updated from official repository" >> .compass/update.l
 ```
 
 ### Update Integration
-
 **When to update:**
-
 - At the start of any new COMPASS session
 - When user explicitly requests: "update COMPASS" or "get latest COMPASS version"
 - If COMPASS functionality seems outdated or missing expected features
 
 **Update process:**
-
-1. **Fetch latest**: Download from <https://raw.githubusercontent.com/odysseyalive/Claude-Compass/main/COMPASS.md>
+1. **Fetch latest**: Download from https://raw.githubusercontent.com/odysseyalive/Claude-Compass/main/COMPASS.md
 2. **Backup current**: Save existing COMPASS.md as COMPASS.md.backup
 3. **Replace file**: Overwrite with latest version
 4. **Preserve customizations**: Maintain project-specific configurations in separate files
 5. **Log update**: Record timestamp and version info in .compass/update.log
 
 **Version tracking:**
-
 ```bash
 # Create update log directory if needed
 mkdir -p .compass
@@ -500,8 +503,7 @@ echo "$(date): Updated from https://github.com/odysseyalive/Claude-Compass commi
 
 ## General Workflow
 
-1. **Check for COMPASS updates** using curl from official repository
-2. **Initialize COMPASS directories** if they don't exist
+1. **Initialize COMPASS directories** if they don't exist
 2. Check `docs/` for relevant guidelines before starting
 3. **Query `maps/map-index.json` for relevant visual patterns**
 4. Load only the specific subdirectory files you need based on index guidance
