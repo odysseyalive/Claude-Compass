@@ -57,9 +57,34 @@ Claude Code prioritizes institutional knowledge:
 1. **Knowledge Query**: Check docs/ and maps/ for relevant existing patterns
 2. **Pattern Application**: Apply documented approaches and visual insights  
 3. **Gap Analysis**: Identify what's missing from existing knowledge
-4. **Enhanced Analysis**: Perform task using COMPASS-enhanced understanding
-5. **Knowledge Documentation**: Update docs and maps with new discoveries
+4. **PLANNING WITH DOCUMENTATION**: Create execution plan that MANDATES:
+   - Investigation docs for any complex analysis or decisions
+   - Pattern updates for new methodologies discovered
+   - Visual maps for multi-component changes or complex flows
+   - Knowledge base updates for institutional learning
+5. **Enhanced Analysis**: Execute planned tasks INCLUDING documentation creation
 6. **Cross-Reference**: Link new findings with existing pattern library
+
+### Documentation-First Planning
+
+**ALL complex task plans MUST include documentation phases:**
+
+- **Investigation Documentation**: For any root cause analysis, technical decisions, or complex problem-solving
+- **Pattern Documentation**: For any new methodologies, approaches, or lessons learned  
+- **Visual Mapping**: For any multi-file changes, integration flows, or architectural decisions
+- **Knowledge Updates**: For any discoveries that enhance institutional understanding
+
+**Planning without documentation phases violates COMPASS methodology.**
+
+### COMPASS Compliance Check
+
+Before presenting any complex task plan, verify:
+
+- [ ] Existing knowledge was queried and applied
+- [ ] Knowledge gaps were identified  
+- [ ] Documentation creation is planned (not just execution)
+- [ ] Pattern updates are included in timeline
+- [ ] Visual mapping is planned where beneficial
 
 ### Core Development Philosophy
 
