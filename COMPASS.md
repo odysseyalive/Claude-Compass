@@ -64,18 +64,31 @@ maps/
 
 ### SVG Generation Standards
 
-**Machine-Readable Structure**:
+**Compatibility-First Approach**:
 
 ```xml
-<svg>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Simple, universal markers -->
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto" markerUnits="strokeWidth">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333333" />
+    </marker>
+  </defs>
+  
+  <!-- Always include background for consistency -->
+  <rect x="0" y="0" width="1200" height="800" fill="#ffffff" />
+  
   <!-- Semantic grouping for machine reading -->
-  <g id="control-flow" class="primary-pattern">
-    <g id="async-operations" class="complexity-hotspot" data-complexity="15" data-pattern="recursive">
-      <rect class="function-boundary" data-lines="120-135"/>
-      <text class="function-name" data-calls="getUserData,validateToken">
-        authenticateUser()
-      </text>
-    </g>
+  <g id="control-flow">
+    <rect x="50" y="80" width="280" height="100" fill="#e6fffa" stroke="#319795" stroke-width="2" rx="5" />
+    <text x="190" y="110" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold" fill="#234e52">
+      Function Flow
+    </text>
+    <!-- Individual text elements, not nested tspan -->
+    <text x="70" y="130" font-family="Arial" font-size="11" fill="#2d3748">
+      • Step one description
+    </text>
   </g>
   
   <!-- Machine-readable metadata -->
@@ -88,12 +101,52 @@ maps/
 </svg>
 ```
 
+**Critical Compatibility Rules**:
+
+**MANDATORY SVG Structure**:
+
+- **XML declaration**: Always start with `<?xml version="1.0" encoding="UTF-8"?>`
+- **ViewBox over dimensions**: Use `viewBox="0 0 width height"` for responsive scaling
+- **Universal namespace**: Include `xmlns="http://www.w3.org/2000/svg"`
+- **Explicit background**: Add background rect for consistent rendering
+- **Simple fonts**: Use "Arial" or generic font families only
+
+**Element Compatibility**:
+
+- **No advanced filters**: Avoid `feDropShadow`, `filter`, complex effects
+- **Standard shapes only**: rectangles, circles, lines, paths, text
+- **Individual text elements**: No nested `<tspan>` elements within `<text>`
+- **Simple markers**: Basic polygon arrows only, no complex marker designs
+- **Proper text escaping**: `&` → `&amp;`, `<` → `&lt;`, `>` → `&gt;`
+
+**Color and Styling**:
+
+- **Hex colors only**: Use 6-digit hex (#319795) not color names or RGB
+- **Standard stroke-width**: Integer values (1, 2, 3) not decimals
+- **Simple borders**: Use `rx="5"` maximum for rounded corners
+- **Readable contrast**: Dark text on light backgrounds, light text on dark
+
+**Text Guidelines**:
+
+- **Font standardization**: "Arial" or "Arial, sans-serif" only
+- **Integer font sizes**: 9, 10, 11, 12, 14, 16, 18, 20 - no decimals
+- **Proper alignment**: Use `text-anchor="middle|start|end"` for positioning
+- **No complex text effects**: No shadows, outlines, or transformations
+
+**Layout Standards**:
+
+- **Grid-based positioning**: Use multiples of 10 for major elements
+- **Consistent spacing**: 20px minimum between major elements
+- **Adequate margins**: 50px minimum from SVG edges
+- **Readable text size**: 11px minimum for body text, 14px for headings
+
 **Visual Clarity Rules**:
 
 - **Labels inside shapes** when space allows (>60px width)
 - **Connected callouts** for complex elements using consistent offset patterns
 - **Layered information**: Primary text visible, detailed metadata in `<title>` tags
 - **No text overlap**: Minimum 8px buffer zones enforced algorithmically
+- **Simple arrows**: Use standard line elements with basic polygon arrowheads
 
 ## Autonomous Documentation & Map Creation
 
@@ -446,6 +499,72 @@ xmllint --format --recover maps/[svg-filename].svg > maps/[svg-filename]_debug.s
 3. **Error Documentation**: SVG correction patterns are added to investigation docs for future reference
 
 **This ensures all visual maps maintain syntactic integrity and remain renderable across all SVG-compatible systems.**
+
+#### SVG Quality Assurance Process
+
+**Mandatory Testing Sequence**:
+
+1. **Syntax Validation**:
+
+   ```bash
+   xmllint --noout maps/[svg-filename].svg 2>&1
+   ```
+
+2. **Compatibility Testing**:
+   - Test in browser: Open SVG directly in Chrome/Firefox/Safari
+   - Test in documentation systems: Verify rendering in Markdown viewers
+   - Test scaling: Verify viewBox responsiveness at different sizes
+
+3. **Visual Verification Checklist**:
+   - ✅ All text is readable (not overlapping or cut off)
+   - ✅ Colors provide adequate contrast
+   - ✅ Arrows and connectors are visible
+   - ✅ Layout maintains structure at different zoom levels
+   - ✅ No missing elements or broken rendering
+
+4. **Fallback Creation**:
+   - Always create Mermaid diagram backup
+   - Include both SVG and Mermaid in documentation
+   - Provide textual summary of visual content
+
+#### Common SVG Rendering Issues and Fixes
+
+**Issue**: SVG appears blank or fails to load
+
+- **Cause**: Missing XML declaration or namespace
+- **Fix**: Ensure `<?xml version="1.0" encoding="UTF-8"?>` and `xmlns="http://www.w3.org/2000/svg"`
+
+**Issue**: Text not visible or poorly formatted  
+
+- **Cause**: Complex font specifications or nested tspan elements
+- **Fix**: Use `font-family="Arial"` and individual `<text>` elements
+
+**Issue**: Advanced effects not rendering
+
+- **Cause**: Using `feDropShadow` or complex filters
+- **Fix**: Use simple `stroke` and `fill` attributes only
+
+**Issue**: Inconsistent sizing across viewers
+
+- **Cause**: Using fixed `width`/`height` instead of `viewBox`
+- **Fix**: Use `viewBox="0 0 1200 800"` for responsive scaling
+
+#### SVG Creation Decision Tree
+
+```
+SVG Creation Request
+├── Simple diagram (<10 elements)?
+│   ├── YES → Create standard SVG with basic shapes
+│   └── NO → Consider Mermaid primary with SVG backup
+├── Complex layout (>20 text elements)?
+│   ├── YES → Create Mermaid primary, simplified SVG if needed
+│   └── NO → Create both SVG and Mermaid versions
+└── Interactive features needed?
+    ├── YES → Use Mermaid (supports interaction)
+    └── NO → Prioritize SVG with Mermaid backup
+```
+
+**This quality assurance process ensures reliable visual documentation that renders consistently across all platforms and viewers.**
 
 ## COMPASS Initialization
 
