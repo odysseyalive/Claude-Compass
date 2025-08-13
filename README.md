@@ -67,7 +67,7 @@ Your Claude Code environment grows more knowledgeable with each interaction, bui
 
 3. **Start Compass:**
 
-   Enter "Initialize Compass" for your first prompt
+   Start Claude and enter "Initialize Compass" for your first prompt
 
 Your Claude Code environment now has COMPASS capabilities and will initialize the `docs/` and `maps/` directories for the first complex analysis.
 
