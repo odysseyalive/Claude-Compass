@@ -114,6 +114,79 @@ maps/
 - **Performance concerns**: Nested loops, recursive calls
 - **Error-prone areas**: Complex async operations, state mutations
 - **Investigation flows**: Decision trees for unresolved issues
+- **Code Analysis Tasks**: Mandatory variable flow mapping for all code-related issues
+
+### Mandatory Variable Flow Mapping for Code Analysis
+
+**Required for ALL Code-Related Tasks**:
+
+When analyzing any code issue, bug, or feature implementation, COMPASS MUST:
+
+1. **Identify Key Variables**: Extract all variables involved in the issue from start to problem point
+2. **Trace Variable Lifecycle**: Track variable creation, modification, and consumption throughout the flow
+3. **Map Data Transformations**: Document what functions/methods modify each variable and how
+4. **Create Visual Flow Diagram**: Generate SVG showing complete variable flow from initiation to issue point
+5. **Include Context Annotations**: Add variable types, source locations, and transformation logic
+
+**Variable Flow Map Specifications**:
+
+```xml
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
+  <!-- Variable lifecycle stages -->
+  <g id="variable-flow" class="primary-pattern">
+    <g id="initialization" class="flow-stage" data-stage="start">
+      <rect class="variable-container" data-var="$paypal_transaction"/>
+      <text class="variable-name">$paypal_transaction</text>
+      <text class="source-info" data-file="Order_model.php" data-line="796">Order_model::paypalTransaction()</text>
+    </g>
+    
+    <g id="transformation-1" class="flow-stage" data-stage="process">
+      <rect class="function-boundary" data-lines="789-792"/>
+      <text class="function-name">loadPaypal() conditional check</text>
+      <text class="transformation">$paypal_transaction['result']->result accessed</text>
+    </g>
+    
+    <g id="problem-point" class="flow-stage error-location" data-stage="error">
+      <rect class="error-boundary" data-lines="792"/>
+      <text class="error-description">shipping->address property access fails</text>
+      <text class="variable-state">address object = null/undefined</text>
+    </g>
+  </g>
+  
+  <!-- Flow connections -->
+  <g id="flow-arrows">
+    <path class="variable-flow-line" d="M100,200 L300,200" data-var="$paypal_transaction"/>
+    <path class="variable-flow-line" d="M300,200 L500,200" data-var="address"/>
+  </g>
+  
+  <!-- Machine-readable metadata -->
+  <metadata>
+    <variable-analysis>
+      <variable name="$paypal_transaction" type="array" source="Order_model::paypalTransaction()" modifications="none"/>
+      <variable name="address" type="object|null" source="$paypal_transaction['result']->result->purchase_units[0]->shipping->address" issue="null-access"/>
+      <flow-stage stage="initialization" location="Order_controller.php:787" status="success"/>
+      <flow-stage stage="access" location="Order_controller.php:792" status="error" reason="null-property-access"/>
+    </variable-analysis>
+  </metadata>
+</svg>
+```
+
+**Visual Map Requirements**:
+
+- **Variable Containers**: Clearly labeled boxes for each variable with type information
+- **Transformation Arrows**: Show data flow between functions/methods with modification details
+- **Source Annotations**: File names, line numbers, and function names for all variable interactions
+- **Error Highlighting**: Red/highlighted sections showing exactly where the issue occurs
+- **Context Bubbles**: Additional information about variable states, types, and expected vs actual values
+- **Machine-Readable Structure**: SVG metadata for pattern recognition and future reference
+
+**Naming Convention**: `variable-flow_{issue-date}_{component-context}.svg`
+
+Examples:
+
+- `variable-flow_2025-08-13_paypal-address-population.svg`
+- `variable-flow_2025-08-13_user-authentication-state.svg`
+- `variable-flow_2025-08-13_cart-session-management.svg`
 
 ### Investigation-Triggered Documentation
 
@@ -566,6 +639,47 @@ echo "$(date): Updated from https://github.com/odysseyalive/Claude-Compass commi
 9. **Optimize large documentation files when requested**
 10. **Generate investigation docs for unresolved issues**
 11. Maintain documentation standards throughout development
+
+## Enhanced Workflow for Code Analysis Tasks
+
+**For ALL code-related issues, bugs, features, or debugging tasks, MANDATORY additions:**
+
+### Pre-Analysis Phase (Before Step 2)
+
+- **Variable Identification**: Extract all variables involved from start to issue point
+- **Scope Mapping**: Identify functions, methods, and classes that interact with key variables
+- **Flow Planning**: Plan variable flow map structure showing transformations and dependencies
+
+### During Analysis Phase (Steps 3-7)  
+
+- **Create Variable Flow Map**: Generate SVG diagram showing complete variable lifecycle
+  - Variable initialization and sources
+  - All transformation points and functions that modify variables
+  - Error points and failure conditions
+  - Solution pathways and corrective measures
+- **SVG Validation**: Run xmllint validation and auto-correct any syntax issues
+- **Context Integration**: Use variable flow insights to inform root cause analysis
+
+### Enhanced Documentation Phase (Steps 8-11)
+
+- **Store Variable Flow Map**: Save to `maps/` with naming: `variable-flow_{date}_{component-context}.svg`
+- **Update Map Index**: Add pattern reference to `maps/map-index.json`
+- **Cross-Reference Documentation**: Link variable flow map in investigation docs
+- **Machine-Readable Metadata**: Include comprehensive metadata for future pattern recognition
+
+### Code Analysis Triggers
+
+**Auto-create variable flow maps for:**
+
+- Property access errors (null/undefined references)
+- Variable scope or lifecycle issues
+- Data transformation bugs
+- State management problems
+- API integration failures
+- Complex conditional logic errors
+- Performance bottlenecks involving variable operations
+
+This ensures every code analysis includes visual context about what modifies what variables throughout the entire process flow.
 
 ## Priority
 
