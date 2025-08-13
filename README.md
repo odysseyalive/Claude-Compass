@@ -62,10 +62,14 @@ Your Claude Code environment grows more knowledgeable with each interaction, bui
 2. **Install COMPASS**:
 
    ```bash
-   curl -s https://raw.githubusercontent.com/odysseyalive/Claude-Compass/main/CLAUDE.md > /tmp/claude_content.md && sed -i.bak '1r /tmp/claude_content.md' CLAUDE.md && rm /tmp/claude_content.md && curl -s https://raw.githubusercontent.com/odysseyalive/Claude-Compass/main/COMPASS.md > COMPASS.md
+   curl -s https://raw.githubusercontent.com/odysseyalive/Claude-Compass/main/CLAUDE.md >> CLAUDE.md && curl -s https://raw.githubusercontent.com/odysseyalive/Claude-Compass/main/COMPASS.md > COMPASS.md
    ```
 
-Your Claude Code environment now has COMPASS capabilities and will automatically initialize the `docs/` and `maps/` directories on first complex analysis.
+3. **Start Compass:**
+
+   Enter "Initialize Compass" for your first prompt
+
+Your Claude Code environment now has COMPASS capabilities and will initialize the `docs/` and `maps/` directories for the first complex analysis.
 
 ## Enhanced Intelligence with Serena
 
