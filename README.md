@@ -62,13 +62,13 @@ Your Claude Code environment grows more knowledgeable with each interaction, bui
 * **Install COMPASS**:
 
    ```bash
-   bash -c "$(curl -fsSL https://raw.githubusercontent.com/odysseyalive/claude-compass/main/setup.sh)" -- update
+   bash -c "$(curl -fsSL https://raw.githubusercontent.com/odysseyalive/claude-compass/main/setup.sh)"
    ```
 
 * Update Compass:
 
    ```bash
-   bash -c "$(curl -fsSL https://raw.githubusercontent.com/odysseyalive/claude-compass/main/setup.sh)"
+   bash -c "$(curl -fsSL https://raw.githubusercontent.com/odysseyalive/claude-compass/main/setup.sh)" -- update
    ```
 
 Your Claude Code environment now has COMPASS capabilities and will initialize the `docs/` and `maps/` directories for the first complex analysis.
