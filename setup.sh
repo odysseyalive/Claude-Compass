@@ -6,7 +6,7 @@ set -euo pipefail
 
 # Configuration
 REPO_URL="https://raw.githubusercontent.com/odysseyalive/claude-compass/main"
-CLAUDE_AGENTS_DIR="$HOME/.claude/agents"
+CLAUDE_AGENTS_DIR="$CURRENT_DIR/.claude/agents"
 CURRENT_DIR="$PWD"
 OPERATION="${1:-install}"
 
@@ -87,10 +87,10 @@ download_file() {
 setup_directories() {
     log_info "Setting up directory structure..."
     
-    # Create Claude agents directory if it doesn't exist
+    # Create local Claude agents directory if it doesn't exist
     if [[ ! -d "$CLAUDE_AGENTS_DIR" ]]; then
         mkdir -p "$CLAUDE_AGENTS_DIR"
-        log_success "Created agents directory: $CLAUDE_AGENTS_DIR"
+        log_success "Created local agents directory: $CLAUDE_AGENTS_DIR"
     fi
     
     # Create COMPASS knowledge directories in current project
@@ -129,6 +129,8 @@ install_agents() {
         "compass-auth-optimization-specialist"
         "compass-upstream-validator"
         "compass-dependency-tracker"
+        "compass-breakthrough-doc"
+        "compass-todo-sync"
     )
     
     for agent in "${agents[@]}"; do
@@ -336,6 +338,8 @@ validate_installation() {
         "compass-auth-optimization-specialist"
         "compass-upstream-validator"
         "compass-dependency-tracker"
+        "compass-breakthrough-doc"
+        "compass-todo-sync"
     )
     
     for agent in "${agents[@]}"; do
@@ -349,7 +353,7 @@ validate_installation() {
         exit 1
     fi
     
-    log_success "All COMPASS agents installed successfully (19 total agents including writing/academic/memory specialists, authentication specialists, upstream validation, and dependency tracking)"
+    log_success "All COMPASS agents installed successfully (21 total agents including writing/academic/memory specialists, authentication specialists, upstream validation, dependency tracking, breakthrough documentation, and todo synchronization)"
     
     # Test .claude/settings.json syntax
     if command -v python3 >/dev/null 2>&1; then
@@ -411,7 +415,7 @@ show_success_message() {
     echo "🚀 Next Steps:"
     echo "   1. Start Claude Code in this directory: claude"
     echo "   2. Try a complex analytical request to trigger COMPASS"
-    echo "   3. Watch the captain coordinate all 19 agents through COMPASS methodology"
+    echo "   3. Watch the captain coordinate all 21 agents through COMPASS methodology"
     echo ""
     echo "🔍 Test COMPASS with prompts like:"
     echo "   • \"Analyze the architecture of this codebase\""
