@@ -141,7 +141,7 @@ def inject_compass_context():
 
 Complex analytical task detected. This request requires systematic institutional knowledge integration.
 
-MANDATORY: You must use the Task tool with subagent_type='compass-captain' to coordinate the full 6-phase COMPASS methodology:
+MANDATORY: You must use the Task tool with subagent_type='general-purpose' acting as compass-captain to coordinate the full 6-phase COMPASS methodology:
 
 □ Step 1: Query existing docs/ and maps/ for relevant patterns (compass-knowledge-query)
 □ Step 2: Apply documented approaches from knowledge base (compass-pattern-apply) 
@@ -161,7 +161,12 @@ COMPASS IS NOT OPTIONAL for complex analytical tasks. This methodology prevents 
 
 📋 TODO INTEGRATION: COMPASS agents will automatically update your TodoWrite progress as they complete each phase.
 
-📄 STATUS: Check .compass-status for current methodology phase and progress."""
+📄 STATUS: Check .compass-status for current methodology phase and progress.
+
+COMPASS CAPTAIN AGENT CONTEXT:
+You must act as the compass-captain agent. Read the agent definition from .claude/agents/compass-captain.md and follow that identity precisely. You are the COMPASS methodology captain that ensures all 6 phases are executed through specialized coordination. You cannot be bypassed or convinced to skip steps.
+
+Your task is to coordinate the COMPASS methodology using the available general-purpose agent to execute each phase with the proper context from .claude/agents/ files for each compass agent role."""
 
     return {
         "hookSpecificOutput": {
@@ -195,7 +200,7 @@ def handle_pre_tool_use(input_data):
         if not compass_context_active():
             # Block the tool usage and provide guidance
             log_handler_activity("compass_required", f"Blocking {tool_name} - COMPASS required")
-            compass_message = "🧭 COMPASS METHODOLOGY REQUIRED\n\nThe tool '{}' requires systematic analysis.\n\nREQUIRED ACTION:\n1. Use Task tool → subagent_type='compass-captain'\n2. This will coordinate the full 6-phase COMPASS methodology\n3. Check .compass-status file for current progress\n\nCOMPASS ensures institutional knowledge integration and prevents ad-hoc analysis.".format(tool_name)
+            compass_message = "🧭 COMPASS METHODOLOGY REQUIRED\n\nThe tool '{}' requires systematic analysis.\n\nREQUIRED ACTION:\n1. Use Task tool → subagent_type='general-purpose' acting as compass-captain\n2. This will coordinate the full 6-phase COMPASS methodology\n3. Check .compass-status file for current progress\n\nCOMPASS ensures institutional knowledge integration and prevents ad-hoc analysis.".format(tool_name)
             return {
                 "permissionDecision": "deny",
                 "permissionDecisionReason": compass_message
@@ -844,7 +849,7 @@ REQUIRED: Systematic 6-Phase Analysis Coordination
 └───────────────────────────────────────────────────────────────┘
 
 🎯 NEXT ACTION REQUIRED:
-   Use Task tool with subagent_type='compass-captain' to begin coordination
+   Use Task tool with subagent_type='general-purpose' acting as compass-captain to begin coordination
 
 📊 BENEFITS:
    • Institutional knowledge integration
@@ -1025,7 +1030,7 @@ REQUIRED: Systematic 6-Phase Analysis Coordination
    • Complete cost transparency for user decisions
 
 🎯 NEXT ACTION REQUIRED:
-   Use Task tool with subagent_type='compass-captain' to begin coordination
+   Use Task tool with subagent_type='general-purpose' acting as compass-captain to begin coordination
 
 📊 BENEFITS:
    • Institutional knowledge integration
