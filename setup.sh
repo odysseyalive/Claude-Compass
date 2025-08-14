@@ -60,7 +60,9 @@ check_dependencies() {
     fi
     
     if ! command -v python3 >/dev/null 2>&1; then
-        log_warning "python3 not found. JSON validation will be skipped."
+        log_error "python3 is required for COMPASS technical enforcement but not installed."
+        log_error "Please install python3 and try again."
+        exit 1
     fi
 }
 
@@ -122,6 +124,11 @@ install_agents() {
         "compass-academic-analyst"
         "compass-memory-enhanced-writer"
         "compass-second-opinion"
+        "compass-auth-performance-analyst"
+        "compass-auth-security-validator"
+        "compass-auth-optimization-specialist"
+        "compass-upstream-validator"
+        "compass-dependency-tracker"
     )
     
     for agent in "${agents[@]}"; do
@@ -141,197 +148,85 @@ install_agents() {
     done
 }
 
-# Install/Update hook handler - CORRECTED VERSION
-install_hook_handler() {
+# Install/Update COMPASS technical enforcement system
+install_enforcement_hook() {
     local force_update="$1"
     
-    log_info "Installing COMPASS hook handler..."
+    log_info "Installing COMPASS technical enforcement system..."
     
-    local target_script="$CURRENT_DIR/compass-hook-handler.sh"
+    local target_script="$CURRENT_DIR/compass-handler.py"
+    
+    # Clean up deprecated files during migration
+    if [[ -f "$CURRENT_DIR/compass-hook-handler.sh" ]]; then
+        log_info "Removing deprecated hook handler..."
+        rm "$CURRENT_DIR/compass-hook-handler.sh"
+        log_success "Cleaned up deprecated compass-hook-handler.sh"
+    fi
     
     if [[ -f "$target_script" ]] && [[ "$force_update" != "true" ]]; then
-        log_warning "Hook handler already exists. Use 'update' to overwrite."
+        log_warning "Technical enforcement already exists. Use 'update' to overwrite."
         return 0
     fi
     
-    # Create the corrected hook handler with embedded content
-    cat > "$target_script" << 'HOOK_EOF'
-#!/bin/bash
-# COMPASS UserPromptSubmit Hook Handler  
-# Properly integrates with Claude Code's JSON-based hook system
-
-set -euo pipefail
-
-# Configuration
-LOG_FILE="${CLAUDE_PROJECT_DIR:-$PWD}/.compass-hook.log"
-
-# Logging function
-log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG_FILE"
-}
-
-# Read JSON input from stdin
-input_json=$(cat)
-log "🧭 COMPASS Hook: Received input: $input_json"
-
-# Parse JSON input using jq if available, otherwise fall back to basic parsing
-if command -v jq >/dev/null 2>&1; then
-    USER_PROMPT=$(echo "$input_json" | jq -r '.prompt // empty')
-    SESSION_ID=$(echo "$input_json" | jq -r '.session_id // empty')
-    HOOK_EVENT=$(echo "$input_json" | jq -r '.hook_event_name // empty')
-else
-    # Basic JSON parsing without jq (less robust)
-    USER_PROMPT=$(echo "$input_json" | sed -n 's/.*"prompt"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
-    SESSION_ID=$(echo "$input_json" | sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
-    HOOK_EVENT=$(echo "$input_json" | sed -n 's/.*"hook_event_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
-fi
-
-# Validate we have the expected hook event
-if [[ "$HOOK_EVENT" != "UserPromptSubmit" ]]; then
-    log "❌ Unexpected hook event: $HOOK_EVENT"
-    exit 0
-fi
-
-# Validate we have a user prompt
-if [[ -z "$USER_PROMPT" ]]; then
-    log "⚠️ No user prompt found in input"
-    exit 0
-fi
-
-log "🎯 Analyzing prompt: $USER_PROMPT"
-
-# Define complexity triggers that require COMPASS methodology
-COMPLEXITY_TRIGGERS=(
-    "analyze" "investigate" "debug" "implement" "refactor" "optimize" 
-    "understand" "design" "architect" "plan" "strategy" "complex"
-    "system" "performance" "security" "scalability" "troubleshoot" 
-    "diagnose" "root cause" "technical debt" "code review" "best practices"
-    "create" "build" "write" "add" "develop" "fix" "solve" "resolve" 
-    "handle" "manage" "integrate" "connect" "setup" "configure" "install"
-    "deploy" "test" "validate" "verify" "check" "update" "modify" 
-    "change" "improve" "enhance" "extend" "expand" "scale" "migrate" 
-    "convert" "generate" "construct" "make" "produce" "craft"
-)
-
-# Function to check if prompt contains complexity triggers
-is_complex_task() {
-    local prompt_lower=$(echo "$USER_PROMPT" | tr '[:upper:]' '[:lower:]')
-    
-    for trigger in "${COMPLEXITY_TRIGGERS[@]}"; do
-        if echo "$prompt_lower" | grep -q "$trigger"; then
-            log "✅ Complex task detected: '$trigger' found in prompt"
-            return 0
-        fi
-    done
-    
-    # Check for code-related patterns
-    if echo "$prompt_lower" | grep -qE "(class|function|method|algorithm|database|api|endpoint|integration)"; then
-        log "✅ Code-related complexity detected"
-        return 0
-    fi
-    
-    # Check for multi-step indicators
-    if echo "$prompt_lower" | grep -qE "(\b(and|then|also|additionally|furthermore|moreover)\b.*){2,}"; then
-        log "✅ Multi-step task detected"
-        return 0
-    fi
-    
-    # Exclude very simple requests
-    if echo "$prompt_lower" | grep -qE "^(show|list|display|print|echo|cat|ls|pwd|cd|help|\?)"; then
-        log "⚪ Simple command-like request detected - bypassing COMPASS"
-        return 1
-    fi
-    
-    # Exclude basic information requests
-    if echo "$prompt_lower" | grep -qE "^(what is|what are|how do i|can you tell me|explain briefly).*\?$"; then
-        log "⚪ Basic information request detected - bypassing COMPASS"
-        return 1
-    fi
-    
-    return 1
-}
-
-# Function to inject COMPASS methodology context
-inject_compass_context() {
-    local compass_context="🧭 COMPASS METHODOLOGY REQUIRED
-
-Complex analytical task detected. This request requires systematic institutional knowledge integration.
-
-MANDATORY: You must use the Task tool with subagent_type='compass-captain' to coordinate:
-□ Step 1: Query existing docs/ and maps/ for relevant patterns (compass-knowledge-query)
-□ Step 2: Apply documented approaches from knowledge base (compass-pattern-apply) 
-□ Step 3: Identify knowledge gaps requiring investigation (compass-gap-analysis)
-□ Step 4: Plan documentation for new discoveries (compass-doc-planning)
-□ Step 5: Execute enhanced analysis with institutional knowledge (compass-enhanced-analysis)
-□ Step 6: Cross-reference findings with existing patterns (compass-cross-reference)
-
-COMPASS IS NOT OPTIONAL for complex analytical tasks. This enforcement prevents institutional knowledge loss and ensures quality."
-
-    # Output JSON to inject context into the prompt
-    if command -v jq >/dev/null 2>&1; then
-        jq -n --arg context "$compass_context" '{
-            "hookSpecificOutput": {
-                "hookEventName": "UserPromptSubmit",
-                "additionalContext": $context
-            }
-        }'
+    # Download compass-handler.py from repository  
+    if download_file "$REPO_URL/compass-handler.py" "$target_script" "technical enforcement system"; then
+        chmod +x "$target_script"
+        log_success "Installed COMPASS technical enforcement: $target_script"
     else
-        # Fallback JSON output without jq (basic escaping)
-        local escaped_context=$(echo "$compass_context" | sed 's/"/\\"/g' | tr '\n' ' ')
-        echo "{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"$escaped_context\"}}"
+        log_error "Failed to install technical enforcement system"
+        exit 1
     fi
-    
-    log "✅ COMPASS context injected into prompt"
 }
 
-# Main logic
-if is_complex_task; then
-    log "🚀 Complex analytical task detected - injecting COMPASS methodology requirement"
-    inject_compass_context
-    exit 0
-else
-    log "✅ Simple request detected - COMPASS not required"
-    exit 0
-fi
-HOOK_EOF
-    
-    chmod +x "$target_script"
-    log_success "Installed corrected COMPASS hook handler: $target_script"
-}
-
-# Configure or update .claude.json
-configure_claude_json() {
+# Configure or update .claude/settings.json  
+configure_claude_settings() {
     local force_update="$1"
     
-    log_info "Configuring .claude.json..."
+    log_info "Configuring .claude/settings.json..."
     
-    local claude_config="$CURRENT_DIR/.claude.json"
-    local hook_path="$CURRENT_DIR/compass-hook-handler.sh"
+    # Create .claude directory if it doesn't exist
+    local claude_dir="$CURRENT_DIR/.claude"
+    if [[ ! -d "$claude_dir" ]]; then
+        mkdir -p "$claude_dir"
+        log_success "Created .claude directory: $claude_dir"
+    fi
+    
+    local claude_config="$claude_dir/settings.json"
+    local hook_path="$CURRENT_DIR/compass-handler.py"
+    
+    # Clean up deprecated .claude.json during migration
+    if [[ -f "$CURRENT_DIR/.claude.json" ]]; then
+        log_info "Migrating from deprecated .claude.json to modern .claude/settings.json..."
+        if [[ "$force_update" == "true" ]] || [[ ! -f "$claude_config" ]]; then
+            rm "$CURRENT_DIR/.claude.json"
+            log_success "Removed deprecated .claude.json"
+        fi
+    fi
     
     if [[ -f "$claude_config" ]] && [[ "$force_update" != "true" ]]; then
-        log_warning ".claude.json already exists. Use 'update' to overwrite."
+        log_warning ".claude/settings.json already exists. Use 'update' to overwrite."
         return 0
     fi
     
-    # Create the .claude.json configuration with embedded content
+    # Create the .claude/settings.json configuration with enhanced authentication capabilities
     cat > "$claude_config" << 'EOF'
 {
   "hooks": {
-    "UserPromptSubmit": [
+    "PreToolUse": [
       {
         "matcher": "*",
         "hooks": [
           {
             "type": "command",
             "command": "HOOK_PATH_PLACEHOLDER",
-            "timeout": 120000
+            "timeout": 30000
           }
         ]
       }
     ]
   },
   "compass": {
-    "enforcement_level": "selective",
+    "enforcement_level": "technical",
     "complexity_triggers": [
       "analyze", "investigate", "debug", "implement", 
       "refactor", "optimize", "understand", "design",
@@ -345,7 +240,11 @@ configure_claude_json() {
       "deploy", "test", "validate", "verify", "check",
       "update", "modify", "change", "improve", "enhance",
       "extend", "expand", "scale", "migrate", "convert",
-      "generate", "construct", "make", "produce", "craft"
+      "generate", "construct", "make", "produce", "craft",
+      "authenticate", "auth", "login", "credentials", "oauth",
+      "saml", "jwt", "session", "token", "api-key", "sso",
+      "multi-provider", "enterprise-policy", "key-rotation",
+      "identity", "authorization", "permissions", "access-control"
     ],
     "captain_agent": "compass-captain",
     "crew_agents": [
@@ -358,8 +257,17 @@ configure_claude_json() {
       "compass-cross-reference",
       "compass-coder",
       "compass-svg-analyst",
-      "second-opinion"
+      "compass-second-opinion",
+      "compass-auth-performance-analyst",
+      "compass-auth-security-validator",
+      "compass-auth-optimization-specialist"
     ],
+    "authentication": {
+      "session_persistence": true,
+      "cross_iteration_memory": true,
+      "enterprise_policy_support": true,
+      "multi_provider_coordination": true
+    },
     "documentation": {
       "create_investigation_docs": true,
       "create_visual_maps": true,
@@ -378,22 +286,31 @@ EOF
     # Update the hook path in the configuration to match current directory
     if command -v sed >/dev/null 2>&1; then
         sed -i "s|HOOK_PATH_PLACEHOLDER|$hook_path|g" "$claude_config"
-        log_success "Configured .claude.json with COMPASS hooks"
+        log_success "Configured .claude/settings.json with enhanced COMPASS and authentication capabilities"
     else
-        log_warning "sed not available. You need to manually update hook path in .claude.json"
+        log_warning "sed not available. You need to manually update hook path in .claude/settings.json"
         log_warning "Replace 'HOOK_PATH_PLACEHOLDER' with '$hook_path'"
     fi
 }
+
 
 # Validate installation
 validate_installation() {
     log_info "Validating Claude-Compass installation..."
     
-    # Test hook handler execution
-    if [[ -x "$CURRENT_DIR/compass-hook-handler.sh" ]]; then
-        log_success "Hook handler is executable"
+    # Test technical enforcement system execution
+    if [[ -x "$CURRENT_DIR/compass-handler.py" ]]; then
+        log_success "Technical enforcement system is executable"
+        
+        # Test actual functionality with sample input
+        if echo '{"tool_name":"test","tool_input":{}}' | "$CURRENT_DIR/compass-handler.py" >/dev/null 2>&1; then
+            log_success "Technical enforcement system functional"
+        else
+            log_error "compass-handler.py execution failed - check Python dependencies"
+            exit 1
+        fi
     else
-        log_error "Hook handler is not executable"
+        log_error "Technical enforcement system is not executable"
         exit 1
     fi
     
@@ -414,6 +331,11 @@ validate_installation() {
         "compass-academic-analyst"
         "compass-memory-enhanced-writer"
         "compass-second-opinion"
+        "compass-auth-performance-analyst"
+        "compass-auth-security-validator"
+        "compass-auth-optimization-specialist"
+        "compass-upstream-validator"
+        "compass-dependency-tracker"
     )
     
     for agent in "${agents[@]}"; do
@@ -427,15 +349,24 @@ validate_installation() {
         exit 1
     fi
     
-    log_success "All COMPASS agents installed successfully (14 total agents including writing/academic/memory specialists)"
+    log_success "All COMPASS agents installed successfully (19 total agents including writing/academic/memory specialists, authentication specialists, upstream validation, and dependency tracking)"
     
-    # Test .claude.json syntax
+    # Test .claude/settings.json syntax
     if command -v python3 >/dev/null 2>&1; then
-        if [[ -f "$CURRENT_DIR/.claude.json" ]] && python3 -m json.tool "$CURRENT_DIR/.claude.json" >/dev/null 2>&1; then
-            log_success ".claude.json syntax is valid"
-        elif [[ -f "$CURRENT_DIR/.claude.json" ]]; then
-            log_error ".claude.json contains syntax errors"
-            exit 1
+        if [[ -f "$CURRENT_DIR/.claude/settings.json" ]]; then
+            if python3 -m json.tool "$CURRENT_DIR/.claude/settings.json" >/dev/null 2>&1; then
+                log_success ".claude/settings.json syntax is valid"
+                
+                # Verify hook configuration correctness
+                if grep -q "PreToolUse" "$CURRENT_DIR/.claude/settings.json" && grep -q "compass-handler.py" "$CURRENT_DIR/.claude/settings.json"; then
+                    log_success "Hook configuration properly configured for technical enforcement"
+                else
+                    log_warning "Hook configuration may not be using PreToolUse with compass-handler.py"
+                fi
+            else
+                log_error ".claude/settings.json contains syntax errors"
+                exit 1
+            fi
         fi
     fi
 }
@@ -446,8 +377,8 @@ do_install() {
     
     setup_directories
     install_agents "false"
-    install_hook_handler "false"
-    configure_claude_json "false"
+    install_enforcement_hook "false"
+    configure_claude_settings "false"
     validate_installation
     
     log_success "🧭 Claude-Compass successfully installed!"
@@ -460,8 +391,8 @@ do_update() {
     
     setup_directories
     install_agents "true"
-    install_hook_handler "true"
-    configure_claude_json "true"
+    install_enforcement_hook "true"
+    configure_claude_settings "true"
     validate_installation
     
     log_success "🔄 Claude-Compass successfully updated!"
@@ -473,14 +404,14 @@ show_success_message() {
     echo ""
     echo "📍 Installation Summary:"
     echo "   • Captain and crew agents installed to: $CLAUDE_AGENTS_DIR"
-    echo "   • Hook handler installed to: $CURRENT_DIR/compass-hook-handler.sh"
-    echo "   • Configuration file: $CURRENT_DIR/.claude.json"
+    echo "   • Technical enforcement installed to: $CURRENT_DIR/compass-handler.py"
+    echo "   • Configuration file: $CURRENT_DIR/.claude/settings.json"
     echo "   • Knowledge directories: $CURRENT_DIR/{docs,maps}/"
     echo ""
     echo "🚀 Next Steps:"
     echo "   1. Start Claude Code in this directory: claude"
     echo "   2. Try a complex analytical request to trigger COMPASS"
-    echo "   3. Watch the captain coordinate all 14 agents through COMPASS methodology"
+    echo "   3. Watch the captain coordinate all 19 agents through COMPASS methodology"
     echo ""
     echo "🔍 Test COMPASS with prompts like:"
     echo "   • \"Analyze the architecture of this codebase\""
@@ -488,7 +419,8 @@ show_success_message() {
     echo "   • \"Investigate the root cause of this problem\""
     echo "   • \"Implement a secure authentication system\""
     echo ""
-    echo "✅ COMPASS is now protecting your project with bypass-resistant methodology enforcement!"
+    echo "✅ COMPASS technical enforcement active - blocks operations without methodology compliance!"
+    echo "🛡️ PreToolUse hooks provide true bypass resistance through operation blocking!"
     echo "🧭⚓️ Ready to navigate any codebase with institutional knowledge and expert execution!"
 }
 

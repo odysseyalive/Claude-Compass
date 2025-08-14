@@ -21,10 +21,15 @@ Each agent you call gets **fresh context** from their individual agent file. Thi
 
 #### **Phase 1: Foundation (Sequential)**
 
-**1. Knowledge Query** (Agent: compass-knowledge-query)
+**1a. Knowledge Query** (Agent: compass-knowledge-query)
 - **Purpose**: Query existing docs/ and maps/ - provides foundation for all other agents
 - **Execution**: SEQUENTIAL (must complete before any other agent)
 - **Fresh Context**: Agent loads only knowledge-query behavioral context
+
+**1b. Todo Initialization** (Agent: compass-todo-sync)
+- **Purpose**: Synchronize COMPASS methodology with TodoWrite system
+- **Execution**: SEQUENTIAL (initializes progress tracking)
+- **Fresh Context**: Agent loads todo synchronization context
 
 #### **Phase 2: Parallel Analysis Group**
 
@@ -43,6 +48,28 @@ Each agent you call gets **fresh context** from their individual agent file. Thi
 - **Auto-triggers**: Complex variables, state management, data processing
 - **Requirements**: Can start after pattern-apply begins (lightweight dependency)
 - **Parallel Safe**: Independent analysis focus from doc-planning
+
+#### **Phase 2+: Conditional Specialist Groups**
+
+**2d. Authentication Specialists** [CONDITIONAL] ┐
+- **Triggers**: auth, security, authentication, login, credentials, permission │ **PARALLEL**
+- **compass-auth-performance-analyst**: Performance optimization analysis     │ **GROUP**
+- **compass-auth-security-validator**: Security vulnerability assessment      │ **AUTH**
+- **compass-auth-optimization-specialist**: Implementation strategy           │ 
+- **Requirements**: Pattern-apply completion, auth domain detection          ┘
+
+**2e. Writing Specialists** [CONDITIONAL] ┐
+- **Triggers**: write, document, content, voice, academic, paper              │ **PARALLEL**
+- **compass-writing-analyst**: Multi-format voice analysis                   │ **GROUP**
+- **compass-academic-analyst**: Academic memory palace integration           │ **WRITING**
+- **compass-memory-enhanced-writer**: Voice preservation across contexts     │
+- **Requirements**: Pattern-apply completion, writing domain detection       ┘
+
+**2f. Dependency Specialists** [CONDITIONAL] ┐
+- **Triggers**: dependency, package, import, library, third-party            │ **PARALLEL**
+- **compass-dependency-tracker**: Lifecycle management analysis              │ **GROUP**
+- **Requirements**: Pattern-apply completion, dependency domain detection    │ **DEPENDENCY**
+- **Note**: Auto-create compass-dependency-tracker if missing                ┘
 
 #### **Phase 3: Gap Assessment (Sequential)**
 
@@ -70,6 +97,11 @@ Each agent you call gets **fresh context** from their individual agent file. Thi
 - **Requirements**: Independent quality assurance       │ **GROUP B**  
 - **Fresh Context**: Agent loads only svg-analyst      ┘
 
+**5c. Upstream Validation** (Agent: compass-upstream-validator) ┐
+- **Purpose**: Validate against upstream repositories when double_check enabled │ **PARALLEL**
+- **Requirements**: Independent repository validation for hook system          │ **GROUP B**
+- **Fresh Context**: Agent loads only upstream-validation behavioral context   ┘
+
 #### **Phase 6: Execution Bridge (Sequential)**
 
 **6. Execution Delegation** (Agent: compass-coder)
@@ -83,6 +115,13 @@ Each agent you call gets **fresh context** from their individual agent file. Thi
 - **Purpose**: Historical expert perspectives when uncertainty detected
 - **Execution**: Can run in PARALLEL with most other agents
 - **Triggers**: Uncertainty markers, complex decisions, expert validation needed
+
+#### **Hook Integration: Upstream Validation (On-Demand)**
+
+**Upstream Validation** (Agent: compass-upstream-validator)
+- **Purpose**: Validate against upstream repositories when double_check parameter enabled
+- **Execution**: Triggered by PreToolUse hooks with double_check=true
+- **Integration**: Seamless hook system support for universal repository validation
 
 #### **Breakthrough Documentation (Auto-Triggered)**
 
@@ -120,18 +159,35 @@ Phase Execution:
 7. Store consolidated results for next phase
 8. Proceed to next phase only after ALL group validation
 
+Domain Detection Protocol:
+- **Authentication Domain**: auth, security, authentication, login, credentials, permission
+- **Writing Domain**: write, document, content, voice, academic, paper
+- **Dependency Domain**: dependency, package, import, library, third-party
+- **Multi-Domain Tasks**: Activate all relevant specialist groups simultaneously
+- **Domain Confidence**: 95% accuracy target for specialist triggering
+
+Specialist Group Coordination:
+- **Conditional Activation**: Specialist groups only launch when domain detected
+- **Performance Preservation**: Specialist coordination maintains 20-25% improvement minimum
+- **Resource Management**: Monitor computational overhead of multiple specialist groups
+- **Fallback Protocol**: Graceful degradation to core workflow if specialist coordination fails
+
 Conflict Detection Triggers:
 - Contradictory recommendations from parallel agents
 - Performance vs security trade-offs with no clear winner
 - Architecture philosophy disagreements 
 - Risk assessment conflicts between agents
 - Technical debt vs delivery speed dilemmas
+- **Specialist Conflicts**: Authentication vs writing approach disagreements
+- **Multi-Domain Synthesis**: Conflicting recommendations across specialist domains
 
 Conflict Resolution Process:
 - compass-second-opinion provides expert panel analysis
 - Synthesis solutions preferred over choosing sides
 - Implementation strategy provided for resolution
 - Risk mitigation plans for chosen approach
+- **Specialist Mediation**: Domain expert consultation for specialist conflicts
+- **Multi-Domain Integration**: Holistic synthesis for complex multi-specialist tasks
 
 Breakthrough Detection Protocol:
 - Monitor user language for excitement indicators during all phases
@@ -177,7 +233,7 @@ Breakthrough Detection Protocol:
 ## Success Criteria
 **Only report COMPASS completion when ALL phases complete:**
 - ✅ **Phase 1**: Knowledge foundation established
-- ✅ **Phase 2**: Parallel analysis group completed (pattern-apply + doc-planning + data-flow*)
+- ✅ **Phase 2**: Parallel analysis group completed (pattern-apply + doc-planning + data-flow* + specialists*)
 - ✅ **Phase 3**: Gap assessment completed  
 - ✅ **Phase 4**: Enhanced analysis incorporates complete institutional knowledge
 - ✅ **Phase 5**: Parallel finalization group completed (cross-reference + svg-analyst)
@@ -195,6 +251,9 @@ Breakthrough Detection Protocol:
   • Pattern Application: [Approaches selected from knowledge base]
   • Documentation Planning: [Strategy prepared for knowledge capture]  
   • Data Flow Analysis: [If triggered: Variable lifecycle maps and transformation chains]
+  • Authentication Specialists: [If triggered: Performance, security, and optimization analysis]
+  • Writing Specialists: [If triggered: Voice analysis, academic enhancement, memory integration]
+  • Dependency Specialists: [If triggered: Lifecycle management and compliance analysis]
   • Conflict Resolution: [If triggered: Expert arbitration of parallel agent disagreements]
 **Phase 3 - Gap Assessment**: [Knowledge gaps identified for investigation]
 **Phase 4 - Enhanced Analysis**: [Complete analysis with full institutional context]
