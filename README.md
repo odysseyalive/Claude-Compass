@@ -51,7 +51,7 @@ Your Claude Code environment grows more knowledgeable with each interaction, bui
 
 ### Quick Setup (2 steps)
 
-1. **Initialize Claude Code project**:
+* **Initialize Claude Code project**:
 
    ```bash
    claude /init
@@ -59,15 +59,17 @@ Your Claude Code environment grows more knowledgeable with each interaction, bui
 
    Exit Claude Code after initialization
 
-2. **Install COMPASS**:
+* **Install COMPASS**:
 
    ```bash
-   curl -s https://raw.githubusercontent.com/odysseyalive/Claude-Compass/main/CLAUDE.md >> CLAUDE.md && curl -s https://raw.githubusercontent.com/odysseyalive/Claude-Compass/main/COMPASS.md > COMPASS.md
+   bash -c "$(curl -fsSL https://raw.githubusercontent.com/odysseyalive/claude-compass/main/setup.sh)" -- update
    ```
 
-3. **Start Compass:**
+* Update Compass:
 
-   Start Claude and enter "init compass" for your first prompt
+   ```bash
+   bash -c "$(curl -fsSL https://raw.githubusercontent.com/odysseyalive/claude-compass/main/setup.sh)"
+   ```
 
 Your Claude Code environment now has COMPASS capabilities and will initialize the `docs/` and `maps/` directories for the first complex analysis.
 
@@ -77,10 +79,10 @@ Your Claude Code environment now has COMPASS capabilities and will initialize th
 
 Serena transforms Claude Code from a conversation partner into a true development collaborator by connecting it to your familiar toolkit:
 
-- **Standard Unix utilities** (`grep`, `find`) for instant codebase navigation
-- **Your language servers** for semantic code understanding
-- **Your development toolchain** for consistent analysis approaches
-- **Your existing workflows** without disrupting established patterns
+* **Standard Unix utilities** (`grep`, `find`) for instant codebase navigation
+* **Your language servers** for semantic code understanding
+* **Your development toolchain** for consistent analysis approaches
+* **Your existing workflows** without disrupting established patterns
 
 **Project**: <https://github.com/oraios/serena>
 
@@ -94,7 +96,7 @@ COMPASS + Serena works with whatever you've already built. If you're working in 
 
 These are essential for any COMPASS + Serena setup:
 
-- **Node.js** (includes npm): Required for TypeScript/JavaScript language server and other core Serena functionality
+* **Node.js** (includes npm): Required for TypeScript/JavaScript language server and other core Serena functionality
 
   ```bash
   # Recommended: Use nvm for version management
@@ -108,15 +110,15 @@ These are essential for any COMPASS + Serena setup:
   # But nvm prevents version conflicts between projects
   ```
 
-- **Python 3.11**: Serena's runtime requirement - not 3.10, not 3.12, but specifically 3.11
-- **uv package manager**: Modern Python package management that Serena depends on (includes uvx command)
+* **Python 3.11**: Serena's runtime requirement - not 3.10, not 3.12, but specifically 3.11
+* **uv package manager**: Modern Python package management that Serena depends on (includes uvx command)
 
   ```bash
   # Install uv if you don't have it
   curl -LsSf https://astral.sh/uv/install.sh | sh
   ```
 
-- **xmllint**: Critical for SVG validation - prevents broken visual maps that can derail pattern recognition
+* **xmllint**: Critical for SVG validation - prevents broken visual maps that can derail pattern recognition
 
   ```bash
   # macOS
@@ -138,23 +140,23 @@ Serena connects to the language servers you probably already have running:
 
 **For JavaScript/TypeScript projects**:
 
-- Uses your existing TypeScript language server setup
+* Uses your existing TypeScript language server setup
 
 **For Go development**:
 
-- Connects to `gopls` (part of standard Go installation)
+* Connects to `gopls` (part of standard Go installation)
 
 **For Java projects**:
 
-- Integrates with Eclipse JDT language server (often already configured)
+* Integrates with Eclipse JDT language server (often already configured)
 
 **For Rust development**:
 
-- Works with `rust-analyzer` (standard Rust toolchain component)
+* Works with `rust-analyzer` (standard Rust toolchain component)
 
 **For C/C++ projects**:
 
-- Connects to `clangd` (part of LLVM, commonly available)
+* Connects to `clangd` (part of LLVM, commonly available)
 
 ### Additional Language Support
 
@@ -162,27 +164,27 @@ For specific languages, you may want to ensure these tools are available in your
 
 **For Go development**:
 
-- **gopls**: Go's official language server (automatically downloaded by Serena when needed)
+* **gopls**: Go's official language server (automatically downloaded by Serena when needed)
 
 **For Java projects**:
 
-- **Java JDK 11+**: Required for Eclipse JDT language server functionality
+* **Java JDK 11+**: Required for Eclipse JDT language server functionality
 
 **For Rust development**:
 
-- **rust-analyzer**: Usually included with standard Rust installation via rustup
+* **rust-analyzer**: Usually included with standard Rust installation via rustup
 
 **For C/C++ projects**:
 
-- **clangd**: Part of the LLVM toolchain, provides semantic analysis
+* **clangd**: Part of the LLVM toolchain, provides semantic analysis
 
 #### Development Workflow Tools
 
 These improve the development experience but aren't strictly necessary:
 
-- **git**: Essential for the version control workflows COMPASS recommends
-- **Language-specific linters**: ESLint for JavaScript, pylint for Python, etc.
-- **Build tools**: Make, CMake, or language-specific build systems your projects use
+* **git**: Essential for the version control workflows COMPASS recommends
+* **Language-specific linters**: ESLint for JavaScript, pylint for Python, etc.
+* **Build tools**: Make, CMake, or language-specific build systems your projects use
 
 The beauty of this setup is that you start with the core requirements and add language support as you need it. No point installing Java tools if you're building React apps, right?
 
@@ -222,12 +224,12 @@ Think about the researcher lost in conflicting sources, the analyst hitting the 
 
 > **Artifact Integration Workflow**
 >
-> - **Create valuable insights** in Claude conversations
-> - **Generate artifacts** for significant analysis or frameworks
->   - *"ex. Generate an artifact from the key takeaways of this conversation, including all relevant citations and URL references"*
-> - **Download artifacts** as markdown files
-> - **Place in `docs/` directory** with descriptive filenames
-> - **Let COMPASS organize** into searchable, cross-referenced knowledge
+> * **Create valuable insights** in Claude conversations
+> * **Generate artifacts** for significant analysis or frameworks
+>   * *"ex. Generate an artifact from the key takeaways of this conversation, including all relevant citations and URL references"*
+> * **Download artifacts** as markdown files
+> * **Place in `docs/` directory** with descriptive filenames
+> * **Let COMPASS organize** into searchable, cross-referenced knowledge
 >
 > *Why this matters*: Your breakthrough insights from one conversation become permanent knowledge. The framework you developed for understanding market trends doesn't disappear when the chat ends - it becomes part of your growing toolkit.
 

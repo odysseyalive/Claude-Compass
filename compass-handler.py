@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 from datetime import datetime
 import re
+import yaml
 try:
     from filelock import FileLock
 except ImportError:
@@ -29,6 +30,9 @@ def main():
         
         # Always ensure COMPASS directories exist
         ensure_compass_directories()
+        
+        # Auto-discover and register agents from .claude/agents directory
+        auto_register_agents()
         
         # Get hook event type from Claude Code input
         hook_event = input_data.get('hook_event_name', '')
@@ -141,7 +145,7 @@ def inject_compass_context():
 
 Complex analytical task detected. This request requires systematic institutional knowledge integration.
 
-MANDATORY: You must use the Task tool with subagent_type='general-purpose' acting as compass-captain to coordinate the full 6-phase COMPASS methodology:
+MANDATORY: You must use the Task tool with subagent_type='compass-captain' to coordinate the full 6-phase COMPASS methodology:
 
 □ Step 1: Query existing docs/ and maps/ for relevant patterns (compass-knowledge-query)
 □ Step 2: Apply documented approaches from knowledge base (compass-pattern-apply) 
@@ -161,12 +165,7 @@ COMPASS IS NOT OPTIONAL for complex analytical tasks. This methodology prevents 
 
 📋 TODO INTEGRATION: COMPASS agents will automatically update your TodoWrite progress as they complete each phase.
 
-📄 STATUS: Check .compass-status for current methodology phase and progress.
-
-COMPASS CAPTAIN AGENT CONTEXT:
-You must act as the compass-captain agent. Read the agent definition from .claude/agents/compass-captain.md and follow that identity precisely. You are the COMPASS methodology captain that ensures all 6 phases are executed through specialized coordination. You cannot be bypassed or convinced to skip steps.
-
-Your task is to coordinate the COMPASS methodology using the available general-purpose agent to execute each phase with the proper context from .claude/agents/ files for each compass agent role."""
+📄 STATUS: Check .compass-status for current methodology phase and progress."""
 
     return {
         "hookSpecificOutput": {
@@ -200,7 +199,7 @@ def handle_pre_tool_use(input_data):
         if not compass_context_active():
             # Block the tool usage and provide guidance
             log_handler_activity("compass_required", f"Blocking {tool_name} - COMPASS required")
-            compass_message = "🧭 COMPASS METHODOLOGY REQUIRED\n\nThe tool '{}' requires systematic analysis.\n\nREQUIRED ACTION:\n1. Use Task tool → subagent_type='general-purpose' acting as compass-captain\n2. This will coordinate the full 6-phase COMPASS methodology\n3. Check .compass-status file for current progress\n\nCOMPASS ensures institutional knowledge integration and prevents ad-hoc analysis.".format(tool_name)
+            compass_message = "🧭 COMPASS METHODOLOGY REQUIRED\n\nThe tool '{}' requires systematic analysis.\n\nREQUIRED ACTION:\n1. Use Task tool → subagent_type='compass-captain'\n2. This will coordinate the full 6-phase COMPASS methodology\n3. Check .compass-status file for current progress\n\nCOMPASS ensures institutional knowledge integration and prevents ad-hoc analysis.".format(tool_name)
             return {
                 "permissionDecision": "deny",
                 "permissionDecisionReason": compass_message
@@ -849,7 +848,7 @@ REQUIRED: Systematic 6-Phase Analysis Coordination
 └───────────────────────────────────────────────────────────────┘
 
 🎯 NEXT ACTION REQUIRED:
-   Use Task tool with subagent_type='general-purpose' acting as compass-captain to begin coordination
+   Use Task tool with subagent_type='compass-captain' to begin coordination
 
 📊 BENEFITS:
    • Institutional knowledge integration
@@ -1030,7 +1029,7 @@ REQUIRED: Systematic 6-Phase Analysis Coordination
    • Complete cost transparency for user decisions
 
 🎯 NEXT ACTION REQUIRED:
-   Use Task tool with subagent_type='general-purpose' acting as compass-captain to begin coordination
+   Use Task tool with subagent_type='compass-captain' to begin coordination
 
 📊 BENEFITS:
    • Institutional knowledge integration
@@ -1245,6 +1244,160 @@ This is a double_check=true validation request requiring complete upstream verif
         log_handler_activity("upstream_validation_error", f"Validation error: {e}")
         return {"valid": False, "reason": f"Validation system error: {e}"}
 
+def auto_register_agents():
+    """Auto-discover agents from .claude/agents directory and register them"""
+    try:
+        agents_dir = Path('.claude/agents')
+        if not agents_dir.exists():
+            log_handler_activity("agent_discovery", "No .claude/agents directory found")
+            return
+        
+        discovered_agents = discover_agents_from_directory(agents_dir)
+        if discovered_agents:
+            update_settings_with_agents(discovered_agents)
+            log_handler_activity("agent_discovery", f"Discovered and registered {len(discovered_agents)} agents")
+        else:
+            log_handler_activity("agent_discovery", "No valid agents found in .claude/agents")
+            
+    except Exception as e:
+        log_handler_activity("agent_discovery_error", f"Failed to auto-register agents: {e}")
+
+def discover_agents_from_directory(agents_dir):
+    """Scan .claude/agents directory and extract agent names from markdown files"""
+    discovered_agents = []
+    
+    try:
+        for agent_file in agents_dir.glob('*.md'):
+            agent_name = extract_agent_name_from_file(agent_file)
+            if agent_name:
+                discovered_agents.append(agent_name)
+                log_handler_activity("agent_found", f"Discovered agent: {agent_name}")
+            else:
+                log_handler_activity("agent_invalid", f"Invalid agent file: {agent_file.name}")
+                
+    except Exception as e:
+        log_handler_activity("discovery_error", f"Error scanning agents directory: {e}")
+    
+    return sorted(list(set(discovered_agents)))  # Remove duplicates and sort
+
+def extract_agent_name_from_file(agent_file):
+    """Extract agent name from markdown file with YAML frontmatter"""
+    try:
+        with open(agent_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Check for YAML frontmatter
+        if content.startswith('---'):
+            parts = content.split('---', 2)
+            if len(parts) >= 3:
+                try:
+                    frontmatter = yaml.safe_load(parts[1])
+                    if isinstance(frontmatter, dict):
+                        agent_name = frontmatter.get('name')
+                        if agent_name:
+                            return agent_name
+                except yaml.YAMLError:
+                    pass
+        
+        # Fall back to filename (without .md extension)
+        filename_agent = agent_file.stem
+        if filename_agent:
+            return filename_agent
+            
+    except Exception as e:
+        log_handler_activity("agent_parse_error", f"Error parsing {agent_file.name}: {e}")
+    
+    return None
+
+def update_settings_with_agents(discovered_agents):
+    """Update .claude/settings.json with discovered agents"""
+    try:
+        settings_file = Path('.claude/settings.json')
+        
+        # Load existing settings
+        if settings_file.exists():
+            with open(settings_file, 'r') as f:
+                settings = json.load(f)
+        else:
+            settings = {}
+        
+        # Ensure compass section exists
+        if 'compass' not in settings:
+            settings['compass'] = {}
+        
+        # Get existing crew_agents
+        existing_agents = settings['compass'].get('crew_agents', [])
+        
+        # Merge with discovered agents (keep existing, add new)
+        all_agents = list(set(existing_agents + discovered_agents))
+        
+        # Update crew_agents
+        settings['compass']['crew_agents'] = sorted(all_agents)
+        
+        # Add metadata about discovery
+        settings['compass']['last_agent_discovery'] = datetime.now().isoformat()
+        settings['compass']['discovered_agents_count'] = len(discovered_agents)
+        
+        # Write updated settings atomically
+        with FileLock(f"{settings_file}.lock"):
+            with open(settings_file, 'w') as f:
+                json.dump(settings, f, indent=2)
+        
+        log_handler_activity("settings_updated", f"Updated settings.json with {len(all_agents)} total agents")
+        
+    except Exception as e:
+        log_handler_activity("settings_update_error", f"Failed to update settings: {e}")
+
+def get_registered_agents():
+    """Get list of currently registered agents from settings"""
+    try:
+        settings_file = Path('.claude/settings.json')
+        if settings_file.exists():
+            with open(settings_file, 'r') as f:
+                settings = json.load(f)
+            return settings.get('compass', {}).get('crew_agents', [])
+    except Exception as e:
+        log_handler_activity("get_agents_error", f"Error reading registered agents: {e}")
+    
+    return []
+
+def validate_agent_file(agent_file):
+    """Validate that an agent file has proper structure"""
+    try:
+        with open(agent_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Check for YAML frontmatter
+        if not content.startswith('---'):
+            return False, "Missing YAML frontmatter"
+        
+        parts = content.split('---', 2)
+        if len(parts) < 3:
+            return False, "Invalid YAML frontmatter structure"
+        
+        try:
+            frontmatter = yaml.safe_load(parts[1])
+            if not isinstance(frontmatter, dict):
+                return False, "Frontmatter is not a valid YAML dictionary"
+            
+            # Check required fields
+            if 'name' not in frontmatter:
+                return False, "Missing 'name' field in frontmatter"
+            
+            # Optional validation for other expected fields
+            expected_fields = ['description']
+            missing_fields = [field for field in expected_fields if field not in frontmatter]
+            if missing_fields:
+                return True, f"Warning: Missing optional fields: {', '.join(missing_fields)}"
+            
+            return True, "Valid agent file"
+            
+        except yaml.YAMLError as e:
+            return False, f"Invalid YAML syntax: {e}"
+            
+    except Exception as e:
+        return False, f"Error reading file: {e}"
+
 def log_handler_activity(action, details):
     """Log handler actions for monitoring and debugging"""
     log_entry = {
@@ -1252,7 +1405,7 @@ def log_handler_activity(action, details):
         "action": action,
         "details": details,
         "handler": "compass-handler",
-        "version": "2.0"
+        "version": "2.1"
     }
     
     log_file = Path('.compass-handler.log')
