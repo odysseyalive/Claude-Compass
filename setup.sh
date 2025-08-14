@@ -6,7 +6,7 @@ set -euo pipefail
 
 # Configuration
 REPO_URL="https://raw.githubusercontent.com/odysseyalive/claude-compass/main"
-CURRENT_DIR="$PWD"
+CURRENT_DIR="$(pwd)"
 CLAUDE_AGENTS_DIR="$CURRENT_DIR/.claude/agents"
 OPERATION="${1:-install}"
 
