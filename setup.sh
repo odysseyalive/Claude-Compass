@@ -307,12 +307,7 @@ install_compass_tools() {
     fi
   fi
 
-  # Install SVG spatial validator CLI
-    else
-      log_error "Failed to install SVG spatial validator"
-      exit 1
-    fi
-  fi
+  # SVG spatial validator CLI (removed per project documentation)
 
   # Clean up deprecated files during migration
   if [[ -f "$CURRENT_DIR/compass-handler.py" ]]; then
