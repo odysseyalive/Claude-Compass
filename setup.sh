@@ -34,6 +34,14 @@ log_error() {
   echo -e "${RED}[ERROR]${NC} $*"
 }
 
+# Escape special characters in path for sed safety
+escape_path_for_sed() {
+  local path="$1"
+  # Escape forward slashes, backslashes, and ampersands for sed
+  # Since we're using # as delimiter in sed, only escape & characters
+  echo "$path" | sed 's/&/\&/g'
+}
+
 # Show usage information
 show_usage() {
   echo "Claude-Compass Setup Script"
@@ -142,14 +150,11 @@ download_file() {
   log_info "Downloading $description..."
 
   # Create temporary file to validate before moving to final location
-  local temp_file
+  local temp_file=""
   temp_file=$(mktemp) || {
     log_error "Failed to create temporary file for download"
     return 1
   }
-
-  # Ensure cleanup on function exit
-  trap 'rm -f "$temp_file"' RETURN
 
   if curl -fsSL "$url" -o "$temp_file" 2>/dev/null; then
     # Verify download has content (not empty or error page)
@@ -160,14 +165,17 @@ download_file() {
         return 0
       else
         log_error "Failed to move downloaded file to final location: $output_path"
+        rm -f "$temp_file" 2>/dev/null || true
         return 1
       fi
     else
       log_error "Downloaded file appears to be invalid or empty: $description"
+      rm -f "$temp_file" 2>/dev/null || true
       return 1
     fi
   else
     log_error "Failed to download $description from $url"
+    rm -f "$temp_file" 2>/dev/null || true
     return 1
   fi
 }
@@ -429,21 +437,7 @@ validate_installation() {
     exit 1
   fi
 
-  # Test SVG spatial validator execution
-
-  if [[ -x "$svg_validator" ]]; then
-    log_success "SVG spatial validator is executable"
-
-    # Test with --help flag
-    if "$svg_validator" --help >/dev/null 2>&1; then
-      log_success "SVG spatial validator functional"
-    else
-      log_warning "SVG spatial validator may have issues - check Python dependencies"
-    fi
-  else
-    log_error "SVG spatial validator is not executable"
-    exit 1
-  fi
+  # SVG spatial validator removed per project documentation
 
   # Test agent file accessibility
   local missing_agents=()
