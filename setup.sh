@@ -40,18 +40,18 @@ CURRENT_DIR="$(pwd)"
 # Create directories if they don't exist
 setup_directories() {
   log_info "Setting up directory structure..."
-  
+
   # Create .claude/agents directory
   if [[ ! -d "$CURRENT_DIR/.claude/agents" ]]; then
     mkdir -p "$CURRENT_DIR/.claude/agents"
     log_success "Created local agents directory: $CURRENT_DIR/.claude/agents"
   fi
-  
+
   # Create maps directory and index
   if [[ ! -d "$CURRENT_DIR/maps" ]]; then
     mkdir -p "$CURRENT_DIR/maps"
   fi
-  
+
   if [[ ! -f "$CURRENT_DIR/maps/map-index.json" ]]; then
     local current_date
     current_date=$(date +%Y-%m-%d)
@@ -127,6 +127,7 @@ install_agents() {
     "compass-dependency-tracker"
     "compass-breakthrough-doc"
     "compass-todo-sync"
+    "compass-svg-analyst.md"
   )
 
   for agent in "${agents[@]}"; do
@@ -168,59 +169,100 @@ install_technical_enforcement() {
   fi
 }
 
-# Configure settings
+# Configure or update .claude/settings.json
 configure_settings() {
+  local force_update="$1"
+
   log_info "Configuring .claude/settings.json..."
 
-  local settings_file="$CURRENT_DIR/.claude/settings.json"
-  
-  # Create basic settings if file doesn't exist
-  if [[ ! -f "$settings_file" ]]; then
-    cat > "$settings_file" << 'EOF'
-{
-  "hooks": {
-    "preToolUse": [".compass/handlers/compass-handler.py"],
-    "userPromptSubmit": [".compass/handlers/compass-handler.py"]
-  }
-}
-EOF
-  else
-    # Update existing settings - simplified approach
-    if ! grep -q "preToolUse" "$settings_file"; then
-      log_info "Adding hooks to existing settings..."
-      # Create a backup
-      cp "$settings_file" "$settings_file.backup"
-      
-      # Simple insertion approach
-      local temp_settings
-      temp_settings=$(mktemp)
-      
-      if [[ -s "$settings_file" ]]; then
-        # Remove closing brace and add hooks
-        sed '$ s/}$//' "$settings_file" > "$temp_settings"
-        cat >> "$temp_settings" << 'EOF'
-  "hooks": {
-    "preToolUse": [".compass/handlers/compass-handler.py"],
-    "userPromptSubmit": [".compass/handlers/compass-handler.py"]
-  }
-}
-EOF
-      else
-        cat > "$temp_settings" << 'EOF'
-{
-  "hooks": {
-    "preToolUse": [".compass/handlers/compass-handler.py"],
-    "userPromptSubmit": [".compass/handlers/compass-handler.py"]
-  }
-}
-EOF
-      fi
-      
-      mv "$temp_settings" "$settings_file"
+  # Create .claude directory if it doesn't exist
+  local claude_dir="$CURRENT_DIR/.claude"
+  if [[ ! -d "$claude_dir" ]]; then
+    mkdir -p "$claude_dir"
+    log_success "Created .claude directory: $claude_dir"
+  fi
+
+  local claude_config="$claude_dir/settings.json"
+  local hook_path="$CURRENT_DIR/.compass/handlers/compass-handler.py"
+
+  # Clean up deprecated .claude.json during migration
+  if [[ -f "$CURRENT_DIR/.claude.json" ]]; then
+    log_info "Migrating from deprecated .claude.json to modern .claude/settings.json..."
+    if [[ "$force_update" == "true" ]] || [[ ! -f "$claude_config" ]]; then
+      rm "$CURRENT_DIR/.claude.json"
+      log_success "Removed deprecated .claude.json"
     fi
   fi
 
-  log_success "Configured Claude Code settings with COMPASS hooks"
+  if [[ -f "$claude_config" ]] && [[ "$force_update" != "true" ]]; then
+    log_warning ".claude/settings.json already exists. Use 'update' to overwrite."
+    return 0
+  fi
+
+  # Create the .claude/settings.json configuration with enhanced authentication capabilities
+  cat >"$claude_config" <<'EOF'
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "HOOK_PATH_PLACEHOLDER",
+            "timeout": 30000
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "HOOK_PATH_PLACEHOLDER",
+            "timeout": 30000
+          }
+        ]
+      }
+    ]
+  },
+  "authentication": {
+    "session_persistence": true,
+    "cross_iteration_memory": true,
+    "enterprise_policy_support": true,
+    "multi_provider_coordination": true
+  },
+  "documentation": {
+    "create_investigation_docs": true,
+    "create_visual_maps": true,
+    "update_pattern_library": true,
+    "capture_lessons_learned": true
+  },
+  "bypass_resistance": {
+    "context_refresh": true,
+    "distributed_enforcement": true,
+    "sequential_validation": true
+  }
+}
+EOF
+
+  # Update the hook path in the configuration to match current directory
+  if command -v sed >/dev/null 2>&1; then
+    # Fixed: Escape special characters in path to prevent sed injection
+    escaped_hook_path=$(escape_path_for_sed "$hook_path")
+    if sed -i "s#HOOK_PATH_PLACEHOLDER#$escaped_hook_path#g" "$claude_config"; then
+      log_success "Configured .claude/settings.json with enhanced COMPASS and authentication capabilities"
+    else
+      log_error "Failed to update hook path in configuration"
+      exit 1
+    fi
+  else
+    log_warning "sed not available. You need to manually update hook path in .claude/settings.json"
+    log_warning "Replace 'HOOK_PATH_PLACEHOLDER' with '$hook_path'"
+    return 1
+  fi
 }
 
 # Main execution
@@ -256,3 +298,4 @@ main() {
 
 # Run main function with all arguments
 main "$@"
+
