@@ -10,9 +10,7 @@ import sys
 import os
 from pathlib import Path
 from datetime import datetime
-import re
 import gc
-from io import StringIO
 
 try:
     from filelock import FileLock
@@ -28,17 +26,20 @@ except ImportError:
         def __exit__(self, *args):
             pass
 
+# Type annotation for FileLock to satisfy linters
+FileLock = FileLock
+
 
 def cleanup_memory():
     """Emergency memory cleanup function"""
     try:
         # Force garbage collection
         gc.collect()
-        
+
         # Ensure .compass/logs directory exists
         logs_dir = Path(".compass/logs")
         logs_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Clean up token tracking files if they're too large
         token_file = logs_dir / "compass-tokens.json"
         if token_file.exists() and token_file.stat().st_size > 1024 * 1024:  # 1MB
@@ -46,27 +47,27 @@ def cleanup_memory():
             try:
                 with open(token_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                
+
                 # Keep only current session data, remove history
                 essential_data = {
                     "total": data.get("total", 0),
                     "session_start": datetime.now().isoformat(),
                     "last_update": datetime.now().isoformat(),
                     "by_agent": {},
-                    "by_phase": {}
+                    "by_phase": {},
                 }
-                
+
                 with open(token_file, "w", encoding="utf-8") as f:
-                    json.dump(essential_data, f, separators=(',', ':'))
-                    
+                    json.dump(essential_data, f, separators=(",", ":"))
+
             except (json.JSONDecodeError, OSError):
                 # If cleanup fails, remove the file entirely
                 token_file.unlink(missing_ok=True)
-        
+
         # Clean up old status files
         for cleanup_file in [".compass-complete", ".compass-todo-updates"]:
             Path(cleanup_file).unlink(missing_ok=True)
-            
+
     except Exception:
         # Emergency cleanup should never crash
         pass
@@ -79,31 +80,43 @@ def rotate_log_file(log_file):
         backup_file = Path(str(log_file) + ".old")
         if backup_file.exists():
             backup_file.unlink()
-        
+
         # Move current log to backup
         log_file.rename(backup_file)
-        
+
         # Log rotation completed
         with open(log_file, "w", encoding="utf-8") as f:
-            f.write(json.dumps({
-                "timestamp": datetime.now().isoformat(),
-                "action": "log_rotated",
-                "details": f"Rotated log file",
-                "handler": "compass-handler",
-                "version": "2.1"
-            }, separators=(',', ':')) + "\n")
-            
+            f.write(
+                json.dumps(
+                    {
+                        "timestamp": datetime.now().isoformat(),
+                        "action": "log_rotated",
+                        "details": "Rotated log file",
+                        "handler": "compass-handler",
+                        "version": "2.1",
+                    },
+                    separators=(",", ":"),
+                )
+                + "\n"
+            )
+
     except OSError:
         # If rotation fails, truncate the log
         try:
             with open(log_file, "w", encoding="utf-8") as f:
-                f.write(json.dumps({
-                    "timestamp": datetime.now().isoformat(),
-                    "action": "log_truncated",
-                    "details": "Log rotation failed, truncated log file",
-                    "handler": "compass-handler", 
-                    "version": "2.1"
-                }, separators=(',', ':')) + "\n")
+                f.write(
+                    json.dumps(
+                        {
+                            "timestamp": datetime.now().isoformat(),
+                            "action": "log_truncated",
+                            "details": "Log rotation failed, truncated log file",
+                            "handler": "compass-handler",
+                            "version": "2.1",
+                        },
+                        separators=(",", ":"),
+                    )
+                    + "\n"
+                )
         except OSError:
             pass
 
@@ -114,6 +127,7 @@ MAX_TOKEN_SESSIONS = 100  # Max stored token sessions
 MAX_LOG_SIZE = 5 * 1024 * 1024  # 5MB max log file
 MAX_AGENT_ACTIVITY = 500  # Max agent activity entries
 
+
 def main():
     """Main handler logic for Claude Code hooks"""
     try:
@@ -121,14 +135,16 @@ def main():
         if sys.stdin.isatty():
             print("COMPASS Handler: No input provided via stdin", file=sys.stderr)
             sys.exit(1)
-        
+
         # Read input with size limit to prevent memory issues
         input_text = sys.stdin.read(MAX_INPUT_SIZE)
         if len(input_text) >= MAX_INPUT_SIZE:
-            log_handler_activity("input_too_large", f"Input truncated at {MAX_INPUT_SIZE} bytes")
-            
+            log_handler_activity(
+                "input_too_large", f"Input truncated at {MAX_INPUT_SIZE} bytes"
+            )
+
         input_data = json.loads(input_text)
-        
+
         # Validate input data structure
         if not isinstance(input_data, dict):
             log_handler_activity("invalid_input", "Input is not a dictionary")
@@ -140,7 +156,7 @@ def main():
 
         # Get hook event type from Claude Code input
         hook_event = input_data.get("hook_event_name", "")
-        
+
         # Validate hook event
         valid_events = ["UserPromptSubmit", "PreToolUse"]
         if hook_event and hook_event not in valid_events:
@@ -168,7 +184,7 @@ def main():
         sys.exit(1)
     except MemoryError as e:
         log_handler_activity("memory_error", f"Memory error: {e}")
-        print(f"COMPASS Handler Error: Memory limit exceeded", file=sys.stderr)
+        print("COMPASS Handler Error: Memory limit exceeded", file=sys.stderr)
         # Attempt cleanup and exit gracefully
         cleanup_memory()
         sys.exit(1)
@@ -188,12 +204,12 @@ def handle_user_prompt_submit(input_data):
     if not user_prompt:
         return None
 
-    log_handler_activity("prompt_routing", f"Routing to compass-captain: {user_prompt[:100]}...")
+    log_handler_activity(
+        "prompt_routing", f"Routing to compass-captain: {user_prompt[:100]}..."
+    )
 
     # Route ALL tasks to compass-captain (which will use methodology-selector for strategic planning)
     return inject_compass_context()
-
-
 
 
 def detect_compass_agent_in_prompt(prompt):
@@ -212,7 +228,6 @@ def detect_compass_agent_in_prompt(prompt):
         "compass-doc-planning",
         "compass-enhanced-analysis",
         "compass-cross-reference",
-
         "compass-coder",
         "compass-second-opinion",
         "compass-breakthrough-doc",
@@ -258,7 +273,10 @@ def load_agent_instructions(agent_name):
 
         # Check file size before loading to prevent memory issues
         if agent_file.stat().st_size > 500 * 1024:  # 500KB limit for agent files
-            log_handler_activity("agent_file_too_large", f"Agent file {agent_name} too large, skipping load")
+            log_handler_activity(
+                "agent_file_too_large",
+                f"Agent file {agent_name} too large, skipping load",
+            )
             return f"Agent {agent_name} file too large. Please read .claude/agents/{agent_name}.md manually using Read tool."
 
         with open(agent_file, "r", encoding="utf-8") as f:
@@ -266,7 +284,9 @@ def load_agent_instructions(agent_name):
 
         # Validate content length to prevent memory issues
         if len(content) > 1024 * 1024:  # 1MB content limit
-            log_handler_activity("agent_content_too_large", f"Agent {agent_name} content too large")
+            log_handler_activity(
+                "agent_content_too_large", f"Agent {agent_name} content too large"
+            )
             return f"Agent {agent_name} content too large. Please read .claude/agents/{agent_name}.md manually using Read tool."
 
         # Remove YAML frontmatter for cleaner instructions
@@ -281,7 +301,9 @@ def load_agent_instructions(agent_name):
         log_handler_activity("agent_load_error", f"Failed to load {agent_name}: {e}")
         return f"Error loading {agent_name}. Please read .claude/agents/{agent_name}.md manually using Read tool."
     except Exception as e:
-        log_handler_activity("agent_load_error", f"Unexpected error loading {agent_name}: {e}")
+        log_handler_activity(
+            "agent_load_error", f"Unexpected error loading {agent_name}: {e}"
+        )
         return f"Error loading {agent_name}. Please read .claude/agents/{agent_name}.md manually using Read tool."
 
 
@@ -290,7 +312,7 @@ def inject_compass_context():
 
     # Create visible status file for user feedback with token tracking
     create_compass_status_file_with_tokens()
-    
+
     # Initialize session tracking for persistence across conversation breaks
     create_compass_session_tracking()
 
@@ -312,7 +334,7 @@ The compass-captain will:
 4. Provide comprehensive token usage reporting
 
 📊 TOKEN TRACKING: Real-time visibility with strategic budget optimization.
-📄 STATUS: Check .compass-status for methodology progress when active."""
+📄 STATUS: Check .compass/logs/compass-status for methodology progress when active."""
 
     return {
         "hookSpecificOutput": {
@@ -330,6 +352,30 @@ def handle_pre_tool_use(input_data):
 
     log_handler_activity("tool_intercept", f"Intercepted: {tool_name}")
 
+    # RECURSION PREVENTION: Skip validation for compass-upstream-validator to prevent infinite loops
+    if (
+        tool_name == "Task"
+        and tool_input.get("subagent_type") == "compass-upstream-validator"
+    ):
+        log_handler_activity(
+            "recursion_prevention", "Skipping validation for compass-upstream-validator"
+        )
+        return {
+            "permissionDecision": "allow",
+            "permissionDecisionReason": "COMPASS upstream validator - recursion prevention",
+        }
+
+    # DEPTH LIMITING: Prevent deep validation chains
+    validation_depth = int(os.environ.get("COMPASS_VALIDATION_DEPTH", "0"))
+    if validation_depth >= 3:
+        log_handler_activity(
+            "depth_limit", f"Max validation depth reached ({validation_depth})"
+        )
+        return {
+            "permissionDecision": "allow",
+            "permissionDecisionReason": "COMPASS depth limit - preventing runaway validation",
+        }
+
     # Check for double_check parameter and trigger upstream validation
     double_check = tool_input.get("double_check", False)
     if double_check:
@@ -337,7 +383,16 @@ def handle_pre_tool_use(input_data):
             "upstream_validation", f"Double-check requested for {tool_name}"
         )
 
-        validation_result = trigger_upstream_validation(tool_name, tool_input)
+        # Increment validation depth tracking
+        os.environ["COMPASS_VALIDATION_DEPTH"] = str(validation_depth + 1)
+        try:
+            validation_result = trigger_upstream_validation(tool_name, tool_input)
+        finally:
+            # Always decrement depth when done
+            if validation_depth > 0:
+                os.environ["COMPASS_VALIDATION_DEPTH"] = str(validation_depth)
+            else:
+                os.environ.pop("COMPASS_VALIDATION_DEPTH", None)
         if validation_result and not validation_result.get("valid", True):
             return {
                 "permissionDecision": "deny",
@@ -351,7 +406,7 @@ def handle_pre_tool_use(input_data):
             log_handler_activity(
                 "compass_required", f"Blocking {tool_name} - COMPASS required"
             )
-            compass_message = "🧭 COMPASS METHODOLOGY REQUIRED\n\nThe tool '{}' requires systematic analysis.\n\nREQUIRED ACTION:\n1. Use the compass-captain agent\n2. This will coordinate the full 6-phase COMPASS methodology\n3. Check .compass-status file for current progress\n\nCOMPASS ensures institutional knowledge integration and prevents ad-hoc analysis.".format(
+            compass_message = "🧭 COMPASS METHODOLOGY REQUIRED\n\nThe tool '{}' requires systematic analysis.\n\nREQUIRED ACTION:\n1. Use the compass-captain agent\n2. This will coordinate the full 6-phase COMPASS methodology\n3. Check .compass/logs/compass-status file for current progress\n\nCOMPASS ensures institutional knowledge integration and prevents ad-hoc analysis.".format(
                 tool_name
             )
             return {
@@ -388,7 +443,6 @@ def estimate_agent_tokens(agent_type, prompt_content, tool_input=None):
         "compass-doc-planning": 1.1,  # Documentation strategy planning
         "compass-enhanced-analysis": 2.0,  # Comprehensive analysis with context
         "compass-cross-reference": 1.6,  # Pattern library integration
-
         "compass-coder": 1.8,  # Specialist delegation coordination
         # Specialized domain agents
         "compass-auth-analyst": 1.7,  # Authentication system complexity
@@ -519,13 +573,15 @@ def update_session_token_count(agent_type, token_count):
         logs_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
         logs_dir = Path(".")
-    
+
     token_file = logs_dir / "compass-tokens.json"
 
     try:
         # Check file size before loading to prevent memory issues
         if token_file.exists() and token_file.stat().st_size > 1024 * 1024:  # 1MB limit
-            log_handler_activity("token_file_too_large", "Token file too large, performing cleanup")
+            log_handler_activity(
+                "token_file_too_large", "Token file too large, performing cleanup"
+            )
             cleanup_token_file(token_file)
 
         # Load existing counts with file locking for concurrency safety
@@ -534,12 +590,15 @@ def update_session_token_count(agent_type, token_count):
                 try:
                     with open(token_file, "r", encoding="utf-8") as f:
                         session_tokens = json.load(f)
-                        
+
                     # Validate and clean data structure
                     session_tokens = validate_and_clean_token_data(session_tokens)
-                    
+
                 except (json.JSONDecodeError, FileNotFoundError, MemoryError) as e:
-                    log_handler_activity("token_file_corruption", f"Token file corrupted, creating new: {e}")
+                    log_handler_activity(
+                        "token_file_corruption",
+                        f"Token file corrupted, creating new: {e}",
+                    )
                     session_tokens = create_empty_token_data()
             else:
                 session_tokens = create_empty_token_data()
@@ -565,10 +624,12 @@ def update_session_token_count(agent_type, token_count):
 
                 # Write updated counts atomically with compact format
                 with open(token_file, "w", encoding="utf-8") as f:
-                    json.dump(session_tokens, f, separators=(',', ':'))
-                    
+                    json.dump(session_tokens, f, separators=(",", ":"))
+
             except (OSError, MemoryError) as e:
-                log_handler_activity("token_file_write_error", f"Failed to write token file: {e}")
+                log_handler_activity(
+                    "token_file_write_error", f"Failed to write token file: {e}"
+                )
                 # Continue without token tracking rather than blocking
 
     except Exception as e:
@@ -594,30 +655,40 @@ def validate_and_clean_token_data(session_tokens):
     """Validate and clean token data structure to prevent corruption"""
     if not isinstance(session_tokens, dict):
         return create_empty_token_data()
-    
+
     # Ensure required fields exist with proper types
     cleaned_data = {
         "total": max(0, int(session_tokens.get("total", 0))),
         "by_agent": {},
         "by_phase": {},
-        "session_start": session_tokens.get("session_start", datetime.now().isoformat()),
+        "session_start": session_tokens.get(
+            "session_start", datetime.now().isoformat()
+        ),
         "last_update": datetime.now().isoformat(),
     }
-    
+
     # Clean by_agent data with bounds checking
     by_agent = session_tokens.get("by_agent", {})
     if isinstance(by_agent, dict) and len(by_agent) <= MAX_TOKEN_SESSIONS:
         for agent, count in by_agent.items():
-            if isinstance(agent, str) and isinstance(count, (int, float)) and count >= 0:
+            if (
+                isinstance(agent, str)
+                and isinstance(count, (int, float))
+                and count >= 0
+            ):
                 cleaned_data["by_agent"][agent] = int(count)
-    
+
     # Clean by_phase data
     by_phase = session_tokens.get("by_phase", {})
     if isinstance(by_phase, dict):
         for phase, count in by_phase.items():
-            if isinstance(phase, str) and isinstance(count, (int, float)) and count >= 0:
+            if (
+                isinstance(phase, str)
+                and isinstance(count, (int, float))
+                and count >= 0
+            ):
                 cleaned_data["by_phase"][phase] = int(count)
-    
+
     return cleaned_data
 
 
@@ -636,26 +707,26 @@ def cleanup_token_file(token_file):
         # Try to load and compress the data
         with open(token_file, "r", encoding="utf-8") as f:
             data = json.load(f)
-        
+
         # Keep only essential current session data
         cleaned_data = {
             "total": data.get("total", 0),
             "session_start": datetime.now().isoformat(),
             "last_update": datetime.now().isoformat(),
             "by_agent": {},
-            "by_phase": {}
+            "by_phase": {},
         }
-        
+
         # Keep only top 10 agents by token count
         by_agent = data.get("by_agent", {})
         if isinstance(by_agent, dict):
             sorted_agents = sorted(by_agent.items(), key=lambda x: x[1], reverse=True)
             cleaned_data["by_agent"] = dict(sorted_agents[:10])
-        
+
         # Write cleaned data
         with open(token_file, "w", encoding="utf-8") as f:
-            json.dump(cleaned_data, f, separators=(',', ':'))
-            
+            json.dump(cleaned_data, f, separators=(",", ":"))
+
     except (json.JSONDecodeError, OSError, MemoryError):
         # If cleanup fails, remove the file entirely
         token_file.unlink(missing_ok=True)
@@ -675,7 +746,6 @@ def map_agent_to_phase(agent_type):
         "compass-gap-analysis": "phase3_gap_analysis",
         "compass-enhanced-analysis": "phase4_enhanced_analysis",
         "compass-cross-reference": "phase5_cross_reference",
-
         "compass-coder": "phase6_execution_bridge",
     }
     return phase_mapping.get(agent_type)
@@ -695,19 +765,24 @@ def get_current_session_tokens():
     try:
         # Check file size before reading to prevent memory issues
         if token_file.stat().st_size > 2 * 1024 * 1024:  # 2MB limit
-            log_handler_activity("token_file_oversized", "Token file too large, performing emergency cleanup")
+            log_handler_activity(
+                "token_file_oversized",
+                "Token file too large, performing emergency cleanup",
+            )
             cleanup_token_file(token_file)
             return {"total": 0, "by_agent": {}, "by_phase": {}}
 
         with open(token_file, "r", encoding="utf-8") as f:
             token_data = json.load(f)
-            
+
         # Validate and clean the data structure
         cleaned_data = validate_and_clean_token_data(token_data)
         return cleaned_data
-        
+
     except (json.JSONDecodeError, ValueError, KeyError) as e:
-        log_handler_activity("token_read_error", f"Failed to read/parse token count: {e}")
+        log_handler_activity(
+            "token_read_error", f"Failed to read/parse token count: {e}"
+        )
         # Attempt to recover by cleaning the file
         try:
             cleanup_token_file(token_file)
@@ -718,7 +793,9 @@ def get_current_session_tokens():
         log_handler_activity("token_read_error", f"File system or memory error: {e}")
         return {"total": 0, "by_agent": {}, "by_phase": {}}
     except Exception as e:
-        log_handler_activity("token_read_error", f"Unexpected error reading token count: {e}")
+        log_handler_activity(
+            "token_read_error", f"Unexpected error reading token count: {e}"
+        )
         return {"total": 0, "by_agent": {}, "by_phase": {}}
 
 
@@ -767,10 +844,17 @@ def handle_pre_tool_use_with_token_tracking(input_data):
 
 def update_compass_status_with_tokens(agent_type, token_count):
     """
-    Update .compass-status with real-time token information
+    Update .compass/logs/compass-status with real-time token information
     Integrates token visibility with throttled I/O to prevent excessive writes
     """
-    status_file = Path(".compass-status")
+    # Ensure .compass/logs directory exists
+    logs_dir = Path(".compass/logs")
+    try:
+        logs_dir.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        logs_dir = Path(".")
+    
+    status_file = logs_dir / "compass-status"
     if not status_file.exists():
         return
 
@@ -781,7 +865,9 @@ def update_compass_status_with_tokens(agent_type, token_count):
 
         # Use memory-efficient file reading with size check
         if status_file.stat().st_size > 50 * 1024:  # 50KB limit for status file
-            log_handler_activity("status_file_too_large", "Status file too large, skipping update")
+            log_handler_activity(
+                "status_file_too_large", "Status file too large, skipping update"
+            )
             return
 
         with open(status_file, "r", encoding="utf-8") as f:
@@ -798,13 +884,13 @@ def update_compass_status_with_tokens(agent_type, token_count):
         # Replace existing token section or add new one
         if "📊 TOKEN USAGE" in status_content:
             # Replace existing section efficiently
-            lines = status_content.split('\n')
+            lines = status_content.split("\n")
             new_lines = []
             skip_next = False
-            
+
             for line in lines:
                 if "📊 TOKEN USAGE" in line:
-                    new_lines.extend(token_section.strip().split('\n'))
+                    new_lines.extend(token_section.strip().split("\n"))
                     skip_next = True
                 elif skip_next and line.startswith(("⚡", "   •")):
                     continue  # Skip old token lines
@@ -813,13 +899,14 @@ def update_compass_status_with_tokens(agent_type, token_count):
                 else:
                     skip_next = False
                     new_lines.append(line)
-            
-            updated_content = '\n'.join(new_lines)
+
+            updated_content = "\n".join(new_lines)
         else:
             # Add new section before closing border
             updated_content = status_content.replace(
                 "═══════════════════════════════════════════════════════════════",
-                token_section + "\n\n═══════════════════════════════════════════════════════════════",
+                token_section
+                + "\n\n═══════════════════════════════════════════════════════════════",
             )
 
         # Write atomically with compact format
@@ -875,11 +962,11 @@ def log_agent_token_usage(agent_type, token_count, execution_type):
         logs_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
         logs_dir = Path(".")
-    
+
     log_file = logs_dir / "compass-handler.log"
     try:
         with open(log_file, "a", encoding="utf-8") as f:
-            f.write(json.dumps(log_entry, separators=(',', ':')) + "\n")
+            f.write(json.dumps(log_entry, separators=(",", ":")) + "\n")
     except OSError:
         pass  # Fail silently if logging fails
 
@@ -906,11 +993,11 @@ def log_parallel_efficiency(agent_count, total_tokens, duration):
         logs_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
         logs_dir = Path(".")
-    
+
     log_file = logs_dir / "compass-handler.log"
     try:
         with open(log_file, "a", encoding="utf-8") as f:
-            f.write(json.dumps(log_entry, separators=(',', ':')) + "\n")
+            f.write(json.dumps(log_entry, separators=(",", ":")) + "\n")
     except OSError:
         pass  # Fail silently if logging fails
 
@@ -937,11 +1024,11 @@ def log_delegation_step(primary_agent, specialist_type, specialist_tokens):
         logs_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
         logs_dir = Path(".")
-    
+
     log_file = logs_dir / "compass-handler.log"
     try:
         with open(log_file, "a", encoding="utf-8") as f:
-            f.write(json.dumps(log_entry, separators=(',', ':')) + "\n")
+            f.write(json.dumps(log_entry, separators=(",", ":")) + "\n")
     except OSError:
         pass  # Fail silently if logging fails
 
@@ -1039,7 +1126,7 @@ def calculate_session_duration(session_tokens):
         minutes = int(duration.total_seconds() // 60)
         seconds = int(duration.total_seconds() % 60)
         return f"{minutes}m {seconds}s"
-    except:
+    except (ValueError, TypeError, AttributeError):
         return "Unknown"
 
 
@@ -1053,7 +1140,7 @@ def calculate_tokens_per_minute(session_tokens):
         if duration_minutes > 0:
             return int(session_tokens.get("total", 0) / duration_minutes)
         return 0
-    except:
+    except (ValueError, TypeError, AttributeError):
         return 0
 
 
@@ -1195,8 +1282,10 @@ def requires_compass_methodology(tool_name, tool_input):
 def compass_context_active():
     """Check if COMPASS methodology context is currently active"""
 
-    # Primary check: .compass-status file existence (most reliable indicator)
-    if Path(".compass-status").exists():
+    # Primary check: .compass/logs/compass-status file existence (most reliable indicator)
+    logs_dir = Path(".compass/logs")
+    status_file = logs_dir / "compass-status"
+    if status_file.exists():
         return True
 
     # Secondary check: Session-based persistence file
@@ -1209,35 +1298,37 @@ def compass_context_active():
     if log_file.exists():
         try:
             with open(log_file, "r") as f:
-                recent_lines = f.readlines()[-20:]  # Check last 20 log entries (doubled)
+                recent_lines = f.readlines()[
+                    -20:
+                ]  # Check last 20 log entries (doubled)
 
             for line in recent_lines:
                 try:
                     log_entry = json.loads(line.strip())
-                    
+
                     # Expanded action detection for COMPASS activity
                     compass_actions = [
                         "compass_required",
-                        "agent_active", 
+                        "agent_active",
                         "token_tracking",
                         "prompt_routing",
                         "phase_update",
-                        "compass_complete"
+                        "compass_complete",
                     ]
-                    
+
                     action = log_entry.get("action", "")
                     if action in compass_actions and is_recent_timestamp_extended(
                         log_entry.get("timestamp", "")
                     ):
                         return True
-                        
+
                     # Check for compass agent usage in agent_type field
                     agent_type = log_entry.get("agent_type", "")
-                    if agent_type.startswith("compass-") and is_recent_timestamp_extended(
-                        log_entry.get("timestamp", "")
-                    ):
+                    if agent_type.startswith(
+                        "compass-"
+                    ) and is_recent_timestamp_extended(log_entry.get("timestamp", "")):
                         return True
-                        
+
                 except (json.JSONDecodeError, KeyError):
                     continue
         except Exception:
@@ -1287,24 +1378,24 @@ def check_compass_session_active():
     session_file = logs_dir / "compass-session.json"
     if not session_file.exists():
         return False
-    
+
     try:
         with open(session_file, "r") as f:
             session_data = json.load(f)
-        
+
         # Check if session was created within last 2 hours
         session_start = session_data.get("session_start", "")
         if is_session_timestamp_valid(session_start, 7200):  # 2 hours
             return True
-            
+
         # Check if there was recent activity
         last_activity = session_data.get("last_activity", "")
         if is_session_timestamp_valid(last_activity, 1800):  # 30 minutes
             return True
-            
+
     except (json.JSONDecodeError, FileNotFoundError):
         pass
-    
+
     return False
 
 
@@ -1324,25 +1415,25 @@ def check_recent_compass_tokens():
     token_file = logs_dir / "compass-tokens.json"
     if not token_file.exists():
         return False
-    
+
     try:
         with open(token_file, "r") as f:
             token_data = json.load(f)
-        
+
         # Check if last update was recent
         last_update = token_data.get("last_update", "")
         if is_recent_timestamp_extended(last_update):
             return True
-            
+
         # Check if any compass agents were used recently
         by_agent = token_data.get("by_agent", {})
         for agent_name in by_agent.keys():
             if agent_name.startswith("compass-"):
                 return True
-                
+
     except (json.JSONDecodeError, FileNotFoundError):
         pass
-    
+
     return False
 
 
@@ -1354,44 +1445,52 @@ def create_compass_session_tracking():
         logs_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
         logs_dir = Path(".")
-    
+
     session_file = logs_dir / "compass-session.json"
-    
+
     current_time = datetime.now().isoformat()
-    
+
     # Load existing session data or create new
     session_data = {
         "session_start": current_time,
         "last_activity": current_time,
         "compass_activated": True,
-        "version": "2.1"
+        "version": "2.1",
     }
-    
+
     if session_file.exists():
         try:
             with open(session_file, "r", encoding="utf-8") as f:
                 existing_data = json.load(f)
-                
+
             # Validate existing data structure
             if isinstance(existing_data, dict):
                 # Preserve session start time, update activity
-                session_data["session_start"] = existing_data.get("session_start", current_time)
+                session_data["session_start"] = existing_data.get(
+                    "session_start", current_time
+                )
             else:
-                log_handler_activity("session_corruption", "Session file corrupted, creating new")
-                
+                log_handler_activity(
+                    "session_corruption", "Session file corrupted, creating new"
+                )
+
         except (json.JSONDecodeError, FileNotFoundError, ValueError) as e:
-            log_handler_activity("session_read_error", f"Failed to read session file: {e}")
+            log_handler_activity(
+                "session_read_error", f"Failed to read session file: {e}"
+            )
             # Continue with new session data
-    
+
     # Write updated session data with error handling
     try:
         with open(session_file, "w", encoding="utf-8") as f:
             json.dump(session_data, f, indent=2)
-        
+
         log_handler_activity("session_tracking", "COMPASS session tracking updated")
-        
+
     except OSError as e:
-        log_handler_activity("session_write_error", f"Failed to write session file: {e}")
+        log_handler_activity(
+            "session_write_error", f"Failed to write session file: {e}"
+        )
         # Continue without session tracking rather than blocking
 
 
@@ -1399,17 +1498,17 @@ def update_compass_session_activity():
     """Update last activity timestamp in session tracking"""
     logs_dir = Path(".compass/logs")
     session_file = logs_dir / "compass-session.json"
-    
+
     if session_file.exists():
         try:
             with open(session_file, "r") as f:
                 session_data = json.load(f)
-            
+
             session_data["last_activity"] = datetime.now().isoformat()
-            
+
             with open(session_file, "w") as f:
                 json.dump(session_data, f, indent=2)
-                
+
         except (json.JSONDecodeError, FileNotFoundError):
             # If file is corrupted, create new tracking
             create_compass_session_tracking()
@@ -1456,19 +1555,29 @@ REQUIRED: Systematic 6-Phase Analysis Coordination
 🔄 This file updates automatically as phases complete
 """
 
-    with open(".compass-status", "w") as f:
+    # Ensure .compass/logs directory exists
+    logs_dir = Path(".compass/logs")
+    try:
+        logs_dir.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        logs_dir = Path(".")
+    
+    status_file = logs_dir / "compass-status"
+    with open(status_file, "w") as f:
         f.write(status_content)
 
-    log_handler_activity("status_file", "Created .compass-status for user visibility")
+    log_handler_activity("status_file", "Created .compass/logs/compass-status for user visibility")
 
 
 def update_compass_phase(phase_name, status="in_progress"):
     """Update COMPASS status file with phase progress"""
-    if not Path(".compass-status").exists():
+    logs_dir = Path(".compass/logs")
+    status_file = logs_dir / "compass-status"
+    if not status_file.exists():
         return
 
     # Read current status
-    with open(".compass-status", "r") as f:
+    with open(status_file, "r") as f:
         content = f.read()
 
     # Update the specific phase
@@ -1504,7 +1613,7 @@ def update_compass_phase(phase_name, status="in_progress"):
             content,
         )
 
-        with open(".compass-status", "w") as f:
+        with open(status_file, "w") as f:
             f.write(content)
 
         log_handler_activity("phase_update", f"Updated {phase_name} to {status}")
@@ -1512,7 +1621,9 @@ def update_compass_phase(phase_name, status="in_progress"):
 
 def complete_compass_analysis():
     """Mark COMPASS analysis as complete and clean up status"""
-    if Path(".compass-status").exists():
+    logs_dir = Path(".compass/logs")
+    status_file = logs_dir / "compass-status"
+    if status_file.exists():
         # Create completion summary
         completion_content = f"""🧭 COMPASS METHODOLOGY COMPLETED
 ═══════════════════════════════════════════════════════════════
@@ -1541,7 +1652,7 @@ Analysis tools are now available for ad-hoc use.
             f.write(completion_content)
 
         # Remove active status file
-        Path(".compass-status").unlink()
+        status_file.unlink()
 
         log_handler_activity(
             "compass_complete", "Analysis completed - status cleaned up"
@@ -1556,7 +1667,9 @@ def complete_compass_analysis_with_token_report():
     # Generate final token report
     token_report = generate_final_token_report()
 
-    if Path(".compass-status").exists():
+    logs_dir = Path(".compass/logs")
+    status_file = logs_dir / "compass-status"
+    if status_file.exists():
         # Create completion summary with token analysis
         completion_content = f"""🧭 COMPASS METHODOLOGY COMPLETED
 ═══════════════════════════════════════════════════════════════
@@ -1591,7 +1704,7 @@ Token tracking system is operational for future sessions.
             f.write(completion_content)
 
         # Remove active status file
-        Path(".compass-status").unlink()
+        status_file.unlink()
 
         log_handler_activity(
             "compass_complete",
@@ -1651,17 +1764,27 @@ REQUIRED: Systematic 6-Phase Analysis Coordination
 💰 Token usage information appears as agents execute
 """
 
-    with open(".compass-status", "w") as f:
+    # Ensure .compass/logs directory exists
+    logs_dir = Path(".compass/logs")
+    try:
+        logs_dir.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        logs_dir = Path(".")
+    
+    status_file = logs_dir / "compass-status"
+    with open(status_file, "w") as f:
         f.write(status_content)
 
     log_handler_activity(
-        "status_file", "Created .compass-status with token tracking capabilities"
+        "status_file", "Created .compass/logs/compass-status with token tracking capabilities"
     )
 
 
 def check_compass_agent_activity(input_data):
     """Check if COMPASS agents are being used and update status"""
-    if not Path(".compass-status").exists():
+    logs_dir = Path(".compass/logs")
+    status_file = logs_dir / "compass-status"
+    if not status_file.exists():
         return
 
     # Check if Task tool is being used with compass agents
@@ -1685,7 +1808,7 @@ def check_compass_agent_activity(input_data):
         if subagent_type in agent_phase_map:
             # Update session activity for persistence
             update_compass_session_activity()
-            
+
             phase = agent_phase_map[subagent_type]
             if phase != "coordination":  # Don't update for captain
                 update_compass_phase(phase, "in_progress")
@@ -1700,8 +1823,10 @@ def check_compass_agent_activity(input_data):
 
 def get_compass_status_for_claude():
     """Get current COMPASS status for Claude to announce"""
-    if Path(".compass-status").exists():
-        with open(".compass-status", "r") as f:
+    logs_dir = Path(".compass/logs")
+    status_file = logs_dir / "compass-status"
+    if status_file.exists():
+        with open(status_file, "r") as f:
             return f.read()
     elif Path(".compass-complete").exists():
         with open(".compass-complete", "r") as f:
@@ -1715,11 +1840,13 @@ def get_compass_status_for_claude():
 def ensure_compass_directories():
     """Ensure COMPASS directory structure exists with error handling"""
     try:
-        for directory in ["docs", "maps", "agents"]:
+        for directory in ["docs", "maps"]:
             try:
                 Path(directory).mkdir(exist_ok=True)
             except OSError as e:
-                log_handler_activity("dir_creation_error", f"Failed to create {directory}: {e}")
+                log_handler_activity(
+                    "dir_creation_error", f"Failed to create {directory}: {e}"
+                )
                 # Continue with other directories
                 continue
 
@@ -1729,11 +1856,15 @@ def ensure_compass_directories():
             try:
                 initialize_map_index()
             except Exception as e:
-                log_handler_activity("map_index_init_error", f"Failed to initialize map index: {e}")
+                log_handler_activity(
+                    "map_index_init_error", f"Failed to initialize map index: {e}"
+                )
                 # Continue without map index
-                
+
     except Exception as e:
-        log_handler_activity("compass_dir_error", f"Error ensuring COMPASS directories: {e}")
+        log_handler_activity(
+            "compass_dir_error", f"Error ensuring COMPASS directories: {e}"
+        )
         # Don't crash on directory creation failures
 
 
@@ -1769,12 +1900,12 @@ def initialize_map_index():
         # Ensure maps directory exists before writing
         maps_dir = Path("maps")
         maps_dir.mkdir(exist_ok=True)
-        
+
         with open("maps/map-index.json", "w", encoding="utf-8") as f:
             json.dump(map_index_content, f, indent=2)
-            
+
         log_handler_activity("map_index_created", "Map index initialized successfully")
-        
+
     except OSError as e:
         log_handler_activity("map_index_error", f"Failed to create map index: {e}")
         # Continue without map index rather than blocking
@@ -1796,7 +1927,7 @@ def generate_todo_update_context(subagent_type, phase):
     # Write to compass-todo-updates in root (since Claude needs to detect it)
     try:
         with open(".compass-todo-updates", "a", encoding="utf-8") as f:
-            f.write(json.dumps(todo_update, separators=(',', ':')) + "\n")
+            f.write(json.dumps(todo_update, separators=(",", ":")) + "\n")
     except OSError:
         pass  # Fail silently if file write fails
 
@@ -1836,7 +1967,7 @@ def mark_compass_phase_complete(phase, subagent_type):
     # Write to compass-todo-updates in root (since Claude needs to detect it)
     try:
         with open(".compass-todo-updates", "a", encoding="utf-8") as f:
-            f.write(json.dumps(todo_update, separators=(',', ':')) + "\n")
+            f.write(json.dumps(todo_update, separators=(",", ":")) + "\n")
     except OSError:
         pass  # Fail silently if file write fails
 
@@ -1849,14 +1980,6 @@ def trigger_upstream_validation(tool_name, tool_input):
     """Trigger upstream validation using COMPASS upstream validator agent"""
     try:
         # Use COMPASS Task agent system instead of standalone Python file
-        validation_context = {
-            "tool_name": tool_name,
-            "tool_input": tool_input,
-            "validation_request": True,
-            "double_check": True,
-            "timestamp": datetime.now().isoformat(),
-        }
-
         # Log the validation request
         log_handler_activity(
             "upstream_validation_triggered", f"Requesting validation for {tool_name}"
@@ -1899,8 +2022,6 @@ This is a double_check=true validation request requiring complete upstream verif
         return {"valid": False, "reason": f"Validation system error: {e}"}
 
 
-
-
 def log_handler_activity(action, details):
     """Log handler actions for monitoring and debugging with rotation"""
     log_entry = {
@@ -1918,18 +2039,18 @@ def log_handler_activity(action, details):
     except OSError:
         # If we can't create logs directory, fall back to current directory
         logs_dir = Path(".")
-    
+
     log_file = logs_dir / "compass-handler.log"
-    
+
     try:
         # Rotate log if too large
         if log_file.exists() and log_file.stat().st_size > MAX_LOG_SIZE:
             rotate_log_file(log_file)
-        
+
         # Write log entry with error handling
         with open(log_file, "a", encoding="utf-8") as f:
-            f.write(json.dumps(log_entry, separators=(',', ':')) + "\n")
-            
+            f.write(json.dumps(log_entry, separators=(",", ":")) + "\n")
+
     except (OSError, IOError, MemoryError):
         # Fail silently if logging fails to prevent handler crashes
         pass

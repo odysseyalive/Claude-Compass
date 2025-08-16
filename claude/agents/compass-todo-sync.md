@@ -105,7 +105,7 @@ Each activation loads:
 
 - Current TodoWrite state from Claude Code
 - Latest `.compass-todo-updates` notifications  
-- COMPASS phase status from `.compass-status`
+- COMPASS phase status from `.compass/logs/compass-status`
 - Agent coordination state from captain
 
 ### Bypass Resistance Mechanisms
@@ -217,5 +217,5 @@ Use compass-todo-sync to synchronize COMPASS progress:
 
 **Integration Priority**: Essential for user experience during COMPASS methodology execution
 **Maintenance**: Auto-cleanup of synchronization files after completion  
-**Dependencies**: compass-handler.py, TodoWrite system, .compass-status file
+**Dependencies**: compass-handler.py, TodoWrite system, .compass/logs/compass-status file
 
