@@ -11,7 +11,6 @@ import os
 from pathlib import Path
 from datetime import datetime
 import re
-import yaml
 
 try:
     from filelock import FileLock
@@ -31,33 +30,50 @@ except ImportError:
 def main():
     """Main handler logic for Claude Code hooks"""
     try:
+        # Validate stdin input
+        if sys.stdin.isatty():
+            print("COMPASS Handler: No input provided via stdin", file=sys.stderr)
+            sys.exit(1)
+            
         input_data = json.load(sys.stdin)
+        
+        # Validate input data structure
+        if not isinstance(input_data, dict):
+            log_handler_activity("invalid_input", "Input is not a dictionary")
+            print("COMPASS Handler Error: Invalid input format", file=sys.stderr)
+            sys.exit(1)
 
         # Always ensure COMPASS directories exist
         ensure_compass_directories()
 
-        # Auto-discover and register agents from .claude/agents directory
-        auto_register_agents()
-
         # Get hook event type from Claude Code input
         hook_event = input_data.get("hook_event_name", "")
+        
+        # Validate hook event
+        valid_events = ["UserPromptSubmit", "PreToolUse"]
+        if hook_event and hook_event not in valid_events:
+            log_handler_activity("unknown_hook", f"Unknown hook event: {hook_event}")
 
         if hook_event == "UserPromptSubmit":
             result = handle_user_prompt_submit(input_data)
             if result:
-                print(json.dumps(result))
+                print(json.dumps(result, ensure_ascii=False))
 
         elif hook_event == "PreToolUse":
             result = handle_pre_tool_use_with_token_tracking(input_data)
             if result:
-                print(json.dumps(result))
+                print(json.dumps(result, ensure_ascii=False))
 
         # Check for COMPASS agent usage and update status
         check_compass_agent_activity(input_data)
 
         # Log handler activity
-        log_handler_activity(hook_event, "processed")
+        log_handler_activity(hook_event or "unknown", "processed")
 
+    except json.JSONDecodeError as e:
+        log_handler_activity("json_error", f"Invalid JSON input: {e}")
+        print(f"COMPASS Handler Error: Invalid JSON input: {e}", file=sys.stderr)
+        sys.exit(1)
     except Exception as e:
         log_handler_activity("error", f"ERROR: {e}")
         print(f"COMPASS Handler Error: {e}", file=sys.stderr)
@@ -65,180 +81,42 @@ def main():
 
 
 def handle_user_prompt_submit(input_data):
-    """Handle UserPromptSubmit events with intelligent COMPASS analysis"""
+    """Handle UserPromptSubmit events - route ALL tasks to compass-captain"""
 
     user_prompt = input_data.get("prompt", "")
     if not user_prompt:
         return None
 
-    log_handler_activity("prompt_analysis", f"Analyzing: {user_prompt[:100]}...")
+    log_handler_activity("prompt_routing", f"Routing to compass-captain: {user_prompt[:100]}...")
 
-    # Check if this is a complex task requiring COMPASS
-    if is_complex_task(user_prompt):
-        log_handler_activity(
-            "compass_required", "Complex task detected - injecting COMPASS context"
-        )
-        return inject_compass_context()
-    else:
-        log_handler_activity("simple_request", "Simple request - COMPASS not required")
-        return None
+    # Route ALL tasks to compass-captain (which will use methodology-selector for strategic planning)
+    return inject_compass_context()
 
 
-def is_complex_task(prompt):
-    """Determine if a prompt represents a complex analytical task requiring COMPASS"""
-
-    prompt_lower = prompt.lower().strip()
-
-    # Define complexity triggers
-    complexity_triggers = [
-        "analyze",
-        "investigate",
-        "debug",
-        "implement",
-        "refactor",
-        "optimize",
-        "understand",
-        "design",
-        "architect",
-        "plan",
-        "strategy",
-        "complex",
-        "system",
-        "performance",
-        "security",
-        "scalability",
-        "troubleshoot",
-        "diagnose",
-        "root cause",
-        "technical debt",
-        "code review",
-        "best practices",
-        "create",
-        "build",
-        "write",
-        "add",
-        "develop",
-        "fix",
-        "solve",
-        "resolve",
-        "handle",
-        "manage",
-        "integrate",
-        "connect",
-        "setup",
-        "configure",
-        "install",
-        "deploy",
-        "test",
-        "validate",
-        "verify",
-        "check",
-        "update",
-        "modify",
-        "change",
-        "improve",
-        "enhance",
-        "extend",
-        "expand",
-        "scale",
-        "migrate",
-        "convert",
-        "generate",
-        "construct",
-        "make",
-        "produce",
-        "craft",
-    ]
-
-    # Check for direct complexity triggers
-    for trigger in complexity_triggers:
-        if trigger in prompt_lower:
-            return True
-
-    # Check for code-related patterns
-    code_patterns = [
-        "class",
-        "function",
-        "method",
-        "algorithm",
-        "database",
-        "api",
-        "endpoint",
-        "integration",
-        "authentication",
-        "authorization",
-        "framework",
-        "library",
-        "module",
-        "component",
-        "service",
-    ]
-
-    for pattern in code_patterns:
-        if pattern in prompt_lower:
-            return True
-
-    # Check for multi-step indicators
-    multi_step_words = [
-        "and",
-        "then",
-        "also",
-        "additionally",
-        "furthermore",
-        "moreover",
-    ]
-    multi_step_count = sum(
-        1 for word in multi_step_words if f" {word} " in prompt_lower
-    )
-    if multi_step_count >= 2:
-        return True
-
-    # Exclude very simple requests
-    simple_patterns = [
-        r"^(show|list|display|print|echo|cat|ls|pwd|cd|help|\?)",
-        r"^(what is|what are|how do i|can you tell me|explain briefly).*\?$",
-        r"^(hi|hello|hey|thanks|thank you)",
-        r"^(yes|no|ok|okay|sure|fine)$",
-    ]
-
-    import re
-
-    for pattern in simple_patterns:
-        if re.match(pattern, prompt_lower):
-            return False
-
-    # If prompt is very short and doesn't contain complexity indicators, likely simple
-    if len(prompt_lower.split()) <= 3 and not any(
-        trigger in prompt_lower for trigger in complexity_triggers
-    ):
-        return False
-
-    # Default to requiring COMPASS for anything substantial
-    return len(prompt_lower.split()) > 5
 
 
 def detect_compass_agent_in_prompt(prompt):
     """Detect which COMPASS agent is being called based on prompt content"""
     if not prompt:
         return None
-        
+
     prompt_lower = prompt.lower()
-    
+
     # Check for specific agent mentions
     compass_agents = [
         "compass-captain",
-        "compass-knowledge-query", 
+        "compass-knowledge-query",
         "compass-pattern-apply",
         "compass-gap-analysis",
         "compass-doc-planning",
         "compass-enhanced-analysis",
         "compass-cross-reference",
-        "compass-svg-analyst",
+
         "compass-coder",
         "compass-second-opinion",
         "compass-breakthrough-doc",
         "compass-auth-performance-analyst",
-        "compass-auth-security-validator", 
+        "compass-auth-security-validator",
         "compass-auth-optimization-specialist",
         "compass-upstream-validator",
         "compass-dependency-tracker",
@@ -246,23 +124,27 @@ def detect_compass_agent_in_prompt(prompt):
         "compass-academic-analyst",
         "compass-memory-enhanced-writer",
         "compass-data-flow",
-        "compass-todo-sync"
+        "compass-todo-sync",
     ]
-    
+
     for agent in compass_agents:
         if agent in prompt_lower:
             return agent
-            
+
     # Check for COMPASS methodology phrases that indicate captain
     captain_phrases = [
-        "compass methodology", "6-phase", "institutional knowledge integration",
-        "compass captain", "coordinate compass", "orchestrate compass"
+        "compass methodology",
+        "6-phase",
+        "institutional knowledge integration",
+        "compass captain",
+        "coordinate compass",
+        "orchestrate compass",
     ]
-    
+
     for phrase in captain_phrases:
         if phrase in prompt_lower:
             return "compass-captain"
-            
+
     return None
 
 
@@ -272,45 +154,51 @@ def load_agent_instructions(agent_name):
         agent_file = Path(f".claude/agents/{agent_name}.md")
         if not agent_file.exists():
             return f"Agent {agent_name} not found. Please read the agent file manually using Read tool."
-            
+
         with open(agent_file, "r", encoding="utf-8") as f:
             content = f.read()
-            
+
         # Remove YAML frontmatter for cleaner instructions
         if content.startswith("---"):
             parts = content.split("---", 2)
             if len(parts) >= 3:
                 content = parts[2].strip()
-                
+
         return content
-        
+
     except Exception as e:
         log_handler_activity("agent_load_error", f"Failed to load {agent_name}: {e}")
         return f"Error loading {agent_name}. Please read .claude/agents/{agent_name}.md manually using Read tool."
 
 
 def inject_compass_context():
-    """Inject COMPASS methodology context into the user prompt"""
+    """Route all tasks to compass-captain with strategic planning architecture"""
 
     # Create visible status file for user feedback with token tracking
     create_compass_status_file_with_tokens()
-
-    # Load compass-captain agent instructions
-    captain_instructions = load_agent_instructions("compass-captain")
     
-    compass_context = f"""🧭 COMPASS METHODOLOGY REQUIRED
+    # Initialize session tracking for persistence across conversation breaks
+    create_compass_session_tracking()
 
-Complex analytical task detected. This request requires systematic institutional knowledge integration.
+    compass_context = """🧭 COMPASS STRATEGIC ROUTING
 
-MANDATORY: Follow the compass-captain agent instructions to coordinate the full 6-phase COMPASS methodology.
+All tasks now route through compass-captain for optimal methodology selection and execution.
 
-{captain_instructions}
+MANDATORY: Use the Task tool with subagent_type "compass-captain" to:
+- Receive strategic plan from compass-methodology-selector
+- Execute optimized methodology based on task complexity
+- Coordinate institutional knowledge integration
+- Provide real-time token tracking and cost visibility
+- Apply right-sized analysis approach (Light/Medium/Full COMPASS)
 
-COMPASS IS NOT OPTIONAL for complex analytical tasks. This methodology prevents institutional knowledge loss and ensures systematic analysis quality.
+The compass-captain will:
+1. Consult compass-methodology-selector for strategic planning
+2. Execute the optimized plan with parallel agent coordination  
+3. Use second opinion validation for complex tasks
+4. Provide comprehensive token usage reporting
 
-📋 TODO INTEGRATION: COMPASS agents will automatically update your TodoWrite progress as they complete each phase.
-
-📄 STATUS: Check .compass-status for current methodology phase and progress."""
+📊 TOKEN TRACKING: Real-time visibility with strategic budget optimization.
+📄 STATUS: Check .compass-status for methodology progress when active."""
 
     return {
         "hookSpecificOutput": {
@@ -386,7 +274,7 @@ def estimate_agent_tokens(agent_type, prompt_content, tool_input=None):
         "compass-doc-planning": 1.1,  # Documentation strategy planning
         "compass-enhanced-analysis": 2.0,  # Comprehensive analysis with context
         "compass-cross-reference": 1.6,  # Pattern library integration
-        "compass-svg-analyst": 1.4,  # Visual validation and correction
+
         "compass-coder": 1.8,  # Specialist delegation coordination
         # Specialized domain agents
         "compass-auth-analyst": 1.7,  # Authentication system complexity
@@ -517,8 +405,18 @@ def update_session_token_count(agent_type, token_count):
         # Load existing counts with file locking for concurrency safety
         with FileLock(f"{token_file}.lock"):
             if token_file.exists():
-                with open(token_file, "r") as f:
-                    session_tokens = json.load(f)
+                try:
+                    with open(token_file, "r", encoding="utf-8") as f:
+                        session_tokens = json.load(f)
+                except (json.JSONDecodeError, FileNotFoundError) as e:
+                    log_handler_activity("token_file_corruption", f"Token file corrupted, creating new: {e}")
+                    session_tokens = {
+                        "total": 0,
+                        "by_agent": {},
+                        "by_phase": {},
+                        "session_start": datetime.now().isoformat(),
+                        "last_update": datetime.now().isoformat(),
+                    }
             else:
                 session_tokens = {
                     "total": 0,
@@ -543,12 +441,17 @@ def update_session_token_count(agent_type, token_count):
                 )
 
             # Write updated counts atomically
-            with open(token_file, "w") as f:
-                json.dump(session_tokens, f, indent=2)
+            try:
+                with open(token_file, "w", encoding="utf-8") as f:
+                    json.dump(session_tokens, f, indent=2)
+            except OSError as e:
+                log_handler_activity("token_file_write_error", f"Failed to write token file: {e}")
+                # Continue without token tracking rather than blocking
 
     except Exception as e:
         # Fail fast: log error but don't block user workflow
         log_handler_activity("token_count_error", f"Failed to update token count: {e}")
+        # Continue without token tracking rather than blocking
         # Continue without token tracking rather than blocking
 
 
@@ -566,7 +469,7 @@ def map_agent_to_phase(agent_type):
         "compass-gap-analysis": "phase3_gap_analysis",
         "compass-enhanced-analysis": "phase4_enhanced_analysis",
         "compass-cross-reference": "phase5_cross_reference",
-        "compass-svg-analyst": "phase5_svg_analysis",
+
         "compass-coder": "phase6_execution_bridge",
     }
     return phase_mapping.get(agent_type)
@@ -582,10 +485,25 @@ def get_current_session_tokens():
         return {"total": 0, "by_agent": {}, "by_phase": {}}
 
     try:
-        with open(token_file, "r") as f:
-            return json.load(f)
+        with open(token_file, "r", encoding="utf-8") as f:
+            token_data = json.load(f)
+            
+        # Validate essential fields exist
+        if not isinstance(token_data, dict):
+            raise ValueError("Token data is not a dictionary")
+        
+        # Ensure required fields exist with proper types
+        token_data.setdefault("total", 0)
+        token_data.setdefault("by_agent", {})
+        token_data.setdefault("by_phase", {})
+        
+        return token_data
+        
+    except (json.JSONDecodeError, ValueError, KeyError) as e:
+        log_handler_activity("token_read_error", f"Failed to read/parse token count: {e}")
+        return {"total": 0, "by_agent": {}, "by_phase": {}}
     except Exception as e:
-        log_handler_activity("token_read_error", f"Failed to read token count: {e}")
+        log_handler_activity("token_read_error", f"Unexpected error reading token count: {e}")
         return {"total": 0, "by_agent": {}, "by_phase": {}}
 
 
@@ -1000,40 +918,66 @@ def requires_compass_methodology(tool_name, tool_input):
 def compass_context_active():
     """Check if COMPASS methodology context is currently active"""
 
-    # Check for COMPASS captain activity in recent logs
+    # Primary check: .compass-status file existence (most reliable indicator)
+    if Path(".compass-status").exists():
+        return True
+
+    # Secondary check: Session-based persistence file
+    if check_compass_session_active():
+        return True
+
+    # Check for COMPASS agent activity in recent logs (expanded detection)
     log_file = Path(".compass-handler.log")
     if log_file.exists():
         try:
             with open(log_file, "r") as f:
-                recent_lines = f.readlines()[-10:]  # Check last 10 log entries
+                recent_lines = f.readlines()[-20:]  # Check last 20 log entries (doubled)
 
             for line in recent_lines:
                 try:
                     log_entry = json.loads(line.strip())
-                    if log_entry.get(
-                        "action"
-                    ) == "compass_required" and is_recent_timestamp(
+                    
+                    # Expanded action detection for COMPASS activity
+                    compass_actions = [
+                        "compass_required",
+                        "agent_active", 
+                        "token_tracking",
+                        "prompt_routing",
+                        "phase_update",
+                        "compass_complete"
+                    ]
+                    
+                    action = log_entry.get("action", "")
+                    if action in compass_actions and is_recent_timestamp_extended(
                         log_entry.get("timestamp", "")
                     ):
                         return True
+                        
+                    # Check for compass agent usage in agent_type field
+                    agent_type = log_entry.get("agent_type", "")
+                    if agent_type.startswith("compass-") and is_recent_timestamp_extended(
+                        log_entry.get("timestamp", "")
+                    ):
+                        return True
+                        
                 except (json.JSONDecodeError, KeyError):
                     continue
         except Exception:
             pass
 
-    # Check for active COMPASS documentation activity
+    # Check for active COMPASS documentation activity (extended window)
     docs_dir = Path("docs")
     if docs_dir.exists():
         recent_files = [
             f
             for f in docs_dir.glob("*.md")
-            if f.stat().st_mtime > (datetime.now().timestamp() - 600)
-        ]  # 10 minutes
+            if f.stat().st_mtime > (datetime.now().timestamp() - 1800)  # 30 minutes
+        ]
         if recent_files:
             return True
 
-    # Check if .compass-status exists (indicates active session)
-    if Path(".compass-status").exists():
+    # Check token tracking file for recent COMPASS activity
+    if check_recent_compass_tokens():
         return True
 
     return False
@@ -1047,6 +991,140 @@ def is_recent_timestamp(timestamp_str):
         return (now - timestamp).total_seconds() < 600  # 10 minutes
     except Exception:
         return False
+
+
+def is_recent_timestamp_extended(timestamp_str):
+    """Check if timestamp is within the last 30 minutes (extended for COMPASS sessions)"""
+    try:
+        timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+        now = datetime.now().astimezone()
+        return (now - timestamp).total_seconds() < 1800  # 30 minutes
+    except Exception:
+        return False
+
+
+def check_compass_session_active():
+    """Check if COMPASS session is active based on persistent session tracking"""
+    session_file = Path(".compass-session")
+    if not session_file.exists():
+        return False
+    
+    try:
+        with open(session_file, "r") as f:
+            session_data = json.load(f)
+        
+        # Check if session was created within last 2 hours
+        session_start = session_data.get("session_start", "")
+        if is_session_timestamp_valid(session_start, 7200):  # 2 hours
+            return True
+            
+        # Check if there was recent activity
+        last_activity = session_data.get("last_activity", "")
+        if is_session_timestamp_valid(last_activity, 1800):  # 30 minutes
+            return True
+            
+    except (json.JSONDecodeError, FileNotFoundError):
+        pass
+    
+    return False
+
+
+def is_session_timestamp_valid(timestamp_str, seconds_threshold):
+    """Check if timestamp is within specified seconds threshold"""
+    try:
+        timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+        now = datetime.now().astimezone()
+        return (now - timestamp).total_seconds() < seconds_threshold
+    except Exception:
+        return False
+
+
+def check_recent_compass_tokens():
+    """Check token tracking file for recent COMPASS agent activity"""
+    token_file = Path(".compass-tokens.json")
+    if not token_file.exists():
+        return False
+    
+    try:
+        with open(token_file, "r") as f:
+            token_data = json.load(f)
+        
+        # Check if last update was recent
+        last_update = token_data.get("last_update", "")
+        if is_recent_timestamp_extended(last_update):
+            return True
+            
+        # Check if any compass agents were used recently
+        by_agent = token_data.get("by_agent", {})
+        for agent_name in by_agent.keys():
+            if agent_name.startswith("compass-"):
+                return True
+                
+    except (json.JSONDecodeError, FileNotFoundError):
+        pass
+    
+    return False
+
+
+def create_compass_session_tracking():
+    """Create or update COMPASS session tracking file"""
+    session_file = Path(".compass-session")
+    
+    current_time = datetime.now().isoformat()
+    
+    # Load existing session data or create new
+    session_data = {
+        "session_start": current_time,
+        "last_activity": current_time,
+        "compass_activated": True,
+        "version": "2.1"
+    }
+    
+    if session_file.exists():
+        try:
+            with open(session_file, "r", encoding="utf-8") as f:
+                existing_data = json.load(f)
+                
+            # Validate existing data structure
+            if isinstance(existing_data, dict):
+                # Preserve session start time, update activity
+                session_data["session_start"] = existing_data.get("session_start", current_time)
+            else:
+                log_handler_activity("session_corruption", "Session file corrupted, creating new")
+                
+        except (json.JSONDecodeError, FileNotFoundError, ValueError) as e:
+            log_handler_activity("session_read_error", f"Failed to read session file: {e}")
+            # Continue with new session data
+    
+    # Write updated session data with error handling
+    try:
+        with open(session_file, "w", encoding="utf-8") as f:
+            json.dump(session_data, f, indent=2)
+        
+        log_handler_activity("session_tracking", "COMPASS session tracking updated")
+        
+    except OSError as e:
+        log_handler_activity("session_write_error", f"Failed to write session file: {e}")
+        # Continue without session tracking rather than blocking
+
+
+def update_compass_session_activity():
+    """Update last activity timestamp in session tracking"""
+    session_file = Path(".compass-session")
+    
+    if session_file.exists():
+        try:
+            with open(session_file, "r") as f:
+                session_data = json.load(f)
+            
+            session_data["last_activity"] = datetime.now().isoformat()
+            
+            with open(session_file, "w") as f:
+                json.dump(session_data, f, indent=2)
+                
+        except (json.JSONDecodeError, FileNotFoundError):
+            # If file is corrupted, create new tracking
+            create_compass_session_tracking()
 
 
 def create_compass_status_file():
@@ -1317,6 +1395,9 @@ def check_compass_agent_activity(input_data):
         }
 
         if subagent_type in agent_phase_map:
+            # Update session activity for persistence
+            update_compass_session_activity()
+            
             phase = agent_phase_map[subagent_type]
             if phase != "coordination":  # Don't update for captain
                 update_compass_phase(phase, "in_progress")
@@ -1382,8 +1463,19 @@ def initialize_map_index():
         "tags": {},
     }
 
-    with open("maps/map-index.json", "w") as f:
-        json.dump(map_index_content, f, indent=2)
+    try:
+        # Ensure maps directory exists before writing
+        maps_dir = Path("maps")
+        maps_dir.mkdir(exist_ok=True)
+        
+        with open("maps/map-index.json", "w", encoding="utf-8") as f:
+            json.dump(map_index_content, f, indent=2)
+            
+        log_handler_activity("map_index_created", "Map index initialized successfully")
+        
+    except OSError as e:
+        log_handler_activity("map_index_error", f"Failed to create map index: {e}")
+        # Continue without map index rather than blocking
 
 
 def generate_todo_update_context(subagent_type, phase):
@@ -1498,185 +1590,6 @@ This is a double_check=true validation request requiring complete upstream verif
         return {"valid": False, "reason": f"Validation system error: {e}"}
 
 
-def auto_register_agents():
-    """Auto-discover agents from .claude/agents directory and register them"""
-    try:
-        agents_dir = Path(".claude/agents")
-        if not agents_dir.exists():
-            log_handler_activity("agent_discovery", "No .claude/agents directory found")
-            return
-
-        discovered_agents = discover_agents_from_directory(agents_dir)
-        if discovered_agents:
-            update_settings_with_agents(discovered_agents)
-            log_handler_activity(
-                "agent_discovery",
-                f"Discovered and registered {len(discovered_agents)} agents",
-            )
-        else:
-            log_handler_activity(
-                "agent_discovery", "No valid agents found in .claude/agents"
-            )
-
-    except Exception as e:
-        log_handler_activity(
-            "agent_discovery_error", f"Failed to auto-register agents: {e}"
-        )
-
-
-def discover_agents_from_directory(agents_dir):
-    """Scan .claude/agents directory and extract agent names from markdown files"""
-    discovered_agents = []
-
-    try:
-        for agent_file in agents_dir.glob("*.md"):
-            agent_name = extract_agent_name_from_file(agent_file)
-            if agent_name:
-                discovered_agents.append(agent_name)
-                log_handler_activity("agent_found", f"Discovered agent: {agent_name}")
-            else:
-                log_handler_activity(
-                    "agent_invalid", f"Invalid agent file: {agent_file.name}"
-                )
-
-    except Exception as e:
-        log_handler_activity("discovery_error", f"Error scanning agents directory: {e}")
-
-    return sorted(list(set(discovered_agents)))  # Remove duplicates and sort
-
-
-def extract_agent_name_from_file(agent_file):
-    """Extract agent name from markdown file with YAML frontmatter"""
-    try:
-        with open(agent_file, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        # Check for YAML frontmatter
-        if content.startswith("---"):
-            parts = content.split("---", 2)
-            if len(parts) >= 3:
-                try:
-                    frontmatter = yaml.safe_load(parts[1])
-                    if isinstance(frontmatter, dict):
-                        agent_name = frontmatter.get("name")
-                        if agent_name:
-                            return agent_name
-                except yaml.YAMLError:
-                    pass
-
-        # Fall back to filename (without .md extension)
-        filename_agent = agent_file.stem
-        if filename_agent:
-            return filename_agent
-
-    except Exception as e:
-        log_handler_activity(
-            "agent_parse_error", f"Error parsing {agent_file.name}: {e}"
-        )
-
-    return None
-
-
-def update_settings_with_agents(discovered_agents):
-    """Update .claude/settings.json with discovered agents"""
-    try:
-        settings_file = Path(".claude/settings.json")
-
-        # Load existing settings
-        if settings_file.exists():
-            with open(settings_file, "r") as f:
-                settings = json.load(f)
-        else:
-            settings = {}
-
-        # Ensure compass section exists
-        if "compass" not in settings:
-            settings["compass"] = {}
-
-        # Get existing crew_agents
-        existing_agents = settings["compass"].get("crew_agents", [])
-
-        # Merge with discovered agents (keep existing, add new)
-        all_agents = list(set(existing_agents + discovered_agents))
-
-        # Update crew_agents
-        settings["compass"]["crew_agents"] = sorted(all_agents)
-
-        # Add metadata about discovery
-        settings["compass"]["last_agent_discovery"] = datetime.now().isoformat()
-        settings["compass"]["discovered_agents_count"] = len(discovered_agents)
-
-        # Write updated settings atomically
-        with FileLock(f"{settings_file}.lock"):
-            with open(settings_file, "w") as f:
-                json.dump(settings, f, indent=2)
-
-        log_handler_activity(
-            "settings_updated",
-            f"Updated settings.json with {len(all_agents)} total agents",
-        )
-
-    except Exception as e:
-        log_handler_activity("settings_update_error", f"Failed to update settings: {e}")
-
-
-def get_registered_agents():
-    """Get list of currently registered agents from settings"""
-    try:
-        settings_file = Path(".claude/settings.json")
-        if settings_file.exists():
-            with open(settings_file, "r") as f:
-                settings = json.load(f)
-            return settings.get("compass", {}).get("crew_agents", [])
-    except Exception as e:
-        log_handler_activity(
-            "get_agents_error", f"Error reading registered agents: {e}"
-        )
-
-    return []
-
-
-def validate_agent_file(agent_file):
-    """Validate that an agent file has proper structure"""
-    try:
-        with open(agent_file, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        # Check for YAML frontmatter
-        if not content.startswith("---"):
-            return False, "Missing YAML frontmatter"
-
-        parts = content.split("---", 2)
-        if len(parts) < 3:
-            return False, "Invalid YAML frontmatter structure"
-
-        try:
-            frontmatter = yaml.safe_load(parts[1])
-            if not isinstance(frontmatter, dict):
-                return False, "Frontmatter is not a valid YAML dictionary"
-
-            # Check required fields
-            if "name" not in frontmatter:
-                return False, "Missing 'name' field in frontmatter"
-
-            # Optional validation for other expected fields
-            expected_fields = ["description"]
-            missing_fields = [
-                field for field in expected_fields if field not in frontmatter
-            ]
-            if missing_fields:
-                return (
-                    True,
-                    f"Warning: Missing optional fields: {', '.join(missing_fields)}",
-                )
-
-            return True, "Valid agent file"
-
-        except yaml.YAMLError as e:
-            return False, f"Invalid YAML syntax: {e}"
-
-    except Exception as e:
-        return False, f"Error reading file: {e}"
 
 
 def log_handler_activity(action, details):

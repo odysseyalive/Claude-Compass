@@ -141,11 +141,40 @@ Your analysis becomes **required context** for all specialists:
 ## Visual Mapping Standards
 
 ### **Variable Lifecycle Diagrams**
-Create SVG maps showing:
+Create SVG maps using AI SVG Wireframe Framework principles:
+
+**Mathematical Foundation:**
+```
+Fibonacci Spatial Units: 8, 13, 21, 34, 55, 89, 144, 233, 377, 610px
+Golden Ratio Layouts: Content areas use φ = 1.618 proportions
+8px Base Grid: All elements snap to grid alignment
+Typography Scale: 13px body, 21px subheads, 34px headings (Fibonacci progression)
+```
+
+**Component Dimensions (Fibonacci-based):**
+```
+Variable Lifecycle Boxes:
+- Small Variables: 144×89px (golden ratio: 144/89 ≈ 1.618)
+- Standard Variables: 233×144px (golden ratio maintained)
+- Complex Objects: 377×233px (consistent proportion scaling)
+
+Process Flow Elements:
+- Transformation Nodes: 89×55px (compact operations)
+- Decision Points: 55×55px (square for clarity)
+- Data Stores: 233×89px (wide containers for data representation)
+```
+
+**Spatial Organization:**
 ```
 [Creation] → [Transformation 1] → [Transformation 2] → [Usage] → [Cleanup]
      ↓              ↓                   ↓              ↓          ↓
 [Dependencies] [Side Effects] [Validation] [Dependencies] [Resource Release]
+
+Spacing Pattern (Fibonacci gaps):
+- Between related steps: 21px
+- Between lifecycle stages: 34px  
+- Between dependency layers: 55px
+- Outer margins: 89px
 ```
 
 ### **Data Flow Architecture Maps**
@@ -153,13 +182,40 @@ Create SVG maps showing:
 [Input Sources] → [Processing Pipeline] → [State Storage] → [Output Consumers]
         ↓               ↓                      ↓                ↓
 [Validation]    [Transformation]      [Persistence]    [Side Effects]
+
+Layout Proportions (Golden Ratio divisions):
+- Input Section: 38.2% of canvas width
+- Processing Pipeline: 61.8% of canvas width  
+- Vertical sections follow 38.2%/61.8% splits
+```
+[Input Sources] → [Processing Pipeline] → [State Storage] → [Output Consumers]
+        ↓               ↓                      ↓                ↓
+[Validation]    [Transformation]      [Persistence]    [Side Effects]
 ```
 
 ### **Mutation Risk Heat Maps**
-Color-coded risk levels:
+Color-coded risk levels using mathematical spatial organization:
 - 🔴 **High Risk**: Shared mutable state, global variables
 - 🟡 **Medium Risk**: Controlled mutations, validated changes  
 - 🟢 **Low Risk**: Immutable data, local scope variables
+
+**SVG Implementation Standards:**
+```svg
+<!-- Risk level containers using Fibonacci dimensions -->
+<rect x="55" y="89" width="377" height="233" fill="#ff9999" stroke="#cc0000" stroke-width="2"/>
+<text x="243" y="205" font-family="Arial" font-size="21" text-anchor="middle">High Risk Zone</text>
+
+<!-- Spacing follows Fibonacci gaps: 21px between risk zones -->
+<rect x="55" y="343" width="377" height="233" fill="#ffff99" stroke="#cccc00" stroke-width="2"/>
+<text x="243" y="459" font-family="Arial" font-size="21" text-anchor="middle">Medium Risk Zone</text>
+```
+
+**Mathematical Quality Standards:**
+- Canvas: 1440×900px (golden ratio: 1440/900 = 1.6)
+- Grid alignment: All elements snap to 8px base grid
+- Typography: Fibonacci scale (13px, 21px, 34px for different text hierarchies)
+- Container padding: 20px COMPASS standard + 8px buffer zones
+- Visual quality target: ≥0.85 design harmony score
 
 ## Integration with compass-coder
 

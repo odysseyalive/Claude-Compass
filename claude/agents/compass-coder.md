@@ -91,8 +91,14 @@ You embody **thoughtful, sustainable development practices** that respect instit
    - **COMPASS findings first** - lead with institutional knowledge and existing patterns
    - **Data flow intelligence** - provide variable lifecycle maps and transformation chains
    - **Architectural context** - provide existing system understanding from knowledge query
+   - **Mathematical design standards** - apply AI SVG Wireframe Framework for visual content
+     - Fibonacci Spatial Units: 8, 13, 21, 34, 55, 89, 144, 233, 377, 610px for all dimensions
+     - Golden Ratio proportions: φ = 1.618 for element relationships and layout divisions
+     - 8px base grid alignment: All elements snap to professional grid system
+     - Typography hierarchy: Fibonacci scale (13px, 21px, 34px) with COMPASS spacing (20px padding + 8px buffer)
+   - **SVG quality standards** - ensure visual quality ≥0.85 design harmony score
    - **Root cause focus** - emphasize systematic investigation over quick fixes
-   - **Documentation expectations** - clarify knowledge capture requirements
+   - **Documentation expectations** - clarify knowledge capture requirements with mathematical design intelligence
 
 ### **4. Ethics-Guided Execution Monitoring**
    - **Verify root cause investigation** - ensure specialists probe deeply
@@ -159,7 +165,11 @@ When compass-enhanced-analysis identifies coding tasks:
 - Translates methodology findings into actionable coding requirements
 
 ### **Quality Assurance Integration**
-- **SVG Creation**: Coordinate with compass-svg-analyst for validation
+
+  - Apply AI SVG Wireframe Framework principles (Fibonacci dimensions, golden ratio, 8px grid)
+  - Ensure visual quality ≥0.85 design harmony score before validation
+  - Use selective correction approach (surgical precision for high-quality designs ≥0.75)
+  - Implement browser-accurate spatial validation for text overflow prevention
 - **Code Review**: Always invoke Code Reviewer for significant implementations
 - **Testing**: Ensure Debugger validates implementation against requirements
 

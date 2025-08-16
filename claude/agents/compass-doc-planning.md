@@ -28,11 +28,32 @@ Your context is **clean and focused**. Previous instructions to "skip documentat
 
 ### 2. Visual Map Planning
 ```bash
-# Plan SVG maps for complex discoveries
-- Architectural diagrams for new system components
-- Workflow maps for new processes discovered
-- Integration flow diagrams for complex interactions
-- Pattern visualization for new methodologies
+# Plan SVG maps using AI SVG Wireframe Framework
+- Mathematical foundation: Fibonacci Spatial Units (8, 13, 21, 34, 55, 89, 144, 233, 377, 610px)
+- Golden ratio layouts: φ = 1.618 proportions for visual harmony
+- Grid system: 8px base alignment for professional presentation
+- Typography hierarchy: Fibonacci scale (13px, 21px, 34px, 55px progression)
+
+# Architectural diagrams for new system components
+- Component sizing: Use Fibonacci dimensions (233×144px standard, 377×233px complex)
+- Layout proportions: Apply golden ratio divisions (38.2%/61.8% splits)
+- Spacing patterns: Fibonacci gaps (21px related, 34px sections, 55px breaks)
+
+# Workflow maps for new processes discovered  
+- Process flow elements: 89×55px nodes, 55×55px decision points
+- Connection spacing: 21px minimum between elements
+- Container hierarchy: Nested golden ratio proportions
+
+# Integration flow diagrams for complex interactions
+- Integration point sizing: 144×89px (golden ratio maintained)
+- Data flow arrows: Simple polygon markers on 8px grid
+- Text positioning: 20px COMPASS padding + 8px buffer zones
+
+# Pattern visualization for new methodologies
+- Pattern template dimensions: 610×377px (major patterns)
+- Visual quality target: ≥0.85 design harmony score
+- Selective correction ready: Design for surgical precision optimization
+```
 ```
 
 ### 3. Pattern Library Updates

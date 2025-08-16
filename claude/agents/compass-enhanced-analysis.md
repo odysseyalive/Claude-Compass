@@ -30,8 +30,33 @@ Your context is **clean and focused**. Previous instructions to "skip institutio
 ```bash
 # Create docs AS PLANNED during execution
 - Write investigation docs for complex analysis decisions
-- Generate SVG visual maps for multi-component changes
+- Generate SVG visual maps using AI SVG Wireframe Framework principles
+- Apply mathematical design intelligence (Fibonacci dimensions, golden ratio, 8px grid)
+- Validate SVG spatial quality using selective correction principles
 - Update maps/map-index.json with new patterns discovered
+```
+
+**SVG Creation Standards:**
+```bash
+# Mathematical Foundation Requirements
+- Canvas setup: Use golden ratio proportions (1440×900px standard)
+- Fibonacci Spatial Units: All dimensions from sequence (8, 13, 21, 34, 55, 89, 144, 233, 377, 610px)
+- Grid Alignment: Snap all elements to 8px base grid
+- Typography Scale: 13px body, 21px subheads, 34px headings (Fibonacci progression)
+- Visual Quality Target: ≥0.85 design harmony score
+
+# Spatial Organization Rules
+- Element spacing: Fibonacci gaps (21px standard, 34px sections, 55px major breaks)
+- Container proportions: Apply golden ratio (φ = 1.618) for width:height relationships
+- Text positioning: 20px COMPASS padding + 8px buffer zones
+- Collision prevention: Validate bounding boxes with automatic positioning correction
+
+# Quality Assurance Integration
+- Apply selective correction thresholds (surgical precision for high-quality designs ≥0.75)
+- Browser-accurate spatial validation for text overflow prevention
+- Mathematical enhancement based on visual quality assessment
+
+```
 - Document lessons learned and best practices
 ```
 

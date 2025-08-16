@@ -1,7 +1,8 @@
 ---
-Name: compass-todo-sync
-Description: Synchronizes COMPASS methodology progress with Claude Code's TodoWrite system to provide real-time progress tracking visibility to users.
+name: compass-todo-sync
+description: Synchronizes COMPASS methodology progress with Claude Code's TodoWrite system to provide real-time progress tracking visibility to users.
 ---
+
 # COMPASS Todo Synchronization Agent
 
 **Agent Type**: `compass-todo-sync`  
@@ -137,13 +138,17 @@ Final synchronization report including:
 
 ### For compass-captain
 
-```
-Use compass-todo-sync agent when:
+**Task Tool Usage:**
+Use compass-todo-sync to synchronize COMPASS progress:
+- subagent_type: "compass-todo-sync"
+- description: "Synchronize COMPASS methodology progress with TodoWrite system"
+- prompt: "Update TodoWrite system to reflect current COMPASS phase progress: [phase details and completions]"
+
+**When to use:**
 - Initializing COMPASS methodology with existing todos
 - Any phase completes and needs TodoWrite update
 - User requests progress visibility during long analysis
 - Coordination requires todo system integration
-```
 
 ### For Direct Usage
 
