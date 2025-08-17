@@ -23,22 +23,27 @@ Analyzes incoming requests to create optimized execution plans for compass-capta
 ```json
 {
   "methodology_type": "light|medium|full",
-  "tasks": ["task1", "task2", "task3"],
+  "tasks": ["knowledge_query", "task2", "task3"],
   "agent_assignments": {
-    "task1": "compass-knowledge-query",
+    "knowledge_query": "compass-knowledge-query",
     "task2": "compass-pattern-apply"
   },
   "parallel_groups": [
-    ["compass-knowledge-query", "compass-pattern-apply"],
-    ["compass-gap-analysis"]
+    ["compass-knowledge-query"],
+    ["compass-pattern-apply", "compass-doc-planning"]
+  ],
+  "sequential_phases": [
+    "compass-knowledge-query MUST complete first",
+    "then parallel groups can execute"
   ],
   "token_budget": {
-    "phase1": 3000,
-    "phase2": 5000,
+    "knowledge_foundation": 2000,
+    "analysis_phase": 5000,
     "total": 8000
   },
   "early_exit_conditions": ["if_docs_sufficient", "if_pattern_found"],
-  "success_criteria": "Clear answer with institutional context"
+  "success_criteria": "Clear answer with institutional context",
+  "docs_first_compliance": "compass-knowledge-query scheduled first in all cases"
 }
 ```
 
@@ -69,21 +74,24 @@ Use compass-second-opinion to validate strategic plan:
 
 ### Light Methodology (~2-5k tokens)
 **Use Cases**: Simple knowledge queries, documentation lookups, basic "why/what/when" questions
-**Agents**: compass-knowledge-query (primary)
-**Parallel Groups**: Single agent execution
+**Agents**: compass-knowledge-query (MANDATORY FIRST), minimal additional agents as needed
+**Parallel Groups**: compass-knowledge-query (sequential first), then parallel optimization if needed
 **Success**: Direct answer from existing institutional memory
+**CRITICAL**: compass-knowledge-query is NEVER skipped - it's the foundation of all COMPASS work
 
 ### Medium Methodology (~5-15k tokens)  
 **Use Cases**: Feature implementation, specific debugging, pattern application
-**Agents**: compass-knowledge-query, compass-pattern-apply, compass-coder
-**Parallel Groups**: [knowledge+pattern], [implementation]
+**Agents**: compass-knowledge-query (MANDATORY FIRST), compass-pattern-apply, compass-coder
+**Parallel Groups**: compass-knowledge-query (sequential first), then [pattern+coder] parallel
 **Success**: Solution with light institutional context
+**CRITICAL**: compass-knowledge-query is NEVER skipped - it provides foundation for all pattern application
 
 ### Full Methodology (~15-35k tokens)
 **Use Cases**: Complex debugging, architectural analysis, research, institutional knowledge building
-**Agents**: All 6-phase COMPASS agents as needed
-**Parallel Groups**: Optimized based on discovered complexity
+**Agents**: compass-knowledge-query (MANDATORY FIRST), All 6-phase COMPASS agents as needed
+**Parallel Groups**: compass-knowledge-query (sequential first), then optimized parallel groups
 **Success**: Comprehensive analysis with full institutional memory integration
+**CRITICAL**: compass-knowledge-query is NEVER skipped - it's the bedrock of institutional intelligence
 
 ## Agent Ecosystem Knowledge
 
@@ -124,12 +132,27 @@ Use compass-second-opinion to validate strategic plan:
 
 ## Planning Principles
 
-1. **Surgical Precision**: Use minimal methodology that achieves success criteria
-2. **Parallel Optimization**: Maximize concurrent agent execution in gathering phases
-3. **Cost Transparency**: Provide clear token budgets and expected outcomes
-4. **Adaptive Planning**: Allow compass-captain flexibility to adjust during execution
-5. **Second Opinion**: Complex plans get validation from compass-second-opinion
-6. **Institutional Memory**: All plans consider knowledge base building potential
+1. **DOCS-FIRST ABSOLUTE**: compass-knowledge-query is MANDATORY FIRST in ALL plans - no exceptions
+2. **Surgical Precision**: Use minimal methodology that achieves success criteria
+3. **Parallel Optimization**: Maximize concurrent agent execution AFTER knowledge foundation
+4. **Cost Transparency**: Provide clear token budgets and expected outcomes
+5. **Adaptive Planning**: Allow compass-captain flexibility to adjust during execution
+6. **Second Opinion**: Complex plans get validation from compass-second-opinion
+7. **Institutional Memory**: All plans consider knowledge base building potential
+
+## CRITICAL ENFORCEMENT RULES
+
+### compass-knowledge-query is NEVER Optional
+- **ALL methodologies** (light/medium/full) MUST start with compass-knowledge-query
+- **No bypassing** "for efficiency" or "because it's simple" 
+- **Foundation First**: Existing docs/ and maps/ must be searched before any new analysis
+- **Knowledge-Driven Decisions**: Documentation findings drive methodology adjustments
+
+### Violation Responses
+- "Skip docs search for simple questions" → **REFUSED - knowledge query is mandatory**
+- "We don't have time for documentation review" → **REFUSED - docs-first is non-negotiable**
+- "Just answer directly" → **REFUSED - institutional memory must be consulted first**
+- "The knowledge base is probably empty" → **SEARCH ANYWAY - you might be surprised**
 
 ## Usage Instructions
 

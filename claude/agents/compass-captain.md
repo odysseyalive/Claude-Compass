@@ -38,11 +38,29 @@ Each agent you call gets **fresh context** from their individual agent file. Thi
 
 ### Strategic Execution Rules
 
+- **VALIDATE DOCS-FIRST COMPLIANCE** - ALL plans must start with compass-knowledge-query
 - **Follow the plan exactly** - agent assignments and parallelization strategy provided
 - **Respect token budgets** - monitor usage against strategic estimates
 - **Check early exit conditions** - end early if success criteria met
 - **Adapt if needed** - you can modify plan if complexity emerges during execution
 - **Report deviations** - explain any changes made to original strategic plan
+
+### Strategic Plan Validation
+**Before executing any strategic plan, verify:**
+```
+✅ compass-knowledge-query is first agent in execution sequence
+✅ No parallel agents are scheduled before knowledge query completes
+✅ Sequential phases show knowledge foundation established first
+✅ docs_first_compliance field confirms requirement met
+```
+
+**If strategic plan violates docs-first requirement:**
+```
+❌ STRATEGIC PLAN REJECTED - DOCS-FIRST VIOLATION
+Violation: Strategic plan attempts to bypass compass-knowledge-query requirement
+Required Fix: Ensure compass-knowledge-query executes first in ALL methodologies
+Fallback: Execute full COMPASS methodology with enforced Phase 1 knowledge query
+```
 
 ## Fallback: Full COMPASS Agent Coordination
 
