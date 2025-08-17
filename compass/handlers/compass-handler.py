@@ -12,6 +12,23 @@ from pathlib import Path
 from datetime import datetime
 import gc
 
+# Add file organization utility
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'utils'))
+try:
+    from file_organization import CompassFileOrganizer, validate_file_path_safety
+except ImportError:
+    # Graceful fallback if utility not available
+    class CompassFileOrganizer:
+        def __init__(self):
+            pass
+        def validate_path_safety(self, path):
+            return True
+        def redirect_root_path(self, path, file_type="documentation"):
+            return Path(path)
+    
+    def validate_file_path_safety(path):
+        return True
+
 try:
     from filelock import FileLock
 except ImportError:
@@ -126,6 +143,89 @@ MAX_INPUT_SIZE = 1024 * 1024  # 1MB max input
 MAX_TOKEN_SESSIONS = 100  # Max stored token sessions
 MAX_LOG_SIZE = 5 * 1024 * 1024  # 5MB max log file
 MAX_AGENT_ACTIVITY = 500  # Max agent activity entries
+
+
+def validate_file_operation_safety(tool_name, tool_input):
+    """Validate file operations to prevent root directory cluttering
+    
+    Args:
+        tool_name: Name of the tool being called
+        tool_input: Input parameters for the tool
+    
+    Returns:
+        dict: {"safe": bool, "reason": str, "suggested_path": str}
+    """
+    try:
+        organizer = CompassFileOrganizer()
+        
+        # Check tools that create files
+        file_creating_tools = [
+            "Write", "mcp__serena__create_text_file", "Edit", "MultiEdit"
+        ]
+        
+        if tool_name not in file_creating_tools:
+            return {"safe": True, "reason": "Tool does not create files"}
+        
+        # Extract file path from tool input
+        file_path = None
+        if tool_name == "Write":
+            file_path = tool_input.get("file_path")
+        elif tool_name == "mcp__serena__create_text_file":
+            file_path = tool_input.get("relative_path")
+        elif tool_name in ["Edit", "MultiEdit"]:
+            file_path = tool_input.get("file_path")
+        
+        if not file_path:
+            return {"safe": True, "reason": "No file path specified"}
+        
+        # Validate path safety
+        if not organizer.validate_path_safety(file_path):
+            # Check if it's a markdown file that should be redirected
+            if file_path.endswith('.md'):
+                # Determine file type based on content patterns
+                content = tool_input.get("content", "")
+                
+                if any(keyword in file_path.lower() for keyword in ["test", "jung", "integration"]):
+                    suggested_path = organizer.get_test_path(Path(file_path).name)
+                    file_type = "test"
+                elif any(keyword in content.lower() for keyword in ["validation", "test"]):
+                    suggested_path = organizer.get_documentation_path(Path(file_path).name, "validations")
+                    file_type = "validation"
+                else:
+                    suggested_path = organizer.get_documentation_path(Path(file_path).name)
+                    file_type = "documentation"
+                
+                reason = f"""🚫 COMPASS File Organization Violation
+
+The file '{file_path}' would be created in the project root directory.
+COMPASS enforces organized file structure to prevent root directory cluttering.
+
+SUGGESTED ACTION:
+Use proper path: {suggested_path}
+
+FILE ORGANIZATION RULES:
+• Documentation files → docs/ directory (or docs/validations/ for validation reports)
+• Test files → .compass/tests/ directory  
+• Temporary files → .compass/temp/ directory
+• Maps/SVG files → maps/ directory
+
+To fix: Update the file path in your tool call to use the suggested path above."""
+                
+                organizer.log_file_operation("blocked_root_write", file_path, suggested_path)
+                
+                return {
+                    "safe": False, 
+                    "reason": reason,
+                    "suggested_path": str(suggested_path),
+                    "file_type": file_type
+                }
+        
+        return {"safe": True, "reason": "Path validation passed"}
+        
+    except Exception as e:
+        # If validation fails, err on side of caution but don't block
+        log_handler_activity("file_validation_error", f"File validation error: {e}")
+        return {"safe": True, "reason": f"Validation error, allowing operation: {e}"}
 
 
 def main():
@@ -351,6 +451,15 @@ def handle_pre_tool_use(input_data):
     tool_input = input_data.get("tool_input", {})
 
     log_handler_activity("tool_intercept", f"Intercepted: {tool_name}")
+
+    # FILE PATH VALIDATION: Prevent root directory file creation
+    file_safety_result = validate_file_operation_safety(tool_name, tool_input)
+    if not file_safety_result["safe"]:
+        log_handler_activity("file_path_violation", f"Blocked unsafe file operation: {tool_name}")
+        return {
+            "permissionDecision": "deny",
+            "permissionDecisionReason": file_safety_result["reason"],
+        }
 
     # RECURSION PREVENTION: Skip validation for compass-upstream-validator to prevent infinite loops
     if (
