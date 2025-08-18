@@ -315,8 +315,6 @@ install_compass_tools() {
     fi
   fi
 
-  # SVG spatial validator CLI (removed per project documentation)
-
   # Clean up deprecated files during migration
   if [[ -f "$CURRENT_DIR/compass-handler.py" ]]; then
     log_info "Migrating from old compass-handler.py location..."
@@ -437,8 +435,6 @@ validate_installation() {
     exit 1
   fi
 
-  # SVG spatial validator removed per project documentation
-
   # Test agent file accessibility
   local missing_agents=()
   local agents=(
@@ -550,9 +546,6 @@ show_success_message() {
   echo "   • \"Investigate the root cause of this problem\""
   echo "   • \"Implement a secure authentication system\""
   echo ""
-  echo "🎨 Test SVG Spatial Validator:"
-
-  echo ""
   echo "✅ COMPASS technical enforcement active - blocks operations without methodology compliance!"
   echo "🛡️ PreToolUse hooks provide true bypass resistance through operation blocking!"
   echo "⚡ Strategic planning via compass-methodology-selector optimizes token usage and execution!"
@@ -595,4 +588,3 @@ main() {
 
 # Run main function with all arguments
 main "$@"
-
