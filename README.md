@@ -156,45 +156,48 @@ Your Claude Code environment now has COMPASS capabilities and will initialize th
 
 ## Enhanced Capabilities: Integration with Serena
 
-**COMPASS reaches its full potential when paired with Serena** - a local integration layer that connects Claude Code directly to your existing development environment. Rather than working around the limitations of text-only analysis, Serena gives Claude Code the same tools you already use daily.
+**COMPASS reaches its full potential when paired with Serena** - an open-source coding agent toolkit that transforms any LLM into a fully-featured development assistant. Instead of working around the limitations of text-only analysis, Serena gives Claude Code semantic understanding of your codebase through Language Server Protocol (LSP) integration.
 
-Serena transforms Claude Code from a conversation partner into a true development collaborator by connecting it to your familiar toolkit:
+Serena transforms Claude Code from a conversation partner into a true development collaborator by providing IDE-like capabilities through the Model Context Protocol (MCP):
 
-- **Standard Unix utilities** (`grep`, `find`) for instant codebase navigation
-- **Your language servers** for semantic code understanding
-- **Your development toolchain** for consistent analysis approaches
-- **Your existing workflows** without disrupting established patterns
+- **Semantic code analysis** through language servers for precise symbol-level understanding
+- **LSP-powered navigation** that works like your favorite IDE - find definitions, references, completions
+- **Multi-language support** including Python, TypeScript/JavaScript, PHP, Go, Rust, C#, Ruby, Swift, Java, and more
+- **Symbolic code editing** - no more imprecise string replacements or line counting errors
+- **Cross-project intelligence** that understands your entire codebase architecture
 
 **Project**: <https://github.com/oraios/serena>
 
-### Development Environment Integration
+### What Serena Actually Provides
 
-COMPASS + Serena works with whatever you've already built. If you're working in an environment where you can run `grep`, `find`, and your language toolchain, you're ready to go.
+Unlike traditional development tools that require specific IDE configurations, Serena operates as an **MCP server** that any MCP-compatible client can connect to. This means:
+
+- **Universal compatibility** - Works with Claude Code, Claude Desktop, Cursor, VSCode extensions, and any MCP client
+- **Language server integration** - Uses the same LSP technology that powers modern IDEs
+- **Semantic understanding** - Finds symbols, references, and relationships rather than just text patterns
+- **Intelligent editing** - Edits code at the symbol level with tools like `insert_after_symbol` and `replace_symbol_body`
+- **Free and open source** - No subscriptions, no API costs beyond your LLM usage
 
 #### Core Dependencies (Required)
 
 These are essential for any COMPASS + Serena setup:
 
-- **Node.js** (includes npm): Required for TypeScript/JavaScript language server and other core Serena functionality
+- **Python 3.11+**: Serena's runtime requirement
+- **uv package manager**: Modern Python package management that Serena depends on
+
+  ```bash
+  # Install uv if you don't have it
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  ```
+
+- **Node.js** (includes npm): Required for TypeScript/JavaScript language server support
 
   ```bash
   # Recommended: Use nvm for version management
   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
   source ~/.bashrc  # or restart your terminal
-  nvm install 20.19.0  # LTS version
-  nvm alias default 20.19.0
-  nvm use 20.19.0
-  
-  # Alternative: Direct install from nodejs.org
-  # But nvm prevents version conflicts between projects
-  ```
-
-- **Python 3.11**: Serena's runtime requirement - not 3.10, not 3.12, but specifically 3.11
-- **uv package manager**: Modern Python package management that Serena depends on (includes uvx command)
-
-  ```bash
-  # Install uv if you don't have it
-  curl -LsSf https://astral.sh/uv/install.sh | sh
+  nvm install 20  # LTS version
+  nvm use 20
   ```
 
 - **xmllint**: Critical for SVG validation - prevents broken visual maps that can derail pattern recognition
@@ -208,73 +211,65 @@ These are essential for any COMPASS + Serena setup:
   
   # Windows (via Chocolatey)
   choco install libxml2
-  
-  # Or Windows (via winget)
-  winget install libxml2
   ```
 
-#### Language Intelligence
+#### Language Server Integration
 
-Serena connects to the language servers you probably already have running:
+Serena automatically manages language servers for supported languages. When you activate a project, it:
 
-**For JavaScript/TypeScript projects**:
+- **Starts appropriate language servers** based on your project's languages
+- **Provides semantic analysis** - understands your code structure, not just text
+- **Enables intelligent navigation** - finds symbols, references, and definitions across your entire codebase
+- **Supports multi-language projects** - handles polyglot codebases seamlessly
 
-- Uses your existing TypeScript language server setup
+**Directly supported languages** (out of the box):
 
-**For Go development**:
+- Python, TypeScript/JavaScript, PHP (with Intelephense), Go, Rust, C#, Ruby, Swift, Java, Elixir, Clojure, Bash, C/C++
 
-- Connects to `gopls` (part of standard Go installation)
+**Language-specific setup** (if you want premium features):
 
-**For Java projects**:
+For **PHP with Intelephense premium features**:
 
-- Integrates with Eclipse JDT language server (often already configured)
+```bash
+# Set your license key as an environment variable
+export INTELEPHENSE_LICENSE_KEY="your-license-key-here"
+```
 
-**For Rust development**:
+For **Go development**:
 
-- Works with `rust-analyzer` (standard Rust toolchain component)
+- `gopls` is automatically installed when needed
 
-**For C/C++ projects**:
+For **Java projects**:
 
-- Connects to `clangd` (part of LLVM, commonly available)
-
-### Additional Language Support
-
-For specific languages, you may want to ensure these tools are available in your environment:
-
-**For Go development**:
-
-- **gopls**: Go's official language server (automatically downloaded by Serena when needed)
-
-**For Java projects**:
-
-- **Java JDK 11+**: Required for Eclipse JDT language server functionality
-
-**For Rust development**:
-
-- **rust-analyzer**: Usually included with standard Rust installation via rustup
-
-**For C/C++ projects**:
-
-- **clangd**: Part of the LLVM toolchain, provides semantic analysis
-
-#### Development Workflow Tools
-
-These improve the development experience but aren't strictly necessary:
-
-- **git**: Essential for the version control workflows COMPASS recommends
-- **Language-specific linters**: ESLint for JavaScript, pylint for Python, etc.
-- **Build tools**: Make, CMake, or language-specific build systems your projects use
-
-The beauty of this setup is that you start with the core requirements and add language support as you need it. No point installing Java tools if you're building React apps, right?
+- Java JDK 11+ recommended for optimal language server performance
 
 ### Setting Up Serena
 
-Once your development environment is ready:
+The beauty of Serena is its flexibility - you can run it in multiple ways depending on your workflow:
 
-1. **Start the Serena bridge**:
+#### Option 1: Direct Integration with Claude Code (Recommended)
+
+From your project directory:
+
+```bash
+claude mcp add serena -- uvx --from git+https://github.com/oraios/serena serena start-mcp-server --context ide-assistant --project $(pwd)
+```
+
+This automatically:
+
+- Downloads and runs the latest Serena
+- Configures it for IDE-like assistance
+- Activates your current project
+- Provides semantic code analysis immediately
+
+#### Option 2: SSE Mode for Advanced Users
+
+If you prefer to manage the server process yourself:
+
+1. **Start Serena in SSE mode**:
 
    ```bash
-   uvx --from git+https://github.com/oraios/serena serena start-mcp-server --transport sse --port 9121
+   uvx --from git+https://github.com/oraios/serena serena start-mcp-server --transport sse --port 9121 --context ide-assistant
    ```
 
 2. **Connect Claude Code**:
@@ -283,7 +278,43 @@ Once your development environment is ready:
    claude mcp add serena --transport sse http://localhost:9121/sse
    ```
 
-Restart Claude Code in your project, and COMPASS now has direct access to your development toolkit - the same commands and language intelligence you use every day, but integrated into Claude Code's analytical workflow.
+3. **Activate your project in Claude Code**:
+
+   ```
+   "Activate the project /path/to/your/project"
+   ```
+
+#### Option 3: Claude Desktop Integration
+
+Add to your `claude_desktop_config.json`:
+
+```json
+{
+    "mcpServers": {
+        "serena": {
+            "command": "uvx",
+            "args": [
+                "--from", "git+https://github.com/oraios/serena", 
+                "serena", "start-mcp-server",
+                "--context", "ide-assistant"
+            ]
+        }
+    }
+}
+```
+
+Then activate your project: `"Activate the project /path/to/your/project"`
+
+### Why This Integration Matters for COMPASS
+
+With Serena providing semantic code understanding, COMPASS transforms from a documentation system into a true **institutional knowledge engine**:
+
+- **Precise pattern recognition** - Serena understands code structure, so COMPASS can map architectural patterns accurately
+- **Symbolic code analysis** - Instead of guessing at function boundaries, COMPASS knows exactly how your code is organized
+- **Cross-reference precision** - Links between documentation and actual code become reliable and maintained
+- **Architecture evolution tracking** - As Serena edits code symbolically, COMPASS automatically updates its understanding of your system
+
+The combination means Claude Code doesn't just remember what you talked about - it understands how your actual codebase evolved and can make connections between abstract discussions and concrete implementation details.
 
 ## Applications: Beyond the Codebase
 
