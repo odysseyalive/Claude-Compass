@@ -32,6 +32,8 @@ COMPASS operates on two foundational principles:
 
 **Vision Through Mapping**: Complex code flows become visual landscapes. Race conditions reveal themselves as crossing paths. Bottlenecks appear as convergence points. The abstract becomes concrete, the invisible becomes navigable.
 
+![COMPASS Workflow](assets/compass_workflow.svg)
+
 ## The Experience Preview
 
 Instead of explaining the same architectural decisions repeatedly, you'll find Claude Code saying things like:
@@ -397,3 +399,5 @@ Because why leave things to chance when you can leave things to memory?
 ---
 
 *"The path through complexity isn't about avoiding the maze - it's about building better maps."*
+
+![COMPASS Logo](assets/compass_logo.svg)
