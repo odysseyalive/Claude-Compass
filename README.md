@@ -16,7 +16,7 @@ This isn't just about documentation. It's about creating a system that learns fr
 
 ### What This Means For You
 
-The diagram above shows the core transformation COMPASS brings to your Claude Code experience. Instead of Claude Code starting fresh every time, COMPASS automatically:
+Instead of Claude Code starting fresh every time, COMPASS automatically:
 
 1. **Remembers Previous Work** - Checks what you've already discovered about similar problems
 2. **Applies Proven Patterns** - Uses approaches that worked before instead of reinventing solutions
@@ -50,22 +50,9 @@ Your Claude Code environment grows more knowledgeable with each interaction, bui
 
 Here's the thing that makes COMPASS different from yet another tool you need to remember to use: **everything is automatic**. The `compass-handler.py` acts as a hook that puts itself first in line for complex analytical tasks. When Claude Code detects something that requires deeper investigation - debugging race conditions, understanding complex architectural decisions, mapping data flows - COMPASS automatically engages.
 
-You don't invoke COMPASS. COMPASS detects complexity and invokes itself.
+You don't need to invoke COMPASS. COMPASS detects complexity and invokes itself.
 
 The `compass-captain` agent becomes your project's analytical conductor, orchestrating the entire investigation through a network of specialized agents. Think of it as having an experienced technical lead who knows exactly which team members to bring in for each type of challenge.
-
-### When the Hook System Activates
-
-COMPASS automatically engages when it detects certain complexity patterns:
-
-- **"I need to understand..."** - triggers knowledge query and gap analysis
-- **Complex debugging scenarios** - activates data flow analysis and pattern matching
-- **Architecture decisions** - brings in cross-referencing and second opinions
-- **Authentication or security concerns** - engages specialist security validators
-- **Performance optimization** - triggers specialized performance analysts
-- **Documentation needs** - activates documentation planning agents
-
-The system learns what constitutes "complex" for your specific project, becoming more precise over time.
 
 ### Manual Agent Calling: When You Want Direct Control
 

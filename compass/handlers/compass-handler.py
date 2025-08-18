@@ -282,7 +282,9 @@ def validate_file_path_safety(filepath):
     return organizer.validate_path_safety(filepath)
 
 try:
-    from filelock import FileLock
+    from filelock import FileLock as _FileLock
+    # Use type alias to ensure consistent typing
+    FileLock = _FileLock
 except ImportError:
     # Graceful degradation: create a no-op lock class
     class FileLock:
@@ -295,8 +297,7 @@ except ImportError:
         def __exit__(self, *args):
             pass
 
-# Type annotation for FileLock to satisfy linters
-FileLock = FileLock
+# FileLock is properly defined above through import or fallback class
 
 
 def load_json_memory_safe(file_path, max_size=None):
