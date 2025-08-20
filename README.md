@@ -261,7 +261,7 @@ If you prefer to manage the server process yourself:
    uvx --from git+https://github.com/oraios/serena serena start-mcp-server --transport sse --port 9121 --context ide-assistant
    ```
 
-2. **Connect Claude Code**:
+2. **Connect Claude Code** (Needs run within each project root directory):
 
    ```bash
    claude mcp add serena --transport sse http://localhost:9121/sse
