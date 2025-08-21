@@ -647,9 +647,7 @@ main() {
     log_success "COMPASS Unified Setup Complete!"
     
     # Display integration status
-    if command -v check_serena_integration_status >/dev/null 2>&1; then
-        check_serena_integration_status
-    fi
+    echo "Serena MCP integration: $([ "$SERENA_INTEGRATION_ENABLED" == "true" ] && echo "Active" || echo "Inactive")"
     
     log_info "Launching Claude Code with unified configuration..."
     echo
