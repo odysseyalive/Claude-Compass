@@ -11,6 +11,73 @@ import os
 from pathlib import Path
 from datetime import datetime
 import gc
+import threading
+import signal
+import atexit
+from functools import wraps
+
+# Memory guard state tracking
+_MEMORY_GUARD_ACTIVE = False
+_MEMORY_MONITOR_THREAD = None
+_MEMORY_LIMIT_MB = 2048  # 2GB limit
+
+# Agent communication memory management
+_AGENT_CALL_COUNT = 0
+_MEMORY_PRESSURE_MODE = False
+_AGENT_CALL_HISTORY = []
+
+# Dynamic memory configuration based on available system RAM
+def configure_dynamic_memory_limits():
+    """Configure Node.js memory limits based on 50% of available system RAM"""
+    try:
+        import psutil
+        
+        # Get total system memory in GB
+        total_memory_gb = psutil.virtual_memory().total / (1024**3)
+        
+        # Use 50% of total RAM for Node.js heap
+        target_heap_gb = total_memory_gb * 0.5
+        target_heap_mb = int(target_heap_gb * 1024)
+        
+        # Set Node.js memory options if not already configured
+        current_node_options = os.environ.get('NODE_OPTIONS', '')
+        if '--max-old-space-size=' not in current_node_options:
+            new_options = f"--max-old-space-size={target_heap_mb} --max-semi-space-size=512 --optimize-for-size"
+            os.environ['NODE_OPTIONS'] = f"{current_node_options} {new_options}".strip()
+            
+            # Log configuration (will log later when log_handler_activity is available)
+            pass
+        
+        # Set thresholds based on configured heap size
+        global MEMORY_WARNING_THRESHOLD, MEMORY_CRITICAL_THRESHOLD, MEMORY_EMERGENCY_THRESHOLD
+        MEMORY_WARNING_THRESHOLD = int(target_heap_mb * 0.75)    # 75% of heap
+        MEMORY_CRITICAL_THRESHOLD = int(target_heap_mb * 0.85)   # 85% of heap  
+        MEMORY_EMERGENCY_THRESHOLD = int(target_heap_mb * 0.95)  # 95% of heap
+        
+        # Log thresholds (will log later when log_handler_activity is available)
+        pass
+        
+        return target_heap_mb
+        
+    except ImportError:
+        # Fallback if psutil not available - use conservative defaults
+        # Log fallback (will log later when log_handler_activity is available)
+        pass
+        target_heap_mb = 8192  # 8GB default
+        os.environ['NODE_OPTIONS'] = "--max-old-space-size=8192 --optimize-for-size"
+        return target_heap_mb
+    except Exception as e:
+        # Log error (will log later when log_handler_activity is available)
+        pass
+        return 4096  # 4GB fallback
+
+# Memory thresholds - will be set dynamically by configure_dynamic_memory_limits()
+MEMORY_WARNING_THRESHOLD = 3000   # Default, will be updated
+MEMORY_CRITICAL_THRESHOLD = 3500  # Default, will be updated
+MEMORY_EMERGENCY_THRESHOLD = 3900 # Default, will be updated
+
+# Initialize dynamic memory limits on module load
+_CONFIGURED_HEAP_MB = configure_dynamic_memory_limits()
 
 # Integrated CompassFileOrganizer class
 class CompassFileOrganizer:
@@ -626,6 +693,201 @@ To fix: Update the file path in your tool call to use the suggested path above."
         log_handler_activity("file_validation_error", f"File validation error: {e}")
         return {"safe": True, "reason": f"Validation error, allowing operation: {e}"}
 
+def memory_guard_wrapper(func):
+    """
+    BREAKING CHANGE WARNING: This wrapper adds memory monitoring
+    Preserves all existing functionality while adding memory protection
+    Safe to disable by setting COMPASS_DISABLE_MEMORY_GUARD=1
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        global _MEMORY_GUARD_ACTIVE
+        
+        # Emergency bypass - preserves existing functionality
+        if os.environ.get('COMPASS_DISABLE_MEMORY_GUARD') == '1':
+            return func(*args, **kwargs)
+        
+        # Check if guard already running (subsequent calls)
+        if _MEMORY_GUARD_ACTIVE:
+            return func(*args, **kwargs)
+        
+        # Initialize memory guard (first call only)
+        try:
+            _initialize_memory_guard()
+            result = func(*args, **kwargs)
+            return result
+        except Exception as e:
+            # Fail-safe: continue without memory guard if initialization fails
+            log_handler_activity("memory_guard_init_error", f"Memory guard initialization failed, continuing without protection: {e}")
+            return func(*args, **kwargs)
+    
+    return wrapper
+
+def _initialize_memory_guard():
+    """Initialize memory monitoring without breaking existing functionality"""
+    global _MEMORY_GUARD_ACTIVE, _MEMORY_MONITOR_THREAD
+    
+    if _MEMORY_GUARD_ACTIVE:
+        return  # Already initialized
+    
+    # Set Node.js memory limits
+    current_node_options = os.environ.get('NODE_OPTIONS', '')
+    if '--max-old-space-size=' not in current_node_options:
+        os.environ['NODE_OPTIONS'] = f"{current_node_options} --max-old-space-size={_MEMORY_LIMIT_MB}".strip()
+    
+    # Start background memory monitor
+    _MEMORY_MONITOR_THREAD = threading.Thread(target=_memory_monitor_daemon, daemon=True)
+    _MEMORY_MONITOR_THREAD.start()
+    
+    # Register cleanup
+    atexit.register(_cleanup_memory_guard)
+    signal.signal(signal.SIGTERM, _signal_cleanup)
+    signal.signal(signal.SIGINT, _signal_cleanup)
+    
+    _MEMORY_GUARD_ACTIVE = True
+    log_handler_activity("memory_guard_init", f"Memory guard active (limit: {_MEMORY_LIMIT_MB}MB)")
+
+def _memory_monitor_daemon():
+    """Background memory monitoring daemon"""
+    import time
+    
+    while _MEMORY_GUARD_ACTIVE:
+        try:
+            # Try psutil first, fall back to basic monitoring
+            try:
+                import psutil
+                current_process = psutil.Process()
+                memory_mb = current_process.memory_info().rss / 1024 / 1024
+                
+                if memory_mb > _MEMORY_LIMIT_MB * 0.9:  # 90% threshold warning
+                    log_handler_activity("memory_warning", f"Memory usage: {memory_mb:.1f}MB / {_MEMORY_LIMIT_MB}MB")
+                    
+                    if memory_mb > _MEMORY_LIMIT_MB:  # Emergency cleanup
+                        log_handler_activity("memory_emergency", "Emergency cleanup triggered")
+                        _emergency_memory_cleanup()
+                        
+            except ImportError:
+                # Fallback: Just do regular cleanup every few cycles without specific monitoring
+                log_handler_activity("memory_monitor_fallback", "Using fallback memory monitoring (psutil not available)")
+                cleanup_memory()  # Use existing function
+            
+            time.sleep(10)  # Check every 10 seconds
+            
+        except Exception:
+            # Silent fail - don't break script if monitoring fails
+            try:
+                cleanup_memory()
+            except:
+                pass
+            time.sleep(30)
+
+def _emergency_memory_cleanup():
+    """Emergency memory cleanup without breaking functionality"""
+    try:
+        # Use existing cleanup_memory function
+        cleanup_memory()
+        
+        # Additional cleanup specific to compass-handler
+        global _MEMORY_MONITOR_THREAD
+        if _MEMORY_MONITOR_THREAD and _MEMORY_MONITOR_THREAD.is_alive():
+            # Don't kill the monitor thread, just trigger more aggressive cleanup
+            gc.collect()
+            
+    except Exception:
+        pass  # Fail silently to preserve functionality
+
+def _signal_cleanup(signum, frame):
+    """Handle termination signals"""
+    log_handler_activity("memory_guard_signal", f"Received signal {signum}, cleaning up memory guard")
+    _cleanup_memory_guard()
+    # Re-raise the signal to allow normal termination
+    signal.default_int_handler(signum, frame)
+
+def _cleanup_memory_guard():
+    """Clean shutdown of memory guard"""
+    global _MEMORY_GUARD_ACTIVE
+    if _MEMORY_GUARD_ACTIVE:
+        log_handler_activity("memory_guard_cleanup", "Memory guard shutting down")
+        _MEMORY_GUARD_ACTIVE = False
+        # The daemon thread will stop on next iteration
+
+def get_main_process_memory():
+    """Get current memory usage of main Claude process"""
+    try:
+        import psutil
+        current_process = psutil.Process()
+        memory_mb = current_process.memory_info().rss / 1024 / 1024
+        return memory_mb
+    except ImportError:
+        # Fallback: use gc stats if psutil unavailable
+        import gc
+        return len(gc.get_objects()) / 1000  # Rough estimate
+    except Exception:
+        return 0
+
+def check_memory_pressure():
+    """Check if system is under memory pressure"""
+    global _MEMORY_PRESSURE_MODE
+    memory_mb = get_main_process_memory()
+    
+    if memory_mb > MEMORY_EMERGENCY_THRESHOLD:
+        log_handler_activity("memory_emergency", f"Emergency threshold exceeded: {memory_mb:.1f}MB")
+        return "emergency"
+    elif memory_mb > MEMORY_CRITICAL_THRESHOLD:
+        log_handler_activity("memory_critical", f"Critical threshold exceeded: {memory_mb:.1f}MB")
+        _MEMORY_PRESSURE_MODE = True
+        return "critical"
+    elif memory_mb > MEMORY_WARNING_THRESHOLD:
+        log_handler_activity("memory_warning", f"Warning threshold exceeded: {memory_mb:.1f}MB")
+        _MEMORY_PRESSURE_MODE = True
+        return "warning"
+    else:
+        _MEMORY_PRESSURE_MODE = False
+        return "normal"
+
+def should_allow_agent_call(agent_name):
+    """Determine if agent call should be allowed based on memory pressure"""
+    global _AGENT_CALL_COUNT, _AGENT_CALL_HISTORY
+    
+    memory_status = check_memory_pressure()
+    
+    # Essential agents that are always allowed
+    essential_agents = ["compass-captain", "compass-knowledge-query"]
+    
+    # Track agent call
+    _AGENT_CALL_COUNT += 1
+    _AGENT_CALL_HISTORY.append({"agent": agent_name, "memory_mb": get_main_process_memory()})
+    
+    # Keep only last 10 calls in history
+    if len(_AGENT_CALL_HISTORY) > 10:
+        _AGENT_CALL_HISTORY = _AGENT_CALL_HISTORY[-10:]
+    
+    if memory_status == "emergency":
+        log_handler_activity("agent_call_blocked", f"Emergency: blocking {agent_name} due to memory pressure")
+        return False
+    elif memory_status == "critical":
+        if agent_name not in essential_agents:
+            log_handler_activity("agent_call_blocked", f"Critical: blocking non-essential {agent_name}")
+            return False
+    elif memory_status == "warning":
+        # Limit cascade depth during warning
+        if _AGENT_CALL_COUNT > 3:
+            log_handler_activity("agent_call_limited", f"Warning: limiting cascade depth for {agent_name}")
+            return False
+    
+    return True
+
+def cleanup_agent_memory():
+    """Force cleanup between agent calls"""
+    global _AGENT_CALL_COUNT
+    try:
+        gc.collect()  # Use existing cleanup
+        cleanup_memory()  # Use existing function
+        _AGENT_CALL_COUNT = max(0, _AGENT_CALL_COUNT - 1)  # Decrement call count
+        log_handler_activity("agent_memory_cleanup", f"Cleaned up after agent call, count: {_AGENT_CALL_COUNT}")
+    except Exception:
+        pass
+
 
 def main():
     """
@@ -760,6 +1022,9 @@ def main():
     finally:
         # Force garbage collection after processing
         gc.collect()
+        # Reset agent call tracking for next request
+        global _AGENT_CALL_COUNT
+        _AGENT_CALL_COUNT = 0
 
 
 def handle_user_prompt_submit(input_data):
@@ -812,13 +1077,27 @@ def handle_user_prompt_submit(input_data):
     if not user_prompt:
         return None
 
+    # Check memory pressure before routing to compass-captain
+    memory_status = check_memory_pressure()
+    if not should_allow_agent_call("compass-captain"):
+        log_handler_activity("compass_blocked", f"Memory pressure blocking compass-captain: {memory_status}")
+        return {
+            "type": "memory_protection",
+            "message": "COMPASS temporarily limited due to memory pressure. Please try a simpler request or restart Claude."
+        }
+
     log_handler_activity(
-        "prompt_routing", f"Routing to compass-captain: {user_prompt[:100]}..."
+        "prompt_routing", f"Routing to compass-captain: {user_prompt[:100]}... (Memory: {get_main_process_memory():.1f}MB)"
     )
 
     # Route ALL tasks to compass-captain (which will use methodology-selector for strategic planning)
     # This ensures COMPASS coordination for initial and subsequent prompts
-    return inject_compass_context()
+    result = inject_compass_context()
+    
+    # Cleanup memory after agent communication
+    cleanup_agent_memory()
+    
+    return result
 
 
 def detect_compass_agent_in_prompt(prompt):
@@ -3083,6 +3362,7 @@ import subprocess
 import hashlib
 import time
 import pickle
+import resource
 from typing import Dict, Any, Optional
 
 # Memory-safe knowledge query constants
@@ -3301,7 +3581,7 @@ if __name__ == "__main__":
         with open(script_path, 'w') as f:
             f.write(script_content)
         
-        # Execute subprocess with memory limits
+        # Execute subprocess with timeout protection
         try:
             result = subprocess.run([
                 sys.executable, str(script_path)
@@ -3309,7 +3589,6 @@ if __name__ == "__main__":
             capture_output=True, 
             text=True, 
             timeout=SUBPROCESS_TIMEOUT,
-            # Memory limit handled by OS/container if available
             cwd=os.getcwd()
             )
             
