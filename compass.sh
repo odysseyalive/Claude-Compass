@@ -305,7 +305,7 @@ if 'hooks' not in config:
 config['hooks']['PreToolUse'] = [
     {
         'description': 'COMPASS methodology enforcement with unified setup integration',
-        'script': os.path.abspath('.compass/handlers/pre_tool_use_handler.py')
+        'script': os.path.abspath('.compass/handlers/compass-handler.py')
     }
 ]
 
