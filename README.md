@@ -1,403 +1,138 @@
-# COMPASS - Contextual Mapping & Pattern Analysis System
+# Claude Code
 
-## The Hook: Why Leave Things to Chance?
+![](https://img.shields.io/badge/Node.js-18%2B-brightgreen?style=flat-square) [![npm]](https://www.npmjs.com/package/@anthropic-ai/claude-code)
 
-Have you ever wanted your [Claude Code](https://github.com/anthropics/claude-code) environment to feel like a familiar friend with each session?
+[npm]: https://img.shields.io/npm/v/@anthropic-ai/claude-code.svg?style=flat-square
 
-I built this kit because I was tired of watching brilliant AI get lost in the same mazes, iteration after iteration. Code presents us with endless puzzles - complex async flows, tangled dependencies, performance bottlenecks that seem to appear from nowhere. Without memory, without context, even the most sophisticated LLM can spiral into needless loops, suggesting the same debugging approaches that didn't work yesterday, or missing the patterns that would illuminate the path forward.
+Claude Code is an agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster by executing routine tasks, explaining complex code, and handling git workflows -- all through natural language commands. Use it in your terminal, IDE, or tag @claude on Github.
 
-There's something almost tragic about watching an AI rediscover the same insights over and over, like a detective who burns their case notes each night. The breakthrough you had last week becomes tomorrow's mystery all over again.
+## COMPASS Enhanced Experience
 
-## The Solution: What COMPASS Changes
+This repository includes the [COMPASS methodology integration](https://github.com/odysseyalive/claude-compass) which provides:
 
-COMPASS transforms Claude Code from a brilliant but forgetful assistant into something more like a seasoned colleague - one who remembers not just what you built, but *why* you built it that way. Who sees the subtle patterns that connect today's authentication bug to last month's race condition. Who builds institutional memory from every uncertainty, every investigation, every hard-won insight.
+- **Institutional Knowledge Management**: Automatic documentation and pattern recognition
+- **Memory-Optimized Execution**: Automatic allocation of 50% system RAM to prevent 4GB heap crashes
+- **Serena MCP Integration**: Seamless semantic code analysis with automatic server management
+- **Systematic Methodology**: Six-step structured approach with specialized agent coordination
+- **Background Process Management**: Health monitoring and graceful cleanup of integrated services
 
-This isn't just about documentation. It's about creating a system that learns from its own limitations, that turns every "I need more information..." moment into permanent knowledge. When Claude Code hits the boundaries of what it can determine autonomously, COMPASS captures that uncertainty and transforms it into investigation frameworks for future encounters.
+### Quick Start with COMPASS
 
-### What This Means For You
+Instead of the standard installation, use the enhanced COMPASS launcher:
 
-Instead of Claude Code starting fresh every time, COMPASS automatically:
+```sh
+# Clone or download compass.sh
+curl -O https://raw.githubusercontent.com/odysseyalive/claude-compass/main/compass.sh
+chmod +x compass.sh
 
-1. **Remembers Previous Work** - Checks what you've already discovered about similar problems
-2. **Applies Proven Patterns** - Uses approaches that worked before instead of reinventing solutions
-3. **Identifies What's Missing** - Spots knowledge gaps that need investigation
-4. **Provides Context-Rich Analysis** - Gives you answers informed by your project's history
-5. **Builds Institutional Memory** - Captures everything for future use
-
-**The result?** Your Claude Code environment becomes smarter with every interaction, like having a senior developer who never forgets lessons learned.
-
-COMPASS operates on two foundational principles:
-
-**Memory Through Documentation**: Every significant pattern, every architectural decision, every debugging breakthrough gets captured automatically. Not as static notes, but as living documentation that connects past insights to present challenges.
-
-**Vision Through Mapping**: Complex code flows become visual landscapes. Race conditions reveal themselves as crossing paths. Bottlenecks appear as convergence points. The abstract becomes concrete, the invisible becomes navigable.
-
-![COMPASS Workflow](assets/compass_workflow.svg)
-
-## The Experience Preview
-
-Instead of explaining the same architectural decisions repeatedly, you'll find Claude Code saying things like:
-
-*"Looking at our async flow patterns, this creates the same race condition we documented in the auth module. The investigation map suggests checking token refresh timing..."*
-
-Instead of reinventing debugging approaches, it becomes:
-
-*"Based on our previous memory leak investigation, this heap growth pattern matches what we tracked in the payment processing flow. Let me update our findings..."*
-
-Your Claude Code environment grows more knowledgeable with each interaction, building the kind of institutional memory that usually takes teams years to develop.
-
-## Use Cases: How COMPASS Actually Works
-
-### The Automatic Experience
-
-Here's the thing that makes COMPASS different from yet another tool you need to remember to use: **everything is automatic**. The `compass-handler.py` acts as a hook that puts itself first in line for complex analytical tasks. When Claude Code detects something that requires deeper investigation - debugging race conditions, understanding complex architectural decisions, mapping data flows - COMPASS automatically engages.
-
-You don't need to invoke COMPASS. COMPASS detects complexity and invokes itself.
-
-The `compass-captain` agent becomes your project's analytical conductor, orchestrating the entire investigation through a network of specialized agents. Think of it as having an experienced technical lead who knows exactly which team members to bring in for each type of challenge.
-
-### Manual Agent Calling: When You Want Direct Control
-
-While the automatic flow handles most scenarios, sometimes you want to call specific agents directly. Maybe you're planning a documentation strategy, or you want to validate SVG diagrams without triggering a full analysis cycle. Here are some thoughtful examples:
-
-**Planning documentation for a complex feature**:
-
-```
-Use compass-doc-planning to create a documentation strategy for our new async processing pipeline
+# Launch with automatic COMPASS + Serena MCP integration
+./compass.sh
 ```
 
-**Understanding existing patterns before building something new**:
+The COMPASS launcher automatically:
+1. **Updates COMPASS**: Pulls latest methodology components from repository
+2. **Memory Optimization**: Allocates 50% of system RAM (15.4GB on 31GB systems) 
+3. **Serena MCP Server**: Automatic startup, health monitoring, and Claude registration
+4. **Claude Code Management**: Installs/updates via uvx with dependency resolution
+5. **Project Initialization**: Handles `.claude` directory setup and configuration
+6. **Integrated Launch**: Starts Claude with optimized memory and all MCP integrations active
 
-```
-Use compass-knowledge-query to find existing approaches to user authentication flows in our docs and maps
-```
+### Memory Optimization Details
 
-**Getting expert perspective on architectural decisions**:
+COMPASS automatically detects and optimizes memory allocation to prevent the common 4GB JavaScript heap crashes:
 
-```
-Use compass-second-opinion to evaluate whether our microservices split makes sense given our team size and deployment complexity
-```
+- **Dynamic Detection**: Reads system memory from `/proc/meminfo` (Linux), `sysctl` (macOS), PowerShell (Windows)
+- **Safe Allocation**: Uses 50% of available RAM with intelligent ceiling (max 15.4GB)
+- **V8 Optimization**: Sets `NODE_OPTIONS="--max-old-space-size=X"` before Claude startup
+- **Process Isolation**: Prevents memory conflicts with other applications and containers
 
-**Analyzing data flows for a specific feature**:
+### Serena MCP Integration Features
 
-```
-Use compass-data-flow to map how user data moves through our payment processing pipeline
-```
+The Serena integration provides advanced semantic code analysis:
 
-**Cross-referencing patterns after solving something**:
+- **Automatic Server Management**: Starts `uvx --from git+https://github.com/oraios/serena serena start-mcp-server`
+- **Health Monitoring**: Regular endpoint checks with automatic recovery
+- **Port Detection**: Smart port allocation starting from 9121
+- **Claude Registration**: Automatic `claude mcp add serena --transport sse http://localhost:9121/sse`
+- **Background Processing**: Non-blocking execution with signal handling
+- **Graceful Fallback**: Continues normally if Serena dependencies unavailable
 
-```
-Use compass-cross-reference to connect our latest database optimization findings with existing performance patterns in the knowledge base
-```
+**Learn more in the [official documentation](https://docs.anthropic.com/en/docs/claude-code/overview)**.
 
-**Creating visual wire diagrams for complex processes**:
+<img src="./demo.gif" />
 
-```
-Use compass-data-flow to create a wire diagram showing how user requests flow through our microservices architecture, from API gateway through authentication, business logic, and database layers
-```
+## Installation Options
 
-This generates an SVG diagram that maps the complete request lifecycle - perfect for onboarding new developers or debugging performance issues. The visual representation makes it easier to spot bottlenecks, race conditions, and optimization opportunities that might be buried in code.
+### Option 1: COMPASS Enhanced (Recommended)
 
-The beauty is that even when you call agents manually, they still contribute to the growing knowledge base. Your direct investigations become institutional memory that future automatic analysis can leverage.
+For the full COMPASS experience with memory optimization and Serena integration:
 
----
-
-Ready to dive deeper? **[Explore All The Compass Tools...](#agent-index-the-compass-crew)** to discover the complete network of specialized agents at your disposal.
-
-## Technical Foundation: How It Works
-
-### The Two-Directory Approach
-
-```
-docs/          # Textual institutional memory
-maps/          # Visual pattern recognition
+```sh
+# Download and run the unified launcher
+curl -O https://raw.githubusercontent.com/odysseyalive/claude-compass/main/compass.sh
+chmod +x compass.sh
+./compass.sh
 ```
 
-Your `docs/` directory evolves organically, growing smarter with each iteration. Claude Code automatically creates investigation documentation when it encounters uncertainty - those "I need more information..." moments become structured knowledge-gathering frameworks.
+### Option 2: Standard Installation
 
-Your `maps/` directory captures the flows that text struggles to convey. SVG diagrams with machine-readable metadata let Claude Code recognize patterns visually, connecting similar flows across different parts of your codebase.
+1. Install Claude Code:
 
-## Quick Start: Installation
-
-### Quick Setup (2 steps)
-
-- **Initialize Claude Code project**:
-
-   ```bash
-   claude /init
-   ```
-
-   Exit Claude Code after initialization
-
-- **Install COMPASS**:
-
-   ```bash
-   bash -c "$(curl -fsSL https://raw.githubusercontent.com/odysseyalive/claude-compass/main/setup.sh)"
-   ```
-
-- Update Compass:
-
-   ```bash
-   bash -c "$(curl -fsSL https://raw.githubusercontent.com/odysseyalive/claude-compass/main/setup.sh)" -- update
-   ```
-
-Your Claude Code environment now has COMPASS capabilities and will initialize the `docs/` and `maps/` directories for the first complex analysis.
-
-## Enhanced Capabilities: Integration with Serena
-
-**COMPASS reaches its full potential when paired with Serena** - an open-source coding agent toolkit that transforms any LLM into a fully-featured development assistant. Instead of working around the limitations of text-only analysis, Serena gives Claude Code semantic understanding of your codebase through Language Server Protocol (LSP) integration.
-
-Serena transforms Claude Code from a conversation partner into a true development collaborator by providing IDE-like capabilities through the Model Context Protocol (MCP):
-
-- **Semantic code analysis** through language servers for precise symbol-level understanding
-- **LSP-powered navigation** that works like your favorite IDE - find definitions, references, completions
-- **Multi-language support** including Python, TypeScript/JavaScript, PHP, Go, Rust, C#, Ruby, Swift, Java, and more
-- **Symbolic code editing** - no more imprecise string replacements or line counting errors
-- **Cross-project intelligence** that understands your entire codebase architecture
-
-**Project**: <https://github.com/oraios/serena>
-
-### What Serena Actually Provides
-
-Unlike traditional development tools that require specific IDE configurations, Serena operates as an **MCP server** that any MCP-compatible client can connect to. This means:
-
-- **Universal compatibility** - Works with Claude Code, Claude Desktop, Cursor, VSCode extensions, and any MCP client
-- **Language server integration** - Uses the same LSP technology that powers modern IDEs
-- **Semantic understanding** - Finds symbols, references, and relationships rather than just text patterns
-- **Intelligent editing** - Edits code at the symbol level with tools like `insert_after_symbol` and `replace_symbol_body`
-- **Free and open source** - No subscriptions, no API costs beyond your LLM usage
-
-#### Core Dependencies (Required)
-
-These are essential for any COMPASS + Serena setup:
-
-- **Python 3.11+**: Serena's runtime requirement
-- **uv package manager**: Modern Python package management that Serena depends on
-
-  ```bash
-  # Install uv if you don't have it
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-  ```
-
-- **Node.js** (includes npm): Required for TypeScript/JavaScript language server support
-
-  ```bash
-  # Recommended: Use nvm for version management
-  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
-  source ~/.bashrc  # or restart your terminal
-  nvm install 20  # LTS version
-  nvm use 20
-  ```
-
-- **xmllint**: Critical for SVG validation - prevents broken visual maps that can derail pattern recognition
-
-  ```bash
-  # macOS
-  brew install libxml2
-  
-  # Ubuntu/Debian
-  sudo apt-get install libxml2-utils
-  
-  # Windows (via Chocolatey)
-  choco install libxml2
-  ```
-
-#### Language Server Integration
-
-Serena automatically manages language servers for supported languages. When you activate a project, it:
-
-- **Starts appropriate language servers** based on your project's languages
-- **Provides semantic analysis** - understands your code structure, not just text
-- **Enables intelligent navigation** - finds symbols, references, and definitions across your entire codebase
-- **Supports multi-language projects** - handles polyglot codebases seamlessly
-
-**Directly supported languages** (out of the box):
-
-- Python, TypeScript/JavaScript, PHP (with Intelephense), Go, Rust, C#, Ruby, Swift, Java, Elixir, Clojure, Bash, C/C++
-
-**Language-specific setup** (if you want premium features):
-
-For **PHP with Intelephense premium features**:
-
-```bash
-# Set your license key as an environment variable
-export INTELEPHENSE_LICENSE_KEY="your-license-key-here"
+```sh
+npm install -g @anthropic-ai/claude-code
 ```
 
-For **Go development**:
+2. Navigate to your project directory and run `claude`.
 
-- `gopls` is automatically installed when needed
+### System Requirements
 
-For **Java projects**:
+**Minimum:**
+- Node.js 18+
+- 8GB system RAM
+- Git (for COMPASS integration)
 
-- Java JDK 11+ recommended for optimal language server performance
+**Recommended for COMPASS:**
+- 16GB+ system RAM for optimal memory allocation
+- Python 3.8+ for methodology execution
+- uvx for Serena MCP integration (`pip install uvx`)
 
-### Setting Up Serena
+### Troubleshooting
 
-The beauty of Serena is its flexibility - you can run it in multiple ways depending on your workflow:
+**Memory Issues:**
+```sh
+# Check current allocation
+echo $NODE_OPTIONS
 
-#### Option 1: Direct Integration with Claude Code (Recommended)
-
-From your project directory:
-
-```bash
-claude mcp add serena -- uvx --from git+https://github.com/oraios/serena serena start-mcp-server --context ide-assistant --project $(pwd)
+# Manual memory override
+export NODE_OPTIONS="--max-old-space-size=15360"
+claude
 ```
 
-This automatically:
+**Serena Integration Issues:**
+```sh
+# Check server status
+curl -f http://localhost:9121/health
 
-- Downloads and runs the latest Serena
-- Configures it for IDE-like assistance
-- Activates your current project
-- Provides semantic code analysis immediately
-
-#### Option 2: SSE Mode for Advanced Users
-
-If you prefer to manage the server process yourself:
-
-1. **Start Serena in SSE mode**:
-
-   ```bash
-   uvx --from git+https://github.com/oraios/serena serena start-mcp-server --transport sse --port 9121 --context ide-assistant
-   ```
-
-2. **Connect Claude Code** (Needs run within each project root directory):
-
-   ```bash
-   claude mcp add serena --transport sse http://localhost:9121/sse
-   ```
-
-3. **Activate your project in Claude Code**:
-
-   ```
-   "Activate the project /path/to/your/project"
-   ```
-
-#### Option 3: Claude Desktop Integration
-
-Add to your `claude_desktop_config.json`:
-
-```json
-{
-    "mcpServers": {
-        "serena": {
-            "command": "uvx",
-            "args": [
-                "--from", "git+https://github.com/oraios/serena", 
-                "serena", "start-mcp-server",
-                "--context", "ide-assistant"
-            ]
-        }
-    }
-}
+# Restart with Serena disabled
+COMPASS_DISABLE_SERENA=1 ./compass.sh
 ```
 
-Then activate your project: `"Activate the project /path/to/your/project"`
+## Reporting Bugs
 
-### Why This Integration Matters for COMPASS
+We welcome your feedback. Use the `/bug` command to report issues directly within Claude Code, or file a [GitHub issue](https://github.com/anthropics/claude-code/issues).
 
-With Serena providing semantic code understanding, COMPASS transforms from a documentation system into a true **institutional knowledge engine**:
+## Data collection, usage, and retention
 
-- **Precise pattern recognition** - Serena understands code structure, so COMPASS can map architectural patterns accurately
-- **Symbolic code analysis** - Instead of guessing at function boundaries, COMPASS knows exactly how your code is organized
-- **Cross-reference precision** - Links between documentation and actual code become reliable and maintained
-- **Architecture evolution tracking** - As Serena edits code symbolically, COMPASS automatically updates its understanding of your system
+When you use Claude Code, we collect feedback, which includes usage data (such as code acceptance or rejections), associated conversation data, and user feedback submitted via the `/bug` command.
 
-The combination means Claude Code doesn't just remember what you talked about - it understands how your actual codebase evolved and can make connections between abstract discussions and concrete implementation details.
+### How we use your data
 
-## Applications: Beyond the Codebase
+We may use feedback to improve our products and services, but we will not train generative models using your feedback from Claude Code. Given their potentially sensitive nature, we store user feedback transcripts for only 30 days.
 
-COMPASS works beyond just coding. The same patterns that make sense of tangled code can organize complex research. The memory that stops you from debugging the same issue twice can stop you from chasing the same research rabbit holes.
+If you choose to send us feedback about Claude Code, such as transcripts of your usage, Anthropic may use that feedback to debug related issues and improve Claude Code's functionality (e.g., to reduce the risk of similar bugs occurring in the future).
 
-Think about the researcher lost in conflicting sources, the analyst hitting the same dead ends, the writer starting from scratch with each new project. COMPASS turns these struggles into organized knowledge-building, whether you're tracking research papers, following policy changes, or pulling together insights from different fields.
+### Privacy safeguards
 
-### Expanding the Framework
+We have implemented several safeguards to protect your data, including limited retention periods for sensitive information, restricted access to user session data, and clear policies against using feedback for model training.
 
-**Research Projects**: Complex topics become easier to navigate. Different studies, changing methods, and connections between fields turn into clear visual frameworks.
-
-**Document Work**: Large sets of documents reveal their patterns. Policy changes, contract comparisons, and tracking how things evolve become manageable instead of overwhelming.
-
-**Business Analysis**: Market research, competitor tracking, and business intelligence build lasting knowledge that goes beyond individual reports.
-
-**Writing Projects**: Your writing develops its own memory. Argument structures, story flows, and editorial decisions become reusable tools.
-
-> **Artifact Integration Workflow**
->
-> - **Create valuable insights** in Claude conversations
-> - **Generate artifacts** for significant analysis or frameworks
->   - *"ex. Generate an artifact from the key takeaways of this conversation, including all relevant citations and URL references"*
-> - **Download artifacts** as markdown files
-> - **Place in `docs/` directory** with descriptive filenames
-> - **Let COMPASS organize** into searchable, cross-referenced knowledge
->
-> *Why this matters*: Your breakthrough insights from one conversation become permanent knowledge. The framework you developed for understanding market trends doesn't disappear when the chat ends - it becomes part of your growing toolkit.
-
-The same visual mapping that shows code bottlenecks can show gaps in arguments. The same documentation that prevents technical problems can prevent knowledge problems. Every complex challenge you work through becomes a path for future understanding.
-
-COMPASS doesn't care if you're debugging code or untangling policy contradictions. Both are patterns waiting to be recognized, mapped, and remembered.
-
-## Agent Index: The COMPASS Crew
-
-The `compass-captain` orchestrates a network of specialized agents, each focused on a specific aspect of analysis. Think of them as different experts you might call in for a complex project - each brings their own perspective and can also be called manually when you need targeted help.
-
-### Core Methodology Agents
-
-**compass-methodology-selector** - Strategic analysis planning. Determines the optimal approach (light, medium, or full methodology) based on task complexity and creates execution plans.
-
-**compass-knowledge-query** - Institutional memory access. Searches existing `docs/` and `maps/` directories to understand what you already know before starting new analysis.
-
-**compass-pattern-apply** - Pattern matching specialist. Takes documented approaches from your knowledge base and applies them to current challenges.
-
-**compass-gap-analysis** - Knowledge gap identification. Finds what's missing from your current understanding and creates investigation frameworks.
-
-**compass-enhanced-analysis** - Complete analysis execution. Performs the actual analysis with full institutional context and all discovered patterns.
-
-**compass-cross-reference** - Pattern library maintenance. Links new findings with existing knowledge and updates the searchable pattern connections.
-
-**compass-coder** - Implementation bridge. Connects analytical findings to actual code implementation when development work is needed.
-
-### Specialist Analysis Agents
-
-**compass-data-flow** - Data flow visualization. Maps how data moves through your systems, identifying bottlenecks and transformation points.
-
-**compass-doc-planning** - Documentation strategy. Plans how to capture and organize new knowledge for future reference.
-
-**compass-second-opinion** - Expert consultation. Provides historical expert perspectives when facing uncertain technical decisions.
-
-**compass-todo-sync** - Progress tracking. Integrates COMPASS methodology with task management systems.
-
-**compass-breakthrough-doc** - Innovation capture. Automatically documents significant breakthroughs and successful approaches.
-
-**compass-upstream-validator** - Repository validation. Checks findings against upstream repositories when verification is needed.
-
-### Domain Specialists
-
-**Authentication & Security Trio**:
-
-- **compass-auth-performance-analyst** - Authentication performance optimization
-- **compass-auth-security-validator** - Security compliance and vulnerability assessment  
-- **compass-auth-optimization-specialist** - Authentication implementation strategy
-
-**Writing & Documentation Specialists**:
-
-- **compass-writing-analyst** - Content analysis and voice consistency
-- **compass-academic-analyst** - Academic memory palace integration
-- **compass-memory-enhanced-writer** - Voice preservation across different content types
-
-**Development Infrastructure**:
-
-- **compass-dependency-tracker** - Dependency lifecycle management and compliance analysis
-
-Each agent can be called individually when you need specific expertise, but they work together automatically when the `compass-captain` orchestrates a full analysis. The system scales from quick targeted help to comprehensive institutional analysis depending on what your project needs.
-
-## The Philosophy
-
-COMPASS embodies a simple belief: that every challenge overcome should make the next challenge easier. That uncertainty should transform into knowledge. That the mazes we navigate today should become the maps that guide us tomorrow.
-
-Because why leave things to chance when you can leave things to memory?
-
----
-
-*"The path through complexity isn't about avoiding the maze - it's about building better maps."*
-
-![COMPASS Logo](assets/compass_logo.svg)
+For full details, please review our [Commercial Terms of Service](https://www.anthropic.com/legal/commercial-terms) and [Privacy Policy](https://www.anthropic.com/legal/privacy).
