@@ -17,12 +17,23 @@
 
 set -euo pipefail
 
-# Source Serena MCP integration functions
-if [[ -f "scripts/serena-mcp-integration.sh" ]]; then
-    source scripts/serena-mcp-integration.sh
-else
-    log_warn "Serena MCP integration script not found - continuing without Serena integration"
-fi
+# Embedded Serena MCP Integration Functions
+# These functions are integrated directly into compass.sh to eliminate
+# dependency on external scripts that may not exist in target repositories
+
+# Serena MCP server configuration
+readonly SERENA_DEFAULT_PORT=9121
+readonly SERENA_MEMORY_LIMIT_MB=512
+readonly SERENA_STARTUP_TIMEOUT=10
+readonly SERENA_HEALTH_CHECK_TIMEOUT=5
+readonly SERENA_MONITOR_INTERVAL=30
+readonly SERENA_MAX_RETRIES=3
+
+# Global state for Serena integration
+SERENA_PORT=0
+SERENA_PID=0
+SERENA_MONITOR_PID=0
+SERENA_INTEGRATION_ENABLED=false
 
 # Script configuration
 readonly SCRIPT_VERSION="2.1.0-serena-integrated"
@@ -68,6 +79,485 @@ log_debug() {
         echo -e "${BLUE}[DEBUG]${NC} $*" >&2
     fi
 }
+
+#=============================================================================
+# Serena MCP Integration Functions
+#=============================================================================
+
+# Check if Serena MCP server is available via uvx
+check_serena_availability() {
+    log_info "Checking Serena MCP server availability..."
+    
+    # Check if uvx is available
+    if ! command -v uvx >/dev/null 2>&1; then
+        log_error "uvx not available - required for Serena MCP server"
+        return 1
+    fi
+    
+    # Test Serena installation/availability
+    log_debug "Testing Serena availability via uvx..."
+    if timeout 10 uvx --from git+https://github.com/oraios/serena serena --help >/dev/null 2>&1; then
+        log_success "Serena MCP server available via uvx"
+        return 0
+    else
+        log_warn "Serena MCP server not available or installation needed"
+        return 1
+    fi
+}
+
+# Find an available port starting from the default port
+find_available_port() {
+    local start_port="${1:-$SERENA_DEFAULT_PORT}"
+    local max_attempts=10
+    local current_port="$start_port"
+    
+    log_debug "Searching for available port starting from $start_port..."
+    
+    for ((i=0; i<max_attempts; i++)); do
+        # Check if port is available using multiple methods
+        if ! ss -tuln 2>/dev/null | grep -q ":${current_port} " && \
+           ! netstat -tuln 2>/dev/null | grep -q ":${current_port} " && \
+           ! lsof -i ":${current_port}" >/dev/null 2>&1; then
+            log_debug "Found available port: $current_port"
+            echo "$current_port"
+            return 0
+        fi
+        log_debug "Port $current_port in use, trying next..."
+        current_port=$((current_port + 1))
+    done
+    
+    log_error "No available ports found in range ${start_port}-$((start_port + max_attempts - 1))"
+    return 1
+}
+
+# Check if Serena MCP server is healthy using port connectivity
+check_serena_server_health() {
+    local port="$1"
+    
+    # Use multiple methods to check if port is responding
+    # Method 1: bash TCP check
+    if timeout "$SERENA_HEALTH_CHECK_TIMEOUT" bash -c "echo >/dev/tcp/localhost/$port" 2>/dev/null; then
+        return 0
+    fi
+    
+    # Method 2: netcat if available
+    if command -v nc >/dev/null 2>&1 && timeout "$SERENA_HEALTH_CHECK_TIMEOUT" nc -z localhost "$port" 2>/dev/null; then
+        return 0
+    fi
+    
+    # Method 3: telnet if available
+    if command -v telnet >/dev/null 2>&1; then
+        if timeout "$SERENA_HEALTH_CHECK_TIMEOUT" bash -c "echo quit | telnet localhost $port" >/dev/null 2>&1; then
+            return 0
+        fi
+    fi
+    
+    # Method 4: curl if available (though Serena may not have HTTP endpoint)
+    if command -v curl >/dev/null 2>&1; then
+        if timeout "$SERENA_HEALTH_CHECK_TIMEOUT" curl -s "http://localhost:$port/" >/dev/null 2>&1; then
+            return 0
+        fi
+    fi
+    
+    return 1
+}
+
+# Start Serena MCP server with memory limits and logging
+start_serena_mcp_server() {
+    local port="$1"
+    local log_file=".compass/logs/serena-mcp-server.log"
+    local pid_file=".compass/serena-mcp-server.pid"
+    
+    log_info "Starting Serena MCP server on port ${port}..."
+    
+    # Ensure log and state directories exist
+    mkdir -p "$(dirname "$log_file")"
+    mkdir -p .compass
+    
+    # Clean up any existing server first
+    cleanup_serena_server >/dev/null 2>&1
+    
+    # Start server in background with logging
+    {
+        uvx --from git+https://github.com/oraios/serena \
+            serena start-mcp-server \
+            --transport sse \
+            --port "$port" \
+            --context ide-assistant 2>&1 | \
+        while IFS= read -r line; do
+            echo "$(date '+%Y-%m-%d %H:%M:%S') [SERENA] $line"
+        done
+    } >"$log_file" &
+    
+    local server_pid=$!
+    echo "$server_pid" > "$pid_file"
+    SERENA_PID="$server_pid"
+    
+    log_debug "Serena MCP server started with PID: $server_pid"
+    
+    # Health check with timeout
+    local max_wait="$SERENA_STARTUP_TIMEOUT"
+    local wait_time=0
+    
+    log_info "Waiting for Serena MCP server to become healthy..."
+    while (( wait_time < max_wait )); do
+        if check_serena_server_health "$port"; then
+            log_success "Serena MCP server healthy on port $port"
+            SERENA_PORT="$port"
+            cache_serena_state "$port" "$server_pid"
+            return 0
+        fi
+        sleep 1
+        wait_time=$((wait_time + 1))
+    done
+    
+    log_error "Serena MCP server failed to start within ${max_wait} seconds"
+    cleanup_serena_server
+    return 1
+}
+
+# Monitor Serena server health and recover if needed
+monitor_serena_server() {
+    local port="$1"
+    local pid_file=".compass/serena-monitor.pid"
+    
+    # Store monitor PID
+    echo $$ > "$pid_file"
+    SERENA_MONITOR_PID=$$
+    
+    log_debug "Starting Serena MCP server health monitoring (PID: $$)"
+    
+    while true; do
+        if ! check_serena_server_health "$port"; then
+            log_warn "Serena MCP server unhealthy, attempting recovery..."
+            
+            if attempt_serena_recovery; then
+                log_success "Serena MCP server recovered successfully"
+            else
+                log_error "Serena MCP server recovery failed - stopping monitoring"
+                break
+            fi
+        else
+            log_debug "Serena MCP server health check passed"
+            update_serena_metrics "$port"
+        fi
+        
+        sleep "$SERENA_MONITOR_INTERVAL"
+    done
+    
+    # Clean up monitor PID file
+    rm -f "$pid_file"
+}
+
+# Attempt to recover Serena MCP server
+attempt_serena_recovery() {
+    local retry_count=0
+    local recovery_delay=10
+    
+    while (( retry_count < SERENA_MAX_RETRIES )); do
+        log_info "Attempting Serena MCP server recovery (attempt $((retry_count + 1))/$SERENA_MAX_RETRIES)"
+        
+        cleanup_serena_server
+        sleep "$recovery_delay"
+        
+        local serena_port
+        if serena_port=$(find_available_port "$SERENA_DEFAULT_PORT"); then
+            if start_serena_mcp_server "$serena_port"; then
+                if register_serena_with_claude "$serena_port"; then
+                    log_success "Serena MCP server recovery successful"
+                    return 0
+                fi
+            fi
+        fi
+        
+        retry_count=$((retry_count + 1))
+        recovery_delay=$((recovery_delay * 2))  # Exponential backoff
+    done
+    
+    log_error "Serena MCP server recovery failed after $SERENA_MAX_RETRIES attempts"
+    return 1
+}
+
+# Register Serena MCP server with Claude
+register_serena_with_claude() {
+    local port="$1"
+    local server_url="http://localhost:${port}/sse"
+    
+    log_info "Registering Serena MCP server with Claude..."
+    
+    # Check if Claude command is available
+    if ! command -v claude >/dev/null 2>&1; then
+        log_warn "Claude command not available - skipping MCP registration"
+        return 1
+    fi
+    
+    # Check if already registered
+    if claude mcp list 2>/dev/null | grep -q "serena.*${port}"; then
+        log_info "Serena MCP server already registered with Claude"
+        return 0
+    fi
+    
+    # Register with Claude MCP system
+    if claude mcp add serena --transport sse "$server_url" 2>/dev/null; then
+        log_success "Serena MCP server registered with Claude successfully"
+        
+        # Verify registration
+        sleep 2  # Give Claude time to update
+        if claude mcp list 2>/dev/null | grep -q "serena"; then
+            log_success "Serena MCP server registration verified"
+            return 0
+        else
+            log_warn "Serena MCP server registration could not be verified"
+            return 1
+        fi
+    else
+        log_error "Failed to register Serena MCP server with Claude"
+        return 1
+    fi
+}
+
+# Configure Claude settings for Serena MCP integration
+configure_serena_mcp_settings() {
+    local port="$1"
+    local config_file="$HOME/.claude/settings.json"
+    
+    log_info "Configuring Serena MCP settings in Claude..."
+    
+    # Ensure Claude config directory exists
+    mkdir -p "$(dirname "$config_file")"
+    
+    # Create or update Claude settings for Serena integration
+    python3 << EOF
+import json
+import os
+from pathlib import Path
+
+config_path = "$config_file"
+config = {}
+
+# Load existing configuration
+if os.path.exists(config_path):
+    try:
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+    except json.JSONDecodeError:
+        print("Warning: Invalid JSON in settings file, updating configuration")
+        config = {}
+
+# Ensure compass configuration exists
+if 'compass_unified' not in config:
+    config['compass_unified'] = {}
+
+# Add Serena-specific settings to compass configuration
+config['compass_unified']['serena_mcp'] = {
+    'enabled': True,
+    'auto_start': True,
+    'port': $port,
+    'health_check_interval': $SERENA_MONITOR_INTERVAL,
+    'recovery_enabled': True,
+    'memory_limit_mb': $SERENA_MEMORY_LIMIT_MB,
+    'integration_version': '1.0.0'
+}
+
+# Write updated configuration
+with open(config_path, 'w') as f:
+    json.dump(config, f, indent=2)
+
+print("Serena MCP configuration updated successfully")
+EOF
+
+    if [[ $? -eq 0 ]]; then
+        log_success "Serena MCP settings configured in Claude"
+        return 0
+    else
+        log_error "Failed to configure Serena MCP settings"
+        return 1
+    fi
+}
+
+# Cache Serena server state for monitoring
+cache_serena_state() {
+    local port="$1"
+    local pid="$2"
+    local cache_dir=".compass/cache/serena"
+    
+    mkdir -p "$cache_dir"
+    
+    cat > "$cache_dir/server-state.json" << EOF
+{
+    "port": $port,
+    "pid": $pid,
+    "started_at": "$(date -Iseconds)",
+    "health_status": "healthy",
+    "integration_status": "active",
+    "memory_limit_mb": $SERENA_MEMORY_LIMIT_MB
+}
+EOF
+}
+
+# Update Serena server metrics
+update_serena_metrics() {
+    local port="$1"
+    local metrics_file=".compass/logs/serena-metrics.log"
+    
+    # Ensure log directory exists
+    mkdir -p "$(dirname "$metrics_file")"
+    
+    # Get server PID
+    local server_pid
+    if [[ -f ".compass/serena-mcp-server.pid" ]]; then
+        server_pid=$(cat .compass/serena-mcp-server.pid)
+    else
+        server_pid="unknown"
+    fi
+    
+    # Get memory usage if possible
+    local memory_usage="unknown"
+    if [[ "$server_pid" != "unknown" ]] && kill -0 "$server_pid" 2>/dev/null; then
+        memory_usage=$(ps -o rss= -p "$server_pid" 2>/dev/null | awk '{print $1/1024 " MB"}' || echo "unknown")
+    fi
+    
+    # Log metrics
+    {
+        echo "$(date -Iseconds) SERENA_METRICS"
+        echo "  Port: $port"
+        echo "  PID: $server_pid"
+        echo "  Memory: $memory_usage"
+        echo "  Health: $(check_serena_server_health "$port" && echo 'healthy' || echo 'unhealthy')"
+        echo "  Uptime: $(ps -o etime= -p "$server_pid" 2>/dev/null | tr -d ' ' || echo 'unknown')"
+    } >> "$metrics_file"
+}
+
+# Clean up Serena MCP server processes and state
+cleanup_serena_server() {
+    log_debug "Cleaning up Serena MCP server..."
+    
+    local pid_file=".compass/serena-mcp-server.pid"
+    local monitor_pid_file=".compass/serena-monitor.pid"
+    
+    # Stop health monitoring first
+    if [[ -f "$monitor_pid_file" ]]; then
+        local monitor_pid=$(cat "$monitor_pid_file")
+        if kill -0 "$monitor_pid" 2>/dev/null; then
+            log_debug "Stopping Serena health monitor (PID: $monitor_pid)"
+            kill -TERM "$monitor_pid" 2>/dev/null
+        fi
+        rm -f "$monitor_pid_file"
+    fi
+    
+    # Kill server process if running
+    if [[ -f "$pid_file" ]]; then
+        local server_pid=$(cat "$pid_file")
+        if kill -0 "$server_pid" 2>/dev/null; then
+            log_debug "Stopping Serena MCP server (PID: $server_pid)"
+            kill -TERM "$server_pid" 2>/dev/null
+            
+            # Wait for graceful shutdown
+            local wait_count=0
+            while kill -0 "$server_pid" 2>/dev/null && (( wait_count < 10 )); do
+                sleep 1
+                wait_count=$((wait_count + 1))
+            done
+            
+            # Force kill if still running
+            if kill -0 "$server_pid" 2>/dev/null; then
+                log_debug "Force killing Serena MCP server"
+                kill -KILL "$server_pid" 2>/dev/null
+            fi
+        fi
+        
+        rm -f "$pid_file"
+    fi
+    
+    # Clean up any remaining Serena processes
+    pkill -f "serena start-mcp-server" 2>/dev/null || true
+    
+    # Reset global state
+    SERENA_PID=0
+    SERENA_PORT=0
+    SERENA_MONITOR_PID=0
+    
+    log_debug "Serena MCP server cleanup completed"
+}
+
+# Set up signal handlers for graceful shutdown
+setup_serena_signal_handlers() {
+    # Set up signal handlers for graceful shutdown
+    trap 'cleanup_serena_server' INT TERM EXIT
+    
+    log_debug "Serena MCP server signal handlers configured"
+}
+
+# Main function to integrate Serena MCP server with COMPASS
+integrate_serena_mcp_server() {
+    log_info "Initializing Serena MCP server integration..."
+    
+    # Check if Serena integration should be enabled
+    if [[ "${SERENA_INTEGRATION_DISABLED:-}" == "true" ]]; then
+        log_info "Serena MCP integration disabled by environment variable"
+        return 0
+    fi
+    
+    # Check Serena availability first (fail fast if not available)
+    if ! check_serena_availability; then
+        log_warn "Serena not available - continuing without Serena integration"
+        return 1
+    fi
+    
+    # Find available port
+    local serena_port
+    if ! serena_port=$(find_available_port "$SERENA_DEFAULT_PORT"); then
+        log_warn "No available ports for Serena MCP server - continuing without Serena integration"
+        return 1
+    fi
+    
+    # Set up signal handlers
+    setup_serena_signal_handlers
+    
+    # Start Serena MCP server
+    if ! start_serena_mcp_server "$serena_port"; then
+        log_warn "Serena MCP server startup failed - continuing without Serena integration"
+        return 1
+    fi
+    
+    # Configure Claude settings
+    if ! configure_serena_mcp_settings "$serena_port"; then
+        log_warn "Serena MCP settings configuration failed - server running but not optimally configured"
+    fi
+    
+    # Register with Claude
+    if ! register_serena_with_claude "$serena_port"; then
+        log_warn "Claude MCP registration failed - Serena server running but not integrated with Claude"
+    fi
+    
+    # Start background health monitoring
+    monitor_serena_server "$serena_port" &
+    SERENA_MONITOR_PID=$!
+    echo "$SERENA_MONITOR_PID" > .compass/serena-monitor.pid
+    
+    # Mark integration as successful
+    SERENA_INTEGRATION_ENABLED=true
+    
+    log_success "Serena MCP server integration complete (Port: $serena_port, PID: $SERENA_PID)"
+    return 0
+}
+
+# Function to check Serena integration status
+check_serena_integration_status() {
+    if [[ "$SERENA_INTEGRATION_ENABLED" == "true" ]] && \
+       [[ "$SERENA_PORT" -gt 0 ]] && \
+       check_serena_server_health "$SERENA_PORT"; then
+        echo "Serena MCP integration: Active (Port: $SERENA_PORT)"
+        return 0
+    else
+        echo "Serena MCP integration: Inactive"
+        return 1
+    fi
+}
+
+#=============================================================================
+# End Serena MCP Integration Functions
+#=============================================================================
 
 # Print unified banner
 print_banner() {
@@ -631,14 +1121,10 @@ main() {
     
     # Phase 4.5: Serena MCP Server Integration
     log_info "Phase 4.5: Serena MCP Server Integration"
-    if command -v integrate_serena_mcp_server >/dev/null 2>&1; then
-        if integrate_serena_mcp_server; then
-            log_success "Serena MCP server integration completed successfully"
-        else
-            log_warn "Serena MCP server integration failed - COMPASS will function without Serena MCP capabilities"
-        fi
+    if integrate_serena_mcp_server; then
+        log_success "Serena MCP server integration completed successfully"
     else
-        log_warn "Serena MCP integration functions not available - continuing without Serena integration"
+        log_warn "Serena MCP server integration failed - COMPASS will function without Serena MCP capabilities"
     fi
     
     # Phase 5: Launch
@@ -647,7 +1133,7 @@ main() {
     log_success "COMPASS Unified Setup Complete!"
     
     # Display integration status
-    echo "Serena MCP integration: $([ "$SERENA_INTEGRATION_ENABLED" == "true" ] && echo "Active" || echo "Inactive")"
+    check_serena_integration_status
     
     log_info "Launching Claude Code with unified configuration..."
     echo
