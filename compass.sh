@@ -163,6 +163,41 @@ check_serena_server_health() {
 }
 
 # Start Serena MCP server with memory limits and logging
+# Wrapper function with retry logic and enhanced failsafe
+start_serena_mcp_server_with_retry() {
+    local port="$1"
+    local max_retries="${SERENA_MAX_RETRIES:-3}"
+    local retry_count=0
+    
+    while (( retry_count < max_retries )); do
+        log_info "Starting Serena MCP server (attempt $((retry_count + 1))/$max_retries)"
+        
+        # Run failsafe cleanup before each attempt
+        if ! failsafe_cleanup_serena_processes; then
+            log_warn "Failsafe cleanup reported issues, but continuing with startup attempt"
+        fi
+        
+        # Attempt to start the server
+        if start_serena_mcp_server "$port"; then
+            log_success "Serena MCP server started successfully on attempt $((retry_count + 1))"
+            return 0
+        fi
+        
+        retry_count=$((retry_count + 1))
+        if (( retry_count < max_retries )); then
+            log_warn "Serena startup failed, retrying in 3 seconds... (attempt $retry_count/$max_retries)"
+            sleep 3
+            
+            # Force cleanup between retries
+            cleanup_serena_server >/dev/null 2>&1
+            sleep 1
+        fi
+    done
+    
+    log_error "Failed to start Serena MCP server after $max_retries attempts"
+    return 1
+}
+
 start_serena_mcp_server() {
     local port="$1"
     local log_file=".compass/logs/serena-mcp-server.log"
@@ -173,6 +208,9 @@ start_serena_mcp_server() {
     # Ensure log and state directories exist
     mkdir -p "$(dirname "$log_file")"
     mkdir -p .compass
+    
+    # Enhanced failsafe cleanup before startup
+    failsafe_cleanup_serena_processes
     
     # Clean up any existing server first
     cleanup_serena_server >/dev/null 2>&1
@@ -335,7 +373,7 @@ attempt_serena_recovery() {
         if [[ "$silent_mode" == "true" ]]; then
             # In silent mode, redirect all output from recovery operations to the monitor log
             if serena_port=$(find_available_port "$SERENA_DEFAULT_PORT" 2>/dev/null); then
-                if start_serena_mcp_server "$serena_port" >/dev/null 2>&1; then
+                if start_serena_mcp_server_with_retry "$serena_port" >/dev/null 2>&1; then
                     if register_serena_with_claude "$serena_port" >/dev/null 2>&1; then
                         monitor_log "SUCCESS" "Serena MCP server recovery successful"
                         return 0
@@ -345,7 +383,7 @@ attempt_serena_recovery() {
         else
             # Normal mode with regular logging
             if serena_port=$(find_available_port "$SERENA_DEFAULT_PORT"); then
-                if start_serena_mcp_server "$serena_port"; then
+                if start_serena_mcp_server_with_retry "$serena_port"; then
                     if register_serena_with_claude "$serena_port"; then
                         log_success "Serena MCP server recovery successful"
                         return 0
@@ -517,6 +555,72 @@ update_serena_metrics() {
 }
 
 # Clean up Serena MCP server processes and state
+# Enhanced failsafe cleanup to handle orphaned processes and port conflicts
+failsafe_cleanup_serena_processes() {
+    log_debug "Running failsafe Serena process cleanup..."
+    
+    # 1. Check if target port is in use and identify processes
+    local target_port="${SERENA_PORT:-$SERENA_DEFAULT_PORT}"
+    local port_pids=$(lsof -ti :"$target_port" 2>/dev/null || true)
+    
+    if [[ -n "$port_pids" ]]; then
+        log_warn "Port $target_port is in use by processes: $port_pids"
+        # Kill processes using the target port
+        echo "$port_pids" | xargs -r kill -TERM 2>/dev/null || true
+        sleep 2
+        # Force kill if still running
+        echo "$port_pids" | xargs -r kill -KILL 2>/dev/null || true
+    fi
+    
+    # 2. Find all Serena processes regardless of PID files
+    local serena_pids=$(pgrep -f "serena start-mcp-server" 2>/dev/null || true)
+    if [[ -n "$serena_pids" ]]; then
+        log_warn "Found orphaned Serena processes: $serena_pids"
+        echo "$serena_pids" | xargs -r kill -TERM 2>/dev/null || true
+        sleep 2
+        # Force kill if still running
+        echo "$serena_pids" | xargs -r kill -KILL 2>/dev/null || true
+    fi
+    
+    # 3. Clean up uvx processes that might be hanging
+    local uvx_serena_pids=$(pgrep -f "uvx.*serena" 2>/dev/null || true)
+    if [[ -n "$uvx_serena_pids" ]]; then
+        log_warn "Found orphaned uvx Serena processes: $uvx_serena_pids"
+        echo "$uvx_serena_pids" | xargs -r kill -TERM 2>/dev/null || true
+        sleep 1
+        echo "$uvx_serena_pids" | xargs -r kill -KILL 2>/dev/null || true
+    fi
+    
+    # 4. Validate and clean up stale PID files
+    local pid_file=".compass/serena-mcp-server.pid"
+    local monitor_pid_file=".compass/serena-monitor.pid"
+    
+    if [[ -f "$pid_file" ]]; then
+        local recorded_pid=$(cat "$pid_file" 2>/dev/null || true)
+        if [[ -n "$recorded_pid" ]] && ! kill -0 "$recorded_pid" 2>/dev/null; then
+            log_debug "Removing stale PID file for non-existent process: $recorded_pid"
+            rm -f "$pid_file"
+        fi
+    fi
+    
+    if [[ -f "$monitor_pid_file" ]]; then
+        local recorded_monitor_pid=$(cat "$monitor_pid_file" 2>/dev/null || true)
+        if [[ -n "$recorded_monitor_pid" ]] && ! kill -0 "$recorded_monitor_pid" 2>/dev/null; then
+            log_debug "Removing stale monitor PID file for non-existent process: $recorded_monitor_pid"
+            rm -f "$monitor_pid_file"
+        fi
+    fi
+    
+    # 5. Final port availability check
+    if lsof -ti :"$target_port" >/dev/null 2>&1; then
+        log_error "Port $target_port still in use after cleanup - startup may fail"
+        return 1
+    fi
+    
+    log_debug "Failsafe cleanup completed - port $target_port is available"
+    return 0
+}
+
 cleanup_serena_server() {
     local silent_mode="${1:-false}"  # Optional parameter for silent operation
     
@@ -625,7 +729,7 @@ integrate_serena_mcp_server() {
     setup_serena_signal_handlers
     
     # Start Serena MCP server
-    if ! start_serena_mcp_server "$serena_port"; then
+    if ! start_serena_mcp_server_with_retry "$serena_port"; then
         log_warn "Serena MCP server startup failed - continuing without Serena integration"
         return 1
     fi
