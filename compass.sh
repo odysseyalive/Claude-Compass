@@ -177,9 +177,10 @@ start_serena_mcp_server() {
     # Clean up any existing server first
     cleanup_serena_server >/dev/null 2>&1
     
-    # Start server in background with logging
+    # Start server in background with logging and timeout protection
     {
-        uvx --from git+https://github.com/oraios/serena \
+        # Use timeout to prevent hanging during server startup
+        timeout 15 uvx --from git+https://github.com/oraios/serena \
             serena start-mcp-server \
             --transport sse \
             --port "$port" \
@@ -187,7 +188,12 @@ start_serena_mcp_server() {
         while IFS= read -r line; do
             echo "$(date '+%Y-%m-%d %H:%M:%S') [SERENA] $line"
         done
-    } >"$log_file" &
+        
+        # If timeout occurred, log it
+        if [[ $? -eq 124 ]]; then
+            echo "$(date '+%Y-%m-%d %H:%M:%S') [SERENA] ERROR: Server startup timed out after 15 seconds"
+        fi
+    } >"$log_file" 2>&1 &
     
     local server_pid=$!
     echo "$server_pid" > "$pid_file"
@@ -195,23 +201,42 @@ start_serena_mcp_server() {
     
     log_debug "Serena MCP server started with PID: $server_pid"
     
-    # Health check with timeout
+    # Health check with timeout - more robust approach
     local max_wait="$SERENA_STARTUP_TIMEOUT"
     local wait_time=0
+    local health_check_interval=1
     
     log_info "Waiting for Serena MCP server to become healthy..."
+    
+    # Give server a moment to start before checking
+    sleep 2
+    
     while (( wait_time < max_wait )); do
-        if check_serena_server_health "$port"; then
+        # First check if the process is still running
+        if ! kill -0 "$server_pid" 2>/dev/null; then
+            log_error "Serena MCP server process died during startup (PID: $server_pid)"
+            cleanup_serena_server
+            return 1
+        fi
+        
+        # Then check if port is responding with shorter timeout for faster failure detection
+        if timeout 2 bash -c "echo >/dev/tcp/localhost/$port" 2>/dev/null; then
             log_success "Serena MCP server healthy on port $port"
             SERENA_PORT="$port"
             cache_serena_state "$port" "$server_pid"
             return 0
         fi
-        sleep 1
-        wait_time=$((wait_time + 1))
+        
+        sleep "$health_check_interval"
+        wait_time=$((wait_time + health_check_interval))
+        
+        # Provide feedback every few seconds to show progress
+        if (( wait_time % 3 == 0 )); then
+            log_debug "Still waiting for Serena server on port $port (${wait_time}/${max_wait}s)"
+        fi
     done
     
-    log_error "Serena MCP server failed to start within ${max_wait} seconds"
+    log_warn "Serena MCP server failed to respond within ${max_wait} seconds - cleanup and continue"
     cleanup_serena_server
     return 1
 }
@@ -615,14 +640,21 @@ integrate_serena_mcp_server() {
         log_warn "Claude MCP registration failed - Serena server running but not integrated with Claude"
     fi
     
-    # Start background health monitoring with all output redirected to log files
+    # Start background health monitoring with complete process isolation
     # Use setsid to create new session and nohup for process isolation
-    nohup setsid monitor_serena_server "$serena_port" </dev/null >/dev/null 2>&1 &
-    SERENA_MONITOR_PID=$!
-    echo "$SERENA_MONITOR_PID" > .compass/serena-monitor.pid
-    
-    # Disown the background process to prevent signal inheritance
-    disown %1 2>/dev/null || true
+    {
+        nohup setsid monitor_serena_server "$serena_port" </dev/null >/dev/null 2>&1 &
+        local monitor_pid=$!
+        echo "$monitor_pid" > .compass/serena-monitor.pid
+        SERENA_MONITOR_PID="$monitor_pid"
+        
+        # Disown the background process completely to prevent signal inheritance
+        disown "$monitor_pid" 2>/dev/null || true
+        
+        log_debug "Background monitor started with PID: $monitor_pid"
+    } 2>/dev/null || {
+        log_debug "Background monitor setup completed with fallback"
+    }
     
     # Mark integration as successful
     SERENA_INTEGRATION_ENABLED=true
@@ -1075,22 +1107,35 @@ launch_claude_with_memory() {
     
     log_info "Launching Claude Code with ${memory_mb}MB memory allocation..."
     
-    # Set Node.js memory options
-    export NODE_OPTIONS="--max-old-space-size=${memory_mb}"
-    
-    log_info "Memory optimization: NODE_OPTIONS=$NODE_OPTIONS"
+    log_info "Memory optimization: NODE_OPTIONS=--max-old-space-size=${memory_mb}"
     log_success "Starting Claude Code with unified COMPASS setup..."
     
-    # Ensure all background processes are fully detached before exec
-    # Wait a moment for process isolation to complete
-    sleep 1
+    # Enhanced process isolation before exec
+    # Wait longer for complete background process isolation
+    sleep 2
     
-    # Clear signal handlers before exec to prevent inheritance issues
-    trap - INT TERM EXIT
+    # Clear all signal handlers before exec to prevent inheritance issues
+    trap - INT TERM EXIT HUP QUIT
     
-    # Final cleanup: ensure no background processes can interfere
-    # Close all file descriptors except standard ones
-    exec 3>&- 4>&- 5>&- 6>&- 7>&- 8>&- 9>&- 2>/dev/null || true
+    # Complete process cleanup and isolation
+    {
+        # Close all non-standard file descriptors
+        for fd in {3..255}; do
+            exec {fd}>&- 2>/dev/null || true
+        done
+        
+        # Ensure process group isolation
+        setsid 2>/dev/null || true
+        
+        # Final background process check
+        jobs -p | xargs -r kill -0 2>/dev/null || true
+        
+    } 2>/dev/null || true
+    
+    log_debug "Process isolation complete, launching Claude..."
+    
+    # Export memory optimization for child process
+    export NODE_OPTIONS="--max-old-space-size=${memory_mb}"
     
     # Launch Claude Code using uvx with all arguments
     # If no arguments provided, ensure interactive mode
@@ -1249,10 +1294,21 @@ main() {
     
     # Phase 4.5: Serena MCP Server Integration
     log_info "Phase 4.5: Serena MCP Server Integration"
-    if integrate_serena_mcp_server; then
+    
+    # Use timeout to prevent hanging in Serena integration
+    if timeout 30 bash -c 'integrate_serena_mcp_server'; then
         log_success "Serena MCP server integration completed successfully"
     else
-        log_warn "Serena MCP server integration failed - COMPASS will function without Serena MCP capabilities"
+        local exit_code=$?
+        if [[ $exit_code -eq 124 ]]; then
+            log_warn "Serena MCP server integration timed out after 30 seconds - continuing without Serena"
+        else
+            log_warn "Serena MCP server integration failed - COMPASS will function without Serena MCP capabilities"
+        fi
+        
+        # Clean up any hanging processes
+        pkill -f "serena start-mcp-server" 2>/dev/null || true
+        rm -f .compass/*.pid 2>/dev/null || true
     fi
     
     # Phase 5: Launch
@@ -1260,8 +1316,14 @@ main() {
     echo
     log_success "COMPASS Unified Setup Complete!"
     
-    # Display integration status (suppress errors to prevent Claude startup interference)
-    check_serena_integration_status 2>/dev/null || log_info "Serena MCP integration: Initializing"
+    # Display integration status with comprehensive error suppression
+    {
+        local integration_status
+        integration_status=$(check_serena_integration_status 2>/dev/null) || integration_status="Serena MCP integration: Initializing"
+        echo "$integration_status"
+    } 2>/dev/null || {
+        log_info "Serena MCP integration: Status check unavailable"
+    }
     
     log_info "Launching Claude Code with unified configuration..."
     echo
