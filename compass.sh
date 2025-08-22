@@ -942,6 +942,14 @@ install_update_claude_code() {
     # Install/update claude-code package
     log_info "Setting up Claude Code with uvx..."
     
+    # Install Claude Code globally via npm
+    log_info "Installing Claude Code globally via npm..."
+    if npm i -g @anthropic-ai/claude-code 2>/dev/null; then
+        log_success "Claude Code installed/updated via npm"
+    else
+        log_warn "npm global installation failed or already up-to-date"
+    fi
+    
     # Verify Claude Code is available via uvx
     if claude --version >/dev/null 2>&1; then
         log_success "Claude Code is available via uvx"
