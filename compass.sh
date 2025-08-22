@@ -220,25 +220,36 @@ start_serena_mcp_server() {
 monitor_serena_server() {
     local port="$1"
     local pid_file=".compass/serena-monitor.pid"
+    local monitor_log=".compass/logs/serena-monitor.log"
+    
+    # Ensure log directory exists
+    mkdir -p "$(dirname "$monitor_log")"
     
     # Store monitor PID
     echo $$ > "$pid_file"
     SERENA_MONITOR_PID=$$
     
-    log_debug "Starting Serena MCP server health monitoring (PID: $$)"
+    # Log function for monitor (writes to file instead of terminal)
+    monitor_log() {
+        local level="$1"
+        shift
+        echo "$(date '+%Y-%m-%d %H:%M:%S') [$level] $*" >> "$monitor_log"
+    }
+    
+    monitor_log "INFO" "Starting Serena MCP server health monitoring (PID: $$)"
     
     while true; do
         if ! check_serena_server_health "$port"; then
-            log_warn "Serena MCP server unhealthy, attempting recovery..."
+            monitor_log "WARN" "Serena MCP server unhealthy, attempting recovery..."
             
-            if attempt_serena_recovery; then
-                log_success "Serena MCP server recovered successfully"
+            if attempt_serena_recovery "true"; then
+                monitor_log "SUCCESS" "Serena MCP server recovered successfully"
             else
-                log_error "Serena MCP server recovery failed - stopping monitoring"
+                monitor_log "ERROR" "Serena MCP server recovery failed - stopping monitoring"
                 break
             fi
         else
-            log_debug "Serena MCP server health check passed"
+            monitor_log "DEBUG" "Serena MCP server health check passed"
             update_serena_metrics "$port"
         fi
         
@@ -247,25 +258,48 @@ monitor_serena_server() {
     
     # Clean up monitor PID file
     rm -f "$pid_file"
+    monitor_log "INFO" "Serena MCP server monitoring stopped"
 }
 
 # Attempt to recover Serena MCP server
 attempt_serena_recovery() {
+    local silent_mode="${1:-false}"  # Optional parameter for silent logging
     local retry_count=0
     local recovery_delay=10
     
     while (( retry_count < SERENA_MAX_RETRIES )); do
-        log_info "Attempting Serena MCP server recovery (attempt $((retry_count + 1))/$SERENA_MAX_RETRIES)"
+        if [[ "$silent_mode" == "true" ]]; then
+            monitor_log "INFO" "Attempting Serena MCP server recovery (attempt $((retry_count + 1))/$SERENA_MAX_RETRIES)"
+        else
+            log_info "Attempting Serena MCP server recovery (attempt $((retry_count + 1))/$SERENA_MAX_RETRIES)"
+        fi
         
-        cleanup_serena_server
+        if [[ "$silent_mode" == "true" ]]; then
+            cleanup_serena_server "true"
+        else
+            cleanup_serena_server
+        fi
         sleep "$recovery_delay"
         
         local serena_port
-        if serena_port=$(find_available_port "$SERENA_DEFAULT_PORT"); then
-            if start_serena_mcp_server "$serena_port"; then
-                if register_serena_with_claude "$serena_port"; then
-                    log_success "Serena MCP server recovery successful"
-                    return 0
+        if [[ "$silent_mode" == "true" ]]; then
+            # In silent mode, redirect all output from recovery operations to the monitor log
+            if serena_port=$(find_available_port "$SERENA_DEFAULT_PORT" 2>/dev/null); then
+                if start_serena_mcp_server "$serena_port" >/dev/null 2>&1; then
+                    if register_serena_with_claude "$serena_port" >/dev/null 2>&1; then
+                        monitor_log "SUCCESS" "Serena MCP server recovery successful"
+                        return 0
+                    fi
+                fi
+            fi
+        else
+            # Normal mode with regular logging
+            if serena_port=$(find_available_port "$SERENA_DEFAULT_PORT"); then
+                if start_serena_mcp_server "$serena_port"; then
+                    if register_serena_with_claude "$serena_port"; then
+                        log_success "Serena MCP server recovery successful"
+                        return 0
+                    fi
                 fi
             fi
         fi
@@ -274,7 +308,11 @@ attempt_serena_recovery() {
         recovery_delay=$((recovery_delay * 2))  # Exponential backoff
     done
     
-    log_error "Serena MCP server recovery failed after $SERENA_MAX_RETRIES attempts"
+    if [[ "$silent_mode" == "true" ]]; then
+        monitor_log "ERROR" "Serena MCP server recovery failed after $SERENA_MAX_RETRIES attempts"
+    else
+        log_error "Serena MCP server recovery failed after $SERENA_MAX_RETRIES attempts"
+    fi
     return 1
 }
 
@@ -430,7 +468,13 @@ update_serena_metrics() {
 
 # Clean up Serena MCP server processes and state
 cleanup_serena_server() {
-    log_debug "Cleaning up Serena MCP server..."
+    local silent_mode="${1:-false}"  # Optional parameter for silent operation
+    
+    if [[ "$silent_mode" == "true" ]]; then
+        monitor_log "DEBUG" "Cleaning up Serena MCP server..."
+    else
+        log_debug "Cleaning up Serena MCP server..."
+    fi
     
     local pid_file=".compass/serena-mcp-server.pid"
     local monitor_pid_file=".compass/serena-monitor.pid"
@@ -439,7 +483,11 @@ cleanup_serena_server() {
     if [[ -f "$monitor_pid_file" ]]; then
         local monitor_pid=$(cat "$monitor_pid_file")
         if kill -0 "$monitor_pid" 2>/dev/null; then
-            log_debug "Stopping Serena health monitor (PID: $monitor_pid)"
+            if [[ "$silent_mode" == "true" ]]; then
+                monitor_log "DEBUG" "Stopping Serena health monitor (PID: $monitor_pid)"
+            else
+                log_debug "Stopping Serena health monitor (PID: $monitor_pid)"
+            fi
             kill -TERM "$monitor_pid" 2>/dev/null
         fi
         rm -f "$monitor_pid_file"
@@ -449,7 +497,11 @@ cleanup_serena_server() {
     if [[ -f "$pid_file" ]]; then
         local server_pid=$(cat "$pid_file")
         if kill -0 "$server_pid" 2>/dev/null; then
-            log_debug "Stopping Serena MCP server (PID: $server_pid)"
+            if [[ "$silent_mode" == "true" ]]; then
+                monitor_log "DEBUG" "Stopping Serena MCP server (PID: $server_pid)"
+            else
+                log_debug "Stopping Serena MCP server (PID: $server_pid)"
+            fi
             kill -TERM "$server_pid" 2>/dev/null
             
             # Wait for graceful shutdown
@@ -461,7 +513,11 @@ cleanup_serena_server() {
             
             # Force kill if still running
             if kill -0 "$server_pid" 2>/dev/null; then
-                log_debug "Force killing Serena MCP server"
+                if [[ "$silent_mode" == "true" ]]; then
+                    monitor_log "DEBUG" "Force killing Serena MCP server"
+                else
+                    log_debug "Force killing Serena MCP server"
+                fi
                 kill -KILL "$server_pid" 2>/dev/null
             fi
         fi
@@ -477,7 +533,11 @@ cleanup_serena_server() {
     SERENA_PORT=0
     SERENA_MONITOR_PID=0
     
-    log_debug "Serena MCP server cleanup completed"
+    if [[ "$silent_mode" == "true" ]]; then
+        monitor_log "DEBUG" "Serena MCP server cleanup completed"
+    else
+        log_debug "Serena MCP server cleanup completed"
+    fi
 }
 
 # Set up signal handlers for graceful shutdown
@@ -530,8 +590,8 @@ integrate_serena_mcp_server() {
         log_warn "Claude MCP registration failed - Serena server running but not integrated with Claude"
     fi
     
-    # Start background health monitoring
-    monitor_serena_server "$serena_port" &
+    # Start background health monitoring with all output redirected to log files
+    monitor_serena_server "$serena_port" >/dev/null 2>&1 &
     SERENA_MONITOR_PID=$!
     echo "$SERENA_MONITOR_PID" > .compass/serena-monitor.pid
     
