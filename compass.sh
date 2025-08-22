@@ -225,9 +225,8 @@ monitor_serena_server() {
     # Ensure log directory exists
     mkdir -p "$(dirname "$monitor_log")"
     
-    # Store monitor PID
-    echo $$ > "$pid_file"
-    SERENA_MONITOR_PID=$$
+    # Note: PID file will be written by parent process after backgrounding
+    # Do not write PID here to avoid race condition
     
     # Log function for monitor (writes to file instead of terminal)
     monitor_log() {
@@ -238,17 +237,40 @@ monitor_serena_server() {
     
     monitor_log "INFO" "Starting Serena MCP server health monitoring (PID: $$)"
     
+    local consecutive_failures=0
+    local max_consecutive_failures=5
+    
     while true; do
         if ! check_serena_server_health "$port"; then
-            monitor_log "WARN" "Serena MCP server unhealthy, attempting recovery..."
+            consecutive_failures=$((consecutive_failures + 1))
+            monitor_log "WARN" "Serena MCP server unhealthy (failure $consecutive_failures/$max_consecutive_failures), attempting recovery..."
             
             if attempt_serena_recovery "true"; then
                 monitor_log "SUCCESS" "Serena MCP server recovered successfully"
+                consecutive_failures=0  # Reset failure counter on success
             else
-                monitor_log "ERROR" "Serena MCP server recovery failed - stopping monitoring"
-                break
+                monitor_log "ERROR" "Serena MCP server recovery failed (attempt $consecutive_failures)"
+                
+                # Only stop monitoring after repeated failures
+                if (( consecutive_failures >= max_consecutive_failures )); then
+                    monitor_log "ERROR" "Max consecutive failures reached - entering degraded monitoring mode"
+                    # Continue monitoring but with longer intervals and no recovery attempts
+                    while true; do
+                        sleep $((SERENA_MONITOR_INTERVAL * 3))  # 3x normal interval
+                        if check_serena_server_health "$port"; then
+                            monitor_log "INFO" "Serena MCP server spontaneously recovered - resuming normal monitoring"
+                            consecutive_failures=0
+                            break  # Exit degraded mode and resume normal monitoring
+                        fi
+                        monitor_log "DEBUG" "Degraded monitoring: server still unhealthy"
+                    done
+                fi
             fi
         else
+            if (( consecutive_failures > 0 )); then
+                monitor_log "INFO" "Health check passed after $consecutive_failures failures - normal operation resumed"
+            fi
+            consecutive_failures=0
             monitor_log "DEBUG" "Serena MCP server health check passed"
             update_serena_metrics "$port"
         fi
@@ -259,6 +281,9 @@ monitor_serena_server() {
     # Clean up monitor PID file
     rm -f "$pid_file"
     monitor_log "INFO" "Serena MCP server monitoring stopped"
+    
+    # Exit cleanly to prevent zombie processes
+    exit 0
 }
 
 # Attempt to recover Serena MCP server
@@ -591,9 +616,13 @@ integrate_serena_mcp_server() {
     fi
     
     # Start background health monitoring with all output redirected to log files
-    monitor_serena_server "$serena_port" >/dev/null 2>&1 &
+    # Use setsid to create new session and nohup for process isolation
+    nohup setsid monitor_serena_server "$serena_port" </dev/null >/dev/null 2>&1 &
     SERENA_MONITOR_PID=$!
     echo "$SERENA_MONITOR_PID" > .compass/serena-monitor.pid
+    
+    # Disown the background process to prevent signal inheritance
+    disown %1 2>/dev/null || true
     
     # Mark integration as successful
     SERENA_INTEGRATION_ENABLED=true
@@ -604,13 +633,26 @@ integrate_serena_mcp_server() {
 
 # Function to check Serena integration status
 check_serena_integration_status() {
+    # Redirect all error-prone operations to prevent Claude startup interference
+    local status_msg="Serena MCP integration: "
+    
     if [[ "$SERENA_INTEGRATION_ENABLED" == "true" ]] && \
        [[ "$SERENA_PORT" -gt 0 ]] && \
-       check_serena_server_health "$SERENA_PORT"; then
-        echo "Serena MCP integration: Active (Port: $SERENA_PORT)"
+       check_serena_server_health "$SERENA_PORT" 2>/dev/null; then
+        echo "${status_msg}Active (Port: $SERENA_PORT)"
         return 0
     else
-        echo "Serena MCP integration: Inactive"
+        # Check if monitor is still running despite integration issues
+        if [[ -f ".compass/serena-monitor.pid" ]]; then
+            local monitor_pid
+            monitor_pid=$(cat .compass/serena-monitor.pid 2>/dev/null || echo "")
+            if [[ -n "$monitor_pid" ]] && kill -0 "$monitor_pid" 2>/dev/null; then
+                echo "${status_msg}Monitoring (PID: $monitor_pid)"
+                return 0
+            fi
+        fi
+        
+        echo "${status_msg}Inactive"
         return 1
     fi
 }
@@ -1039,11 +1081,26 @@ launch_claude_with_memory() {
     log_info "Memory optimization: NODE_OPTIONS=$NODE_OPTIONS"
     log_success "Starting Claude Code with unified COMPASS setup..."
     
+    # Ensure all background processes are fully detached before exec
+    # Wait a moment for process isolation to complete
+    sleep 1
+    
     # Clear signal handlers before exec to prevent inheritance issues
     trap - INT TERM EXIT
     
+    # Final cleanup: ensure no background processes can interfere
+    # Close all file descriptors except standard ones
+    exec 3>&- 4>&- 5>&- 6>&- 7>&- 8>&- 9>&- 2>/dev/null || true
+    
     # Launch Claude Code using uvx with all arguments
-    exec claude "${args[@]}"
+    # If no arguments provided, ensure interactive mode
+    if [[ ${#args[@]} -eq 0 ]]; then
+        log_debug "No arguments provided, launching Claude in interactive mode"
+        exec claude
+    else
+        log_debug "Launching Claude with arguments: ${args[*]}"
+        exec claude "${args[@]}"
+    fi
 }
 
 # Show usage information
@@ -1203,8 +1260,8 @@ main() {
     echo
     log_success "COMPASS Unified Setup Complete!"
     
-    # Display integration status
-    check_serena_integration_status
+    # Display integration status (suppress errors to prevent Claude startup interference)
+    check_serena_integration_status 2>/dev/null || log_info "Serena MCP integration: Initializing"
     
     log_info "Launching Claude Code with unified configuration..."
     echo
