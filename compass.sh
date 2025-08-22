@@ -971,6 +971,9 @@ launch_claude_with_memory() {
     log_info "Memory optimization: NODE_OPTIONS=$NODE_OPTIONS"
     log_success "Starting Claude Code with unified COMPASS setup..."
     
+    # Clear signal handlers before exec to prevent inheritance issues
+    trap - INT TERM EXIT
+    
     # Launch Claude Code using uvx with all arguments
     exec claude "${args[@]}"
 }
