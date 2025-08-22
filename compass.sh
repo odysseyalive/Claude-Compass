@@ -2,7 +2,7 @@
 
 #=============================================================================
 # COMPASS - Unified Claude Code Launcher with Memory Optimization
-# 
+#
 # This single script handles everything:
 # - Always updates COMPASS components from latest repository
 # - Integrates memory optimization automatically
@@ -36,12 +36,15 @@ SERENA_MONITOR_PID=0
 SERENA_INTEGRATION_ENABLED=false
 
 # Script configuration
-readonly SCRIPT_VERSION="2.1.0-serena-integrated"
+readonly SCRIPT_VERSION="2.2.0-auto-update"
 readonly REPO_URL="https://github.com/odysseyalive/claude-compass"
 readonly BRANCH="main"
+readonly GITHUB_API_URL="https://api.github.com/repos/odysseyalive/claude-compass"
+readonly UPDATE_CHECK_TIMEOUT=10
+readonly AUTO_UPDATE_ENABLED=true
 readonly DEFAULT_MEMORY_PERCENTAGE=50
 readonly MIN_MEMORY_MB=512
-readonly MAX_MEMORY_MB=15360  # 15GB maximum for stability
+readonly MAX_MEMORY_MB=15360 # 15GB maximum for stability
 readonly DEFAULT_MEMORY_MB=4096
 
 # Colors for output
@@ -54,30 +57,33 @@ readonly NC='\033[0m' # No Color
 
 # Global state
 UPDATE_PERFORMED=false
+SELF_UPDATE_PERFORMED=false
 MEMORY_MB=0
 CLAUDE_ARGS=()
+DEBUG_MODE_EARLY=false
+AUTO_UPDATE_DISABLED=false
 
 # Logging functions
 log_info() {
-    echo -e "${GREEN}[INFO]${NC} $*" >&2
+  echo -e "${GREEN}[INFO]${NC} $*" >&2
 }
 
 log_success() {
-    echo -e "${CYAN}[SUCCESS]${NC} $*" >&2
+  echo -e "${CYAN}[SUCCESS]${NC} $*" >&2
 }
 
 log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $*" >&2
+  echo -e "${YELLOW}[WARN]${NC} $*" >&2
 }
 
 log_error() {
-    echo -e "${RED}[ERROR]${NC} $*" >&2
+  echo -e "${RED}[ERROR]${NC} $*" >&2
 }
 
 log_debug() {
-    if [[ "${DEBUG:-}" == "1" ]]; then
-        echo -e "${BLUE}[DEBUG]${NC} $*" >&2
-    fi
+  if [[ "${DEBUG:-}" == "1" ]]; then
+    echo -e "${BLUE}[DEBUG]${NC} $*" >&2
+  fi
 }
 
 #=============================================================================
@@ -86,374 +92,374 @@ log_debug() {
 
 # Check if Serena MCP server is available via uvx
 check_serena_availability() {
-    log_info "Checking Serena MCP server availability..."
-    
-    # Check if uvx is available
-    if ! command -v uvx >/dev/null 2>&1; then
-        log_error "uvx not available - required for Serena MCP server"
-        return 1
-    fi
-    
-    # Test Serena installation/availability
-    log_debug "Testing Serena availability via uvx..."
-    if timeout 10 uvx --from git+https://github.com/oraios/serena serena --help >/dev/null 2>&1; then
-        log_success "Serena MCP server available via uvx"
-        return 0
-    else
-        log_warn "Serena MCP server not available or installation needed"
-        return 1
-    fi
+  log_info "Checking Serena MCP server availability..."
+
+  # Check if uvx is available
+  if ! command -v uvx >/dev/null 2>&1; then
+    log_error "uvx not available - required for Serena MCP server"
+    return 1
+  fi
+
+  # Test Serena installation/availability
+  log_debug "Testing Serena availability via uvx..."
+  if timeout 10 uvx --from git+https://github.com/oraios/serena serena --help >/dev/null 2>&1; then
+    log_success "Serena MCP server available via uvx"
+    return 0
+  else
+    log_warn "Serena MCP server not available or installation needed"
+    return 1
+  fi
 }
 
 # Find an available port starting from the default port
 find_available_port() {
-    local start_port="${1:-$SERENA_DEFAULT_PORT}"
-    local max_attempts=10
-    local current_port="$start_port"
-    
-    log_debug "Searching for available port starting from $start_port..."
-    
-    for ((i=0; i<max_attempts; i++)); do
-        # Check if port is available using multiple methods
-        if ! ss -tuln 2>/dev/null | grep -q ":${current_port} " && \
-           ! netstat -tuln 2>/dev/null | grep -q ":${current_port} " && \
-           ! lsof -i ":${current_port}" >/dev/null 2>&1; then
-            log_debug "Found available port: $current_port"
-            echo "$current_port"
-            return 0
-        fi
-        log_debug "Port $current_port in use, trying next..."
-        current_port=$((current_port + 1))
-    done
-    
-    log_error "No available ports found in range ${start_port}-$((start_port + max_attempts - 1))"
-    return 1
+  local start_port="${1:-$SERENA_DEFAULT_PORT}"
+  local max_attempts=10
+  local current_port="$start_port"
+
+  log_debug "Searching for available port starting from $start_port..."
+
+  for ((i = 0; i < max_attempts; i++)); do
+    # Check if port is available using multiple methods
+    if ! ss -tuln 2>/dev/null | grep -q ":${current_port} " &&
+      ! netstat -tuln 2>/dev/null | grep -q ":${current_port} " &&
+      ! lsof -i ":${current_port}" >/dev/null 2>&1; then
+      log_debug "Found available port: $current_port"
+      echo "$current_port"
+      return 0
+    fi
+    log_debug "Port $current_port in use, trying next..."
+    current_port=$((current_port + 1))
+  done
+
+  log_error "No available ports found in range ${start_port}-$((start_port + max_attempts - 1))"
+  return 1
 }
 
 # Check if Serena MCP server is healthy using port connectivity
 check_serena_server_health() {
-    local port="$1"
-    
-    # Use multiple methods to check if port is responding
-    # Method 1: bash TCP check
-    if timeout "$SERENA_HEALTH_CHECK_TIMEOUT" bash -c "echo >/dev/tcp/localhost/$port" 2>/dev/null; then
-        return 0
+  local port="$1"
+
+  # Use multiple methods to check if port is responding
+  # Method 1: bash TCP check
+  if timeout "$SERENA_HEALTH_CHECK_TIMEOUT" bash -c "echo >/dev/tcp/localhost/$port" 2>/dev/null; then
+    return 0
+  fi
+
+  # Method 2: netcat if available
+  if command -v nc >/dev/null 2>&1 && timeout "$SERENA_HEALTH_CHECK_TIMEOUT" nc -z localhost "$port" 2>/dev/null; then
+    return 0
+  fi
+
+  # Method 3: telnet if available
+  if command -v telnet >/dev/null 2>&1; then
+    if timeout "$SERENA_HEALTH_CHECK_TIMEOUT" bash -c "echo quit | telnet localhost $port" >/dev/null 2>&1; then
+      return 0
     fi
-    
-    # Method 2: netcat if available
-    if command -v nc >/dev/null 2>&1 && timeout "$SERENA_HEALTH_CHECK_TIMEOUT" nc -z localhost "$port" 2>/dev/null; then
-        return 0
+  fi
+
+  # Method 4: curl if available (though Serena may not have HTTP endpoint)
+  if command -v curl >/dev/null 2>&1; then
+    if timeout "$SERENA_HEALTH_CHECK_TIMEOUT" curl -s "http://localhost:$port/" >/dev/null 2>&1; then
+      return 0
     fi
-    
-    # Method 3: telnet if available
-    if command -v telnet >/dev/null 2>&1; then
-        if timeout "$SERENA_HEALTH_CHECK_TIMEOUT" bash -c "echo quit | telnet localhost $port" >/dev/null 2>&1; then
-            return 0
-        fi
-    fi
-    
-    # Method 4: curl if available (though Serena may not have HTTP endpoint)
-    if command -v curl >/dev/null 2>&1; then
-        if timeout "$SERENA_HEALTH_CHECK_TIMEOUT" curl -s "http://localhost:$port/" >/dev/null 2>&1; then
-            return 0
-        fi
-    fi
-    
-    return 1
+  fi
+
+  return 1
 }
 
 # Start Serena MCP server with memory limits and logging
 # Wrapper function with retry logic and enhanced failsafe
 start_serena_mcp_server_with_retry() {
-    local port="$1"
-    local max_retries="${SERENA_MAX_RETRIES:-3}"
-    local retry_count=0
-    
-    while (( retry_count < max_retries )); do
-        log_info "Starting Serena MCP server (attempt $((retry_count + 1))/$max_retries)"
-        
-        # Run failsafe cleanup before each attempt
-        if ! failsafe_cleanup_serena_processes; then
-            log_warn "Failsafe cleanup reported issues, but continuing with startup attempt"
-        fi
-        
-        # Attempt to start the server
-        if start_serena_mcp_server "$port"; then
-            log_success "Serena MCP server started successfully on attempt $((retry_count + 1))"
-            return 0
-        fi
-        
-        retry_count=$((retry_count + 1))
-        if (( retry_count < max_retries )); then
-            log_warn "Serena startup failed, retrying in 3 seconds... (attempt $retry_count/$max_retries)"
-            sleep 3
-            
-            # Force cleanup between retries
-            cleanup_serena_server >/dev/null 2>&1
-            sleep 1
-        fi
-    done
-    
-    log_error "Failed to start Serena MCP server after $max_retries attempts"
-    return 1
+  local port="$1"
+  local max_retries="${SERENA_MAX_RETRIES:-3}"
+  local retry_count=0
+
+  while ((retry_count < max_retries)); do
+    log_info "Starting Serena MCP server (attempt $((retry_count + 1))/$max_retries)"
+
+    # Run failsafe cleanup before each attempt
+    if ! failsafe_cleanup_serena_processes; then
+      log_warn "Failsafe cleanup reported issues, but continuing with startup attempt"
+    fi
+
+    # Attempt to start the server
+    if start_serena_mcp_server "$port"; then
+      log_success "Serena MCP server started successfully on attempt $((retry_count + 1))"
+      return 0
+    fi
+
+    retry_count=$((retry_count + 1))
+    if ((retry_count < max_retries)); then
+      log_warn "Serena startup failed, retrying in 3 seconds... (attempt $retry_count/$max_retries)"
+      sleep 3
+
+      # Force cleanup between retries
+      cleanup_serena_server >/dev/null 2>&1
+      sleep 1
+    fi
+  done
+
+  log_error "Failed to start Serena MCP server after $max_retries attempts"
+  return 1
 }
 
 start_serena_mcp_server() {
-    local port="$1"
-    local log_file=".compass/logs/serena-mcp-server.log"
-    local pid_file=".compass/serena-mcp-server.pid"
-    
-    log_info "Starting Serena MCP server on port ${port}..."
-    
-    # Ensure log and state directories exist
-    mkdir -p "$(dirname "$log_file")"
-    mkdir -p .compass
-    
-    # Enhanced failsafe cleanup before startup
-    failsafe_cleanup_serena_processes
-    
-    # Clean up any existing server first
-    cleanup_serena_server >/dev/null 2>&1
-    
-    # Start server in background with logging and timeout protection
-    {
-        # Use timeout to prevent hanging during server startup
-        timeout 15 uvx --from git+https://github.com/oraios/serena \
-            serena start-mcp-server \
-            --transport sse \
-            --port "$port" \
-            --context ide-assistant 2>&1 | \
-        while IFS= read -r line; do
-            echo "$(date '+%Y-%m-%d %H:%M:%S') [SERENA] $line"
-        done
-        
-        # If timeout occurred, log it
-        if [[ $? -eq 124 ]]; then
-            echo "$(date '+%Y-%m-%d %H:%M:%S') [SERENA] ERROR: Server startup timed out after 15 seconds"
-        fi
-    } >"$log_file" 2>&1 &
-    
-    local server_pid=$!
-    echo "$server_pid" > "$pid_file"
-    SERENA_PID="$server_pid"
-    
-    log_debug "Serena MCP server started with PID: $server_pid"
-    
-    # Health check with timeout - more robust approach
-    local max_wait="$SERENA_STARTUP_TIMEOUT"
-    local wait_time=0
-    local health_check_interval=1
-    
-    log_info "Waiting for Serena MCP server to become healthy..."
-    
-    # Give server a moment to start before checking
-    sleep 2
-    
-    while (( wait_time < max_wait )); do
-        # First check if the process is still running
-        if ! kill -0 "$server_pid" 2>/dev/null; then
-            log_error "Serena MCP server process died during startup (PID: $server_pid)"
-            cleanup_serena_server
-            return 1
-        fi
-        
-        # Then check if port is responding with shorter timeout for faster failure detection
-        if timeout 2 bash -c "echo >/dev/tcp/localhost/$port" 2>/dev/null; then
-            log_success "Serena MCP server healthy on port $port"
-            SERENA_PORT="$port"
-            cache_serena_state "$port" "$server_pid"
-            return 0
-        fi
-        
-        sleep "$health_check_interval"
-        wait_time=$((wait_time + health_check_interval))
-        
-        # Provide feedback every few seconds to show progress
-        if (( wait_time % 3 == 0 )); then
-            log_debug "Still waiting for Serena server on port $port (${wait_time}/${max_wait}s)"
-        fi
-    done
-    
-    log_warn "Serena MCP server failed to respond within ${max_wait} seconds - cleanup and continue"
-    cleanup_serena_server
-    return 1
+  local port="$1"
+  local log_file=".compass/logs/serena-mcp-server.log"
+  local pid_file=".compass/serena-mcp-server.pid"
+
+  log_info "Starting Serena MCP server on port ${port}..."
+
+  # Ensure log and state directories exist
+  mkdir -p "$(dirname "$log_file")"
+  mkdir -p .compass
+
+  # Enhanced failsafe cleanup before startup
+  failsafe_cleanup_serena_processes
+
+  # Clean up any existing server first
+  cleanup_serena_server >/dev/null 2>&1
+
+  # Start server in background with logging and timeout protection
+  {
+    # Use timeout to prevent hanging during server startup
+    timeout 15 uvx --from git+https://github.com/oraios/serena \
+      serena start-mcp-server \
+      --transport sse \
+      --port "$port" \
+      --context ide-assistant 2>&1 |
+      while IFS= read -r line; do
+        echo "$(date '+%Y-%m-%d %H:%M:%S') [SERENA] $line"
+      done
+
+    # If timeout occurred, log it
+    if [[ $? -eq 124 ]]; then
+      echo "$(date '+%Y-%m-%d %H:%M:%S') [SERENA] ERROR: Server startup timed out after 15 seconds"
+    fi
+  } >"$log_file" 2>&1 &
+
+  local server_pid=$!
+  echo "$server_pid" >"$pid_file"
+  SERENA_PID="$server_pid"
+
+  log_debug "Serena MCP server started with PID: $server_pid"
+
+  # Health check with timeout - more robust approach
+  local max_wait="$SERENA_STARTUP_TIMEOUT"
+  local wait_time=0
+  local health_check_interval=1
+
+  log_info "Waiting for Serena MCP server to become healthy..."
+
+  # Give server a moment to start before checking
+  sleep 2
+
+  while ((wait_time < max_wait)); do
+    # First check if the process is still running
+    if ! kill -0 "$server_pid" 2>/dev/null; then
+      log_error "Serena MCP server process died during startup (PID: $server_pid)"
+      cleanup_serena_server
+      return 1
+    fi
+
+    # Then check if port is responding with shorter timeout for faster failure detection
+    if timeout 2 bash -c "echo >/dev/tcp/localhost/$port" 2>/dev/null; then
+      log_success "Serena MCP server healthy on port $port"
+      SERENA_PORT="$port"
+      cache_serena_state "$port" "$server_pid"
+      return 0
+    fi
+
+    sleep "$health_check_interval"
+    wait_time=$((wait_time + health_check_interval))
+
+    # Provide feedback every few seconds to show progress
+    if ((wait_time % 3 == 0)); then
+      log_debug "Still waiting for Serena server on port $port (${wait_time}/${max_wait}s)"
+    fi
+  done
+
+  log_warn "Serena MCP server failed to respond within ${max_wait} seconds - cleanup and continue"
+  cleanup_serena_server
+  return 1
 }
 
 # Monitor Serena server health and recover if needed
 monitor_serena_server() {
-    local port="$1"
-    local pid_file=".compass/serena-monitor.pid"
-    local monitor_log=".compass/logs/serena-monitor.log"
-    
-    # Ensure log directory exists
-    mkdir -p "$(dirname "$monitor_log")"
-    
-    # Note: PID file will be written by parent process after backgrounding
-    # Do not write PID here to avoid race condition
-    
-    # Log function for monitor (writes to file instead of terminal)
-    monitor_log() {
-        local level="$1"
-        shift
-        echo "$(date '+%Y-%m-%d %H:%M:%S') [$level] $*" >> "$monitor_log"
-    }
-    
-    monitor_log "INFO" "Starting Serena MCP server health monitoring (PID: $$)"
-    
-    local consecutive_failures=0
-    local max_consecutive_failures=5
-    
-    while true; do
-        if ! check_serena_server_health "$port"; then
-            consecutive_failures=$((consecutive_failures + 1))
-            monitor_log "WARN" "Serena MCP server unhealthy (failure $consecutive_failures/$max_consecutive_failures), attempting recovery..."
-            
-            if attempt_serena_recovery "true"; then
-                monitor_log "SUCCESS" "Serena MCP server recovered successfully"
-                consecutive_failures=0  # Reset failure counter on success
-            else
-                monitor_log "ERROR" "Serena MCP server recovery failed (attempt $consecutive_failures)"
-                
-                # Only stop monitoring after repeated failures
-                if (( consecutive_failures >= max_consecutive_failures )); then
-                    monitor_log "ERROR" "Max consecutive failures reached - entering degraded monitoring mode"
-                    # Continue monitoring but with longer intervals and no recovery attempts
-                    while true; do
-                        sleep $((SERENA_MONITOR_INTERVAL * 3))  # 3x normal interval
-                        if check_serena_server_health "$port"; then
-                            monitor_log "INFO" "Serena MCP server spontaneously recovered - resuming normal monitoring"
-                            consecutive_failures=0
-                            break  # Exit degraded mode and resume normal monitoring
-                        fi
-                        monitor_log "DEBUG" "Degraded monitoring: server still unhealthy"
-                    done
-                fi
+  local port="$1"
+  local pid_file=".compass/serena-monitor.pid"
+  local monitor_log=".compass/logs/serena-monitor.log"
+
+  # Ensure log directory exists
+  mkdir -p "$(dirname "$monitor_log")"
+
+  # Note: PID file will be written by parent process after backgrounding
+  # Do not write PID here to avoid race condition
+
+  # Log function for monitor (writes to file instead of terminal)
+  monitor_log() {
+    local level="$1"
+    shift
+    echo "$(date '+%Y-%m-%d %H:%M:%S') [$level] $*" >>"$monitor_log"
+  }
+
+  monitor_log "INFO" "Starting Serena MCP server health monitoring (PID: $$)"
+
+  local consecutive_failures=0
+  local max_consecutive_failures=5
+
+  while true; do
+    if ! check_serena_server_health "$port"; then
+      consecutive_failures=$((consecutive_failures + 1))
+      monitor_log "WARN" "Serena MCP server unhealthy (failure $consecutive_failures/$max_consecutive_failures), attempting recovery..."
+
+      if attempt_serena_recovery "true"; then
+        monitor_log "SUCCESS" "Serena MCP server recovered successfully"
+        consecutive_failures=0 # Reset failure counter on success
+      else
+        monitor_log "ERROR" "Serena MCP server recovery failed (attempt $consecutive_failures)"
+
+        # Only stop monitoring after repeated failures
+        if ((consecutive_failures >= max_consecutive_failures)); then
+          monitor_log "ERROR" "Max consecutive failures reached - entering degraded monitoring mode"
+          # Continue monitoring but with longer intervals and no recovery attempts
+          while true; do
+            sleep $((SERENA_MONITOR_INTERVAL * 3)) # 3x normal interval
+            if check_serena_server_health "$port"; then
+              monitor_log "INFO" "Serena MCP server spontaneously recovered - resuming normal monitoring"
+              consecutive_failures=0
+              break # Exit degraded mode and resume normal monitoring
             fi
-        else
-            if (( consecutive_failures > 0 )); then
-                monitor_log "INFO" "Health check passed after $consecutive_failures failures - normal operation resumed"
-            fi
-            consecutive_failures=0
-            monitor_log "DEBUG" "Serena MCP server health check passed"
-            update_serena_metrics "$port"
+            monitor_log "DEBUG" "Degraded monitoring: server still unhealthy"
+          done
         fi
-        
-        sleep "$SERENA_MONITOR_INTERVAL"
-    done
-    
-    # Clean up monitor PID file
-    rm -f "$pid_file"
-    monitor_log "INFO" "Serena MCP server monitoring stopped"
-    
-    # Exit cleanly to prevent zombie processes
-    exit 0
+      fi
+    else
+      if ((consecutive_failures > 0)); then
+        monitor_log "INFO" "Health check passed after $consecutive_failures failures - normal operation resumed"
+      fi
+      consecutive_failures=0
+      monitor_log "DEBUG" "Serena MCP server health check passed"
+      update_serena_metrics "$port"
+    fi
+
+    sleep "$SERENA_MONITOR_INTERVAL"
+  done
+
+  # Clean up monitor PID file
+  rm -f "$pid_file"
+  monitor_log "INFO" "Serena MCP server monitoring stopped"
+
+  # Exit cleanly to prevent zombie processes
+  exit 0
 }
 
 # Attempt to recover Serena MCP server
 attempt_serena_recovery() {
-    local silent_mode="${1:-false}"  # Optional parameter for silent logging
-    local retry_count=0
-    local recovery_delay=10
-    
-    while (( retry_count < SERENA_MAX_RETRIES )); do
-        if [[ "$silent_mode" == "true" ]]; then
-            monitor_log "INFO" "Attempting Serena MCP server recovery (attempt $((retry_count + 1))/$SERENA_MAX_RETRIES)"
-        else
-            log_info "Attempting Serena MCP server recovery (attempt $((retry_count + 1))/$SERENA_MAX_RETRIES)"
-        fi
-        
-        if [[ "$silent_mode" == "true" ]]; then
-            cleanup_serena_server "true"
-        else
-            cleanup_serena_server
-        fi
-        sleep "$recovery_delay"
-        
-        local serena_port
-        if [[ "$silent_mode" == "true" ]]; then
-            # In silent mode, redirect all output from recovery operations to the monitor log
-            if serena_port=$(find_available_port "$SERENA_DEFAULT_PORT" 2>/dev/null); then
-                if start_serena_mcp_server_with_retry "$serena_port" >/dev/null 2>&1; then
-                    if register_serena_with_claude "$serena_port" >/dev/null 2>&1; then
-                        monitor_log "SUCCESS" "Serena MCP server recovery successful"
-                        return 0
-                    fi
-                fi
-            fi
-        else
-            # Normal mode with regular logging
-            if serena_port=$(find_available_port "$SERENA_DEFAULT_PORT"); then
-                if start_serena_mcp_server_with_retry "$serena_port"; then
-                    if register_serena_with_claude "$serena_port"; then
-                        log_success "Serena MCP server recovery successful"
-                        return 0
-                    fi
-                fi
-            fi
-        fi
-        
-        retry_count=$((retry_count + 1))
-        recovery_delay=$((recovery_delay * 2))  # Exponential backoff
-    done
-    
+  local silent_mode="${1:-false}" # Optional parameter for silent logging
+  local retry_count=0
+  local recovery_delay=10
+
+  while ((retry_count < SERENA_MAX_RETRIES)); do
     if [[ "$silent_mode" == "true" ]]; then
-        monitor_log "ERROR" "Serena MCP server recovery failed after $SERENA_MAX_RETRIES attempts"
+      monitor_log "INFO" "Attempting Serena MCP server recovery (attempt $((retry_count + 1))/$SERENA_MAX_RETRIES)"
     else
-        log_error "Serena MCP server recovery failed after $SERENA_MAX_RETRIES attempts"
+      log_info "Attempting Serena MCP server recovery (attempt $((retry_count + 1))/$SERENA_MAX_RETRIES)"
     fi
-    return 1
+
+    if [[ "$silent_mode" == "true" ]]; then
+      cleanup_serena_server "true"
+    else
+      cleanup_serena_server
+    fi
+    sleep "$recovery_delay"
+
+    local serena_port
+    if [[ "$silent_mode" == "true" ]]; then
+      # In silent mode, redirect all output from recovery operations to the monitor log
+      if serena_port=$(find_available_port "$SERENA_DEFAULT_PORT" 2>/dev/null); then
+        if start_serena_mcp_server_with_retry "$serena_port" >/dev/null 2>&1; then
+          if register_serena_with_claude "$serena_port" >/dev/null 2>&1; then
+            monitor_log "SUCCESS" "Serena MCP server recovery successful"
+            return 0
+          fi
+        fi
+      fi
+    else
+      # Normal mode with regular logging
+      if serena_port=$(find_available_port "$SERENA_DEFAULT_PORT"); then
+        if start_serena_mcp_server_with_retry "$serena_port"; then
+          if register_serena_with_claude "$serena_port"; then
+            log_success "Serena MCP server recovery successful"
+            return 0
+          fi
+        fi
+      fi
+    fi
+
+    retry_count=$((retry_count + 1))
+    recovery_delay=$((recovery_delay * 2)) # Exponential backoff
+  done
+
+  if [[ "$silent_mode" == "true" ]]; then
+    monitor_log "ERROR" "Serena MCP server recovery failed after $SERENA_MAX_RETRIES attempts"
+  else
+    log_error "Serena MCP server recovery failed after $SERENA_MAX_RETRIES attempts"
+  fi
+  return 1
 }
 
 # Register Serena MCP server with Claude
 register_serena_with_claude() {
-    local port="$1"
-    local server_url="http://localhost:${port}/sse"
-    
-    log_info "Registering Serena MCP server with Claude..."
-    
-    # Check if Claude command is available
-    if ! command -v claude >/dev/null 2>&1; then
-        log_warn "Claude command not available - skipping MCP registration"
-        return 1
-    fi
-    
-    # Check if already registered
-    if claude mcp list 2>/dev/null | grep -q "serena.*${port}"; then
-        log_info "Serena MCP server already registered with Claude"
-        return 0
-    fi
-    
-    # Register with Claude MCP system
-    if claude mcp add serena --transport sse "$server_url" 2>/dev/null; then
-        log_success "Serena MCP server registered with Claude successfully"
-        
-        # Verify registration
-        sleep 2  # Give Claude time to update
-        if claude mcp list 2>/dev/null | grep -q "serena"; then
-            log_success "Serena MCP server registration verified"
-            return 0
-        else
-            log_warn "Serena MCP server registration could not be verified"
-            return 1
-        fi
+  local port="$1"
+  local server_url="http://localhost:${port}/sse"
+
+  log_info "Registering Serena MCP server with Claude..."
+
+  # Check if Claude command is available
+  if ! command -v claude >/dev/null 2>&1; then
+    log_warn "Claude command not available - skipping MCP registration"
+    return 1
+  fi
+
+  # Check if already registered
+  if claude mcp list 2>/dev/null | grep -q "serena.*${port}"; then
+    log_info "Serena MCP server already registered with Claude"
+    return 0
+  fi
+
+  # Register with Claude MCP system
+  if claude mcp add serena --transport sse "$server_url" 2>/dev/null; then
+    log_success "Serena MCP server registered with Claude successfully"
+
+    # Verify registration
+    sleep 2 # Give Claude time to update
+    if claude mcp list 2>/dev/null | grep -q "serena"; then
+      log_success "Serena MCP server registration verified"
+      return 0
     else
-        log_error "Failed to register Serena MCP server with Claude"
-        return 1
+      log_warn "Serena MCP server registration could not be verified"
+      return 1
     fi
+  else
+    log_error "Failed to register Serena MCP server with Claude"
+    return 1
+  fi
 }
 
 # Configure Claude settings for Serena MCP integration
 configure_serena_mcp_settings() {
-    local port="$1"
-    local config_file="$HOME/.claude/settings.json"
-    
-    log_info "Configuring Serena MCP settings in Claude..."
-    
-    # Ensure Claude config directory exists
-    mkdir -p "$(dirname "$config_file")"
-    
-    # Create or update Claude settings for Serena integration
-    python3 << EOF
+  local port="$1"
+  local config_file="$HOME/.claude/settings.json"
+
+  log_info "Configuring Serena MCP settings in Claude..."
+
+  # Ensure Claude config directory exists
+  mkdir -p "$(dirname "$config_file")"
+
+  # Create or update Claude settings for Serena integration
+  python3 <<EOF
 import json
 import os
 from pathlib import Path
@@ -492,24 +498,24 @@ with open(config_path, 'w') as f:
 print("Serena MCP configuration updated successfully")
 EOF
 
-    if [[ $? -eq 0 ]]; then
-        log_success "Serena MCP settings configured in Claude"
-        return 0
-    else
-        log_error "Failed to configure Serena MCP settings"
-        return 1
-    fi
+  if [[ $? -eq 0 ]]; then
+    log_success "Serena MCP settings configured in Claude"
+    return 0
+  else
+    log_error "Failed to configure Serena MCP settings"
+    return 1
+  fi
 }
 
 # Cache Serena server state for monitoring
 cache_serena_state() {
-    local port="$1"
-    local pid="$2"
-    local cache_dir=".compass/cache/serena"
-    
-    mkdir -p "$cache_dir"
-    
-    cat > "$cache_dir/server-state.json" << EOF
+  local port="$1"
+  local pid="$2"
+  local cache_dir=".compass/cache/serena"
+
+  mkdir -p "$cache_dir"
+
+  cat >"$cache_dir/server-state.json" <<EOF
 {
     "port": $port,
     "pid": $pid,
@@ -523,494 +529,776 @@ EOF
 
 # Update Serena server metrics
 update_serena_metrics() {
-    local port="$1"
-    local metrics_file=".compass/logs/serena-metrics.log"
-    
-    # Ensure log directory exists
-    mkdir -p "$(dirname "$metrics_file")"
-    
-    # Get server PID
-    local server_pid
-    if [[ -f ".compass/serena-mcp-server.pid" ]]; then
-        server_pid=$(cat .compass/serena-mcp-server.pid)
-    else
-        server_pid="unknown"
-    fi
-    
-    # Get memory usage if possible
-    local memory_usage="unknown"
-    if [[ "$server_pid" != "unknown" ]] && kill -0 "$server_pid" 2>/dev/null; then
-        memory_usage=$(ps -o rss= -p "$server_pid" 2>/dev/null | awk '{print $1/1024 " MB"}' || echo "unknown")
-    fi
-    
-    # Log metrics
-    {
-        echo "$(date -Iseconds) SERENA_METRICS"
-        echo "  Port: $port"
-        echo "  PID: $server_pid"
-        echo "  Memory: $memory_usage"
-        echo "  Health: $(check_serena_server_health "$port" && echo 'healthy' || echo 'unhealthy')"
-        echo "  Uptime: $(ps -o etime= -p "$server_pid" 2>/dev/null | tr -d ' ' || echo 'unknown')"
-    } >> "$metrics_file"
+  local port="$1"
+  local metrics_file=".compass/logs/serena-metrics.log"
+
+  # Ensure log directory exists
+  mkdir -p "$(dirname "$metrics_file")"
+
+  # Get server PID
+  local server_pid
+  if [[ -f ".compass/serena-mcp-server.pid" ]]; then
+    server_pid=$(cat .compass/serena-mcp-server.pid)
+  else
+    server_pid="unknown"
+  fi
+
+  # Get memory usage if possible
+  local memory_usage="unknown"
+  if [[ "$server_pid" != "unknown" ]] && kill -0 "$server_pid" 2>/dev/null; then
+    memory_usage=$(ps -o rss= -p "$server_pid" 2>/dev/null | awk '{print $1/1024 " MB"}' || echo "unknown")
+  fi
+
+  # Log metrics
+  {
+    echo "$(date -Iseconds) SERENA_METRICS"
+    echo "  Port: $port"
+    echo "  PID: $server_pid"
+    echo "  Memory: $memory_usage"
+    echo "  Health: $(check_serena_server_health "$port" && echo 'healthy' || echo 'unhealthy')"
+    echo "  Uptime: $(ps -o etime= -p "$server_pid" 2>/dev/null | tr -d ' ' || echo 'unknown')"
+  } >>"$metrics_file"
 }
 
 # Clean up Serena MCP server processes and state
 # Enhanced failsafe cleanup to handle orphaned processes and port conflicts
 failsafe_cleanup_serena_processes() {
-    log_debug "Running failsafe Serena process cleanup..."
-    
-    # 1. Check if target port is in use and identify processes
-    local target_port="${SERENA_PORT:-$SERENA_DEFAULT_PORT}"
-    local port_pids=$(lsof -ti :"$target_port" 2>/dev/null || true)
-    
-    if [[ -n "$port_pids" ]]; then
-        log_warn "Port $target_port is in use by processes: $port_pids"
-        # Kill processes using the target port
-        echo "$port_pids" | xargs -r kill -TERM 2>/dev/null || true
-        sleep 2
-        # Force kill if still running
-        echo "$port_pids" | xargs -r kill -KILL 2>/dev/null || true
+  log_debug "Running failsafe Serena process cleanup..."
+
+  # 1. Check if target port is in use and identify processes
+  local target_port="${SERENA_PORT:-$SERENA_DEFAULT_PORT}"
+  local port_pids=$(lsof -ti :"$target_port" 2>/dev/null || true)
+
+  if [[ -n "$port_pids" ]]; then
+    log_warn "Port $target_port is in use by processes: $port_pids"
+    # Kill processes using the target port
+    echo "$port_pids" | xargs -r kill -TERM 2>/dev/null || true
+    sleep 2
+    # Force kill if still running
+    echo "$port_pids" | xargs -r kill -KILL 2>/dev/null || true
+  fi
+
+  # 2. Find all Serena processes regardless of PID files
+  local serena_pids=$(pgrep -f "serena start-mcp-server" 2>/dev/null || true)
+  if [[ -n "$serena_pids" ]]; then
+    log_warn "Found orphaned Serena processes: $serena_pids"
+    echo "$serena_pids" | xargs -r kill -TERM 2>/dev/null || true
+    sleep 2
+    # Force kill if still running
+    echo "$serena_pids" | xargs -r kill -KILL 2>/dev/null || true
+  fi
+
+  # 3. Clean up uvx processes that might be hanging
+  local uvx_serena_pids=$(pgrep -f "uvx.*serena" 2>/dev/null || true)
+  if [[ -n "$uvx_serena_pids" ]]; then
+    log_warn "Found orphaned uvx Serena processes: $uvx_serena_pids"
+    echo "$uvx_serena_pids" | xargs -r kill -TERM 2>/dev/null || true
+    sleep 1
+    echo "$uvx_serena_pids" | xargs -r kill -KILL 2>/dev/null || true
+  fi
+
+  # 4. Validate and clean up stale PID files
+  local pid_file=".compass/serena-mcp-server.pid"
+  local monitor_pid_file=".compass/serena-monitor.pid"
+
+  if [[ -f "$pid_file" ]]; then
+    local recorded_pid=$(cat "$pid_file" 2>/dev/null || true)
+    if [[ -n "$recorded_pid" ]] && ! kill -0 "$recorded_pid" 2>/dev/null; then
+      log_debug "Removing stale PID file for non-existent process: $recorded_pid"
+      rm -f "$pid_file"
     fi
-    
-    # 2. Find all Serena processes regardless of PID files
-    local serena_pids=$(pgrep -f "serena start-mcp-server" 2>/dev/null || true)
-    if [[ -n "$serena_pids" ]]; then
-        log_warn "Found orphaned Serena processes: $serena_pids"
-        echo "$serena_pids" | xargs -r kill -TERM 2>/dev/null || true
-        sleep 2
-        # Force kill if still running
-        echo "$serena_pids" | xargs -r kill -KILL 2>/dev/null || true
+  fi
+
+  if [[ -f "$monitor_pid_file" ]]; then
+    local recorded_monitor_pid=$(cat "$monitor_pid_file" 2>/dev/null || true)
+    if [[ -n "$recorded_monitor_pid" ]] && ! kill -0 "$recorded_monitor_pid" 2>/dev/null; then
+      log_debug "Removing stale monitor PID file for non-existent process: $recorded_monitor_pid"
+      rm -f "$monitor_pid_file"
     fi
-    
-    # 3. Clean up uvx processes that might be hanging
-    local uvx_serena_pids=$(pgrep -f "uvx.*serena" 2>/dev/null || true)
-    if [[ -n "$uvx_serena_pids" ]]; then
-        log_warn "Found orphaned uvx Serena processes: $uvx_serena_pids"
-        echo "$uvx_serena_pids" | xargs -r kill -TERM 2>/dev/null || true
-        sleep 1
-        echo "$uvx_serena_pids" | xargs -r kill -KILL 2>/dev/null || true
-    fi
-    
-    # 4. Validate and clean up stale PID files
-    local pid_file=".compass/serena-mcp-server.pid"
-    local monitor_pid_file=".compass/serena-monitor.pid"
-    
-    if [[ -f "$pid_file" ]]; then
-        local recorded_pid=$(cat "$pid_file" 2>/dev/null || true)
-        if [[ -n "$recorded_pid" ]] && ! kill -0 "$recorded_pid" 2>/dev/null; then
-            log_debug "Removing stale PID file for non-existent process: $recorded_pid"
-            rm -f "$pid_file"
-        fi
-    fi
-    
-    if [[ -f "$monitor_pid_file" ]]; then
-        local recorded_monitor_pid=$(cat "$monitor_pid_file" 2>/dev/null || true)
-        if [[ -n "$recorded_monitor_pid" ]] && ! kill -0 "$recorded_monitor_pid" 2>/dev/null; then
-            log_debug "Removing stale monitor PID file for non-existent process: $recorded_monitor_pid"
-            rm -f "$monitor_pid_file"
-        fi
-    fi
-    
-    # 5. Final port availability check
-    if lsof -ti :"$target_port" >/dev/null 2>&1; then
-        log_error "Port $target_port still in use after cleanup - startup may fail"
-        return 1
-    fi
-    
-    log_debug "Failsafe cleanup completed - port $target_port is available"
-    return 0
+  fi
+
+  # 5. Final port availability check
+  if lsof -ti :"$target_port" >/dev/null 2>&1; then
+    log_error "Port $target_port still in use after cleanup - startup may fail"
+    return 1
+  fi
+
+  log_debug "Failsafe cleanup completed - port $target_port is available"
+  return 0
 }
 
 cleanup_serena_server() {
-    local silent_mode="${1:-false}"  # Optional parameter for silent operation
-    
-    if [[ "$silent_mode" == "true" ]]; then
-        monitor_log "DEBUG" "Cleaning up Serena MCP server..."
-    else
-        log_debug "Cleaning up Serena MCP server..."
+  local silent_mode="${1:-false}" # Optional parameter for silent operation
+
+  if [[ "$silent_mode" == "true" ]]; then
+    monitor_log "DEBUG" "Cleaning up Serena MCP server..."
+  else
+    log_debug "Cleaning up Serena MCP server..."
+  fi
+
+  local pid_file=".compass/serena-mcp-server.pid"
+  local monitor_pid_file=".compass/serena-monitor.pid"
+
+  # Stop health monitoring first
+  if [[ -f "$monitor_pid_file" ]]; then
+    local monitor_pid=$(cat "$monitor_pid_file")
+    if kill -0 "$monitor_pid" 2>/dev/null; then
+      if [[ "$silent_mode" == "true" ]]; then
+        monitor_log "DEBUG" "Stopping Serena health monitor (PID: $monitor_pid)"
+      else
+        log_debug "Stopping Serena health monitor (PID: $monitor_pid)"
+      fi
+      kill -TERM "$monitor_pid" 2>/dev/null
     fi
-    
-    local pid_file=".compass/serena-mcp-server.pid"
-    local monitor_pid_file=".compass/serena-monitor.pid"
-    
-    # Stop health monitoring first
-    if [[ -f "$monitor_pid_file" ]]; then
-        local monitor_pid=$(cat "$monitor_pid_file")
-        if kill -0 "$monitor_pid" 2>/dev/null; then
-            if [[ "$silent_mode" == "true" ]]; then
-                monitor_log "DEBUG" "Stopping Serena health monitor (PID: $monitor_pid)"
-            else
-                log_debug "Stopping Serena health monitor (PID: $monitor_pid)"
-            fi
-            kill -TERM "$monitor_pid" 2>/dev/null
+    rm -f "$monitor_pid_file"
+  fi
+
+  # Kill server process if running
+  if [[ -f "$pid_file" ]]; then
+    local server_pid=$(cat "$pid_file")
+    if kill -0 "$server_pid" 2>/dev/null; then
+      if [[ "$silent_mode" == "true" ]]; then
+        monitor_log "DEBUG" "Stopping Serena MCP server (PID: $server_pid)"
+      else
+        log_debug "Stopping Serena MCP server (PID: $server_pid)"
+      fi
+      kill -TERM "$server_pid" 2>/dev/null
+
+      # Wait for graceful shutdown
+      local wait_count=0
+      while kill -0 "$server_pid" 2>/dev/null && ((wait_count < 10)); do
+        sleep 1
+        wait_count=$((wait_count + 1))
+      done
+
+      # Force kill if still running
+      if kill -0 "$server_pid" 2>/dev/null; then
+        if [[ "$silent_mode" == "true" ]]; then
+          monitor_log "DEBUG" "Force killing Serena MCP server"
+        else
+          log_debug "Force killing Serena MCP server"
         fi
-        rm -f "$monitor_pid_file"
+        kill -KILL "$server_pid" 2>/dev/null
+      fi
     fi
-    
-    # Kill server process if running
-    if [[ -f "$pid_file" ]]; then
-        local server_pid=$(cat "$pid_file")
-        if kill -0 "$server_pid" 2>/dev/null; then
-            if [[ "$silent_mode" == "true" ]]; then
-                monitor_log "DEBUG" "Stopping Serena MCP server (PID: $server_pid)"
-            else
-                log_debug "Stopping Serena MCP server (PID: $server_pid)"
-            fi
-            kill -TERM "$server_pid" 2>/dev/null
-            
-            # Wait for graceful shutdown
-            local wait_count=0
-            while kill -0 "$server_pid" 2>/dev/null && (( wait_count < 10 )); do
-                sleep 1
-                wait_count=$((wait_count + 1))
-            done
-            
-            # Force kill if still running
-            if kill -0 "$server_pid" 2>/dev/null; then
-                if [[ "$silent_mode" == "true" ]]; then
-                    monitor_log "DEBUG" "Force killing Serena MCP server"
-                else
-                    log_debug "Force killing Serena MCP server"
-                fi
-                kill -KILL "$server_pid" 2>/dev/null
-            fi
-        fi
-        
-        rm -f "$pid_file"
-    fi
-    
-    # Clean up any remaining Serena processes
-    pkill -f "serena start-mcp-server" 2>/dev/null || true
-    
-    # Reset global state
-    SERENA_PID=0
-    SERENA_PORT=0
-    SERENA_MONITOR_PID=0
-    
-    if [[ "$silent_mode" == "true" ]]; then
-        monitor_log "DEBUG" "Serena MCP server cleanup completed"
-    else
-        log_debug "Serena MCP server cleanup completed"
-    fi
+
+    rm -f "$pid_file"
+  fi
+
+  # Clean up any remaining Serena processes
+  pkill -f "serena start-mcp-server" 2>/dev/null || true
+
+  # Reset global state
+  SERENA_PID=0
+  SERENA_PORT=0
+  SERENA_MONITOR_PID=0
+
+  if [[ "$silent_mode" == "true" ]]; then
+    monitor_log "DEBUG" "Serena MCP server cleanup completed"
+  else
+    log_debug "Serena MCP server cleanup completed"
+  fi
 }
 
 # Set up signal handlers for graceful shutdown
 setup_serena_signal_handlers() {
-    # Set up signal handlers for graceful shutdown
-    trap 'cleanup_serena_server' INT TERM EXIT
-    
-    log_debug "Serena MCP server signal handlers configured"
+  # Set up signal handlers for graceful shutdown
+  trap 'cleanup_serena_server' INT TERM EXIT
+
+  log_debug "Serena MCP server signal handlers configured"
 }
 
 # Main function to integrate Serena MCP server with COMPASS
 integrate_serena_mcp_server() {
-    log_info "Initializing Serena MCP server integration..."
-    
-    # Check if Serena integration should be enabled
-    if [[ "${SERENA_INTEGRATION_DISABLED:-}" == "true" ]]; then
-        log_info "Serena MCP integration disabled by environment variable"
-        return 0
-    fi
-    
-    # Check Serena availability first (fail fast if not available)
-    if ! check_serena_availability; then
-        log_warn "Serena not available - continuing without Serena integration"
-        return 1
-    fi
-    
-    # Find available port
-    local serena_port
-    if ! serena_port=$(find_available_port "$SERENA_DEFAULT_PORT"); then
-        log_warn "No available ports for Serena MCP server - continuing without Serena integration"
-        return 1
-    fi
-    
-    # Set up signal handlers
-    setup_serena_signal_handlers
-    
-    # Start Serena MCP server
-    if ! start_serena_mcp_server_with_retry "$serena_port"; then
-        log_warn "Serena MCP server startup failed - continuing without Serena integration"
-        return 1
-    fi
-    
-    # Configure Claude settings
-    if ! configure_serena_mcp_settings "$serena_port"; then
-        log_warn "Serena MCP settings configuration failed - server running but not optimally configured"
-    fi
-    
-    # Register with Claude
-    if ! register_serena_with_claude "$serena_port"; then
-        log_warn "Claude MCP registration failed - Serena server running but not integrated with Claude"
-    fi
-    
-    # Start background health monitoring with complete process isolation
-    # Use setsid to create new session and nohup for process isolation
-    {
-        nohup setsid monitor_serena_server "$serena_port" </dev/null >/dev/null 2>&1 &
-        local monitor_pid=$!
-        echo "$monitor_pid" > .compass/serena-monitor.pid
-        SERENA_MONITOR_PID="$monitor_pid"
-        
-        # Disown the background process completely to prevent signal inheritance
-        disown "$monitor_pid" 2>/dev/null || true
-        
-        log_debug "Background monitor started with PID: $monitor_pid"
-    } 2>/dev/null || {
-        log_debug "Background monitor setup completed with fallback"
-    }
-    
-    # Mark integration as successful
-    SERENA_INTEGRATION_ENABLED=true
-    
-    log_success "Serena MCP server integration complete (Port: $serena_port, PID: $SERENA_PID)"
+  log_info "Initializing Serena MCP server integration..."
+
+  # Check if Serena integration should be enabled
+  if [[ "${SERENA_INTEGRATION_DISABLED:-}" == "true" ]]; then
+    log_info "Serena MCP integration disabled by environment variable"
     return 0
+  fi
+
+  # Check Serena availability first (fail fast if not available)
+  if ! check_serena_availability; then
+    log_warn "Serena not available - continuing without Serena integration"
+    return 1
+  fi
+
+  # Find available port
+  local serena_port
+  if ! serena_port=$(find_available_port "$SERENA_DEFAULT_PORT"); then
+    log_warn "No available ports for Serena MCP server - continuing without Serena integration"
+    return 1
+  fi
+
+  # Set up signal handlers
+  setup_serena_signal_handlers
+
+  # Start Serena MCP server
+  if ! start_serena_mcp_server_with_retry "$serena_port"; then
+    log_warn "Serena MCP server startup failed - continuing without Serena integration"
+    return 1
+  fi
+
+  # Configure Claude settings
+  if ! configure_serena_mcp_settings "$serena_port"; then
+    log_warn "Serena MCP settings configuration failed - server running but not optimally configured"
+  fi
+
+  # Register with Claude
+  if ! register_serena_with_claude "$serena_port"; then
+    log_warn "Claude MCP registration failed - Serena server running but not integrated with Claude"
+  fi
+
+  # Start background health monitoring with complete process isolation
+  # Use setsid to create new session and nohup for process isolation
+  {
+    nohup setsid monitor_serena_server "$serena_port" </dev/null >/dev/null 2>&1 &
+    local monitor_pid=$!
+    echo "$monitor_pid" >.compass/serena-monitor.pid
+    SERENA_MONITOR_PID="$monitor_pid"
+
+    # Disown the background process completely to prevent signal inheritance
+    disown "$monitor_pid" 2>/dev/null || true
+
+    log_debug "Background monitor started with PID: $monitor_pid"
+  } 2>/dev/null || {
+    log_debug "Background monitor setup completed with fallback"
+  }
+
+  # Mark integration as successful
+  SERENA_INTEGRATION_ENABLED=true
+
+  log_success "Serena MCP server integration complete (Port: $serena_port, PID: $SERENA_PID)"
+  return 0
 }
 
 # Function to check Serena integration status
 check_serena_integration_status() {
-    # Redirect all error-prone operations to prevent Claude startup interference
-    local status_msg="Serena MCP integration: "
-    
-    if [[ "$SERENA_INTEGRATION_ENABLED" == "true" ]] && \
-       [[ "$SERENA_PORT" -gt 0 ]] && \
-       check_serena_server_health "$SERENA_PORT" 2>/dev/null; then
-        echo "${status_msg}Active (Port: $SERENA_PORT)"
+  # Redirect all error-prone operations to prevent Claude startup interference
+  local status_msg="Serena MCP integration: "
+
+  if [[ "$SERENA_INTEGRATION_ENABLED" == "true" ]] &&
+    [[ "$SERENA_PORT" -gt 0 ]] &&
+    check_serena_server_health "$SERENA_PORT" 2>/dev/null; then
+    echo "${status_msg}Active (Port: $SERENA_PORT)"
+    return 0
+  else
+    # Check if monitor is still running despite integration issues
+    if [[ -f ".compass/serena-monitor.pid" ]]; then
+      local monitor_pid
+      monitor_pid=$(cat .compass/serena-monitor.pid 2>/dev/null || echo "")
+      if [[ -n "$monitor_pid" ]] && kill -0 "$monitor_pid" 2>/dev/null; then
+        echo "${status_msg}Monitoring (PID: $monitor_pid)"
         return 0
-    else
-        # Check if monitor is still running despite integration issues
-        if [[ -f ".compass/serena-monitor.pid" ]]; then
-            local monitor_pid
-            monitor_pid=$(cat .compass/serena-monitor.pid 2>/dev/null || echo "")
-            if [[ -n "$monitor_pid" ]] && kill -0 "$monitor_pid" 2>/dev/null; then
-                echo "${status_msg}Monitoring (PID: $monitor_pid)"
-                return 0
-            fi
-        fi
-        
-        echo "${status_msg}Inactive"
-        return 1
+      fi
     fi
+
+    echo "${status_msg}Inactive"
+    return 1
+  fi
 }
 
 #=============================================================================
 # End Serena MCP Integration Functions
 #=============================================================================
 
+#=============================================================================
+# Auto-Update System Functions
+#=============================================================================
+
+# Parse --debug flag early for auto-update bypass
+parse_early_debug_flag() {
+  local arg
+  for arg in "$@"; do
+    case "$arg" in
+    --debug)
+      DEBUG_MODE_EARLY=true
+      AUTO_UPDATE_DISABLED=true
+      export DEBUG=1
+      log_debug "Early debug mode detected - auto-update disabled"
+      return 0
+      ;;
+    --no-auto-update)
+      AUTO_UPDATE_DISABLED=true
+      log_info "Auto-update disabled by flag"
+      return 0
+      ;;
+    esac
+  done
+  return 0
+}
+
+# Get latest version from GitHub API
+get_latest_version() {
+  log_debug "Checking latest version from GitHub API..."
+
+  local latest_version
+  latest_version=$(timeout "$UPDATE_CHECK_TIMEOUT" curl -fsSL \
+    "${GITHUB_API_URL}/releases/latest" 2>/dev/null |
+    python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    tag = data.get('tag_name', '')
+    # Strip 'v' prefix if present
+    version = tag.lstrip('v')
+    print(version)
+except:
+    sys.exit(1)
+" 2>/dev/null)
+
+  if [[ -n "$latest_version" ]]; then
+    echo "$latest_version"
+    return 0
+  else
+    log_debug "Failed to fetch latest version from GitHub API"
+    return 1
+  fi
+}
+
+# Compare version strings (semantic versioning)
+compare_versions() {
+  local current="$1"
+  local latest="$2"
+
+  # Remove any non-version suffixes (like "-serena-integrated", "-auto-update")
+  current=$(echo "$current" | sed 's/-.*$//')
+  latest=$(echo "$latest" | sed 's/-.*$//')
+
+  log_debug "Comparing versions: current='$current' vs latest='$latest'"
+
+  # Use Python for proper semantic version comparison
+  python3 <<EOF
+import sys
+from packaging import version
+
+try:
+    current_ver = version.parse("$current")
+    latest_ver = version.parse("$latest")
+    
+    if latest_ver > current_ver:
+        print("update_available")
+        sys.exit(0)
+    elif latest_ver == current_ver:
+        print("current")
+        sys.exit(0)
+    else:
+        print("newer")
+        sys.exit(0)
+except ImportError:
+    # Fallback to simple string comparison if packaging module unavailable
+    if "$latest" != "$current":
+        print("update_available")
+    else:
+        print("current")
+except Exception as e:
+    print("error")
+    sys.exit(1)
+EOF
+}
+
+# Download latest compass.sh from GitHub
+download_latest_script() {
+  local temp_dir="$1"
+  local script_url="${REPO_URL}/raw/${BRANCH}/compass.sh"
+  local temp_script="${temp_dir}/compass.sh.new"
+
+  log_info "Downloading latest compass.sh from GitHub..."
+  log_debug "Download URL: $script_url"
+
+  if timeout "$UPDATE_CHECK_TIMEOUT" curl -fsSL "$script_url" -o "$temp_script"; then
+    # Verify downloaded script has valid shebang and basic structure
+    if [[ -f "$temp_script" ]] &&
+      head -1 "$temp_script" | grep -q "^#!/bin/bash" &&
+      grep -q "SCRIPT_VERSION=" "$temp_script" &&
+      grep -q "main()" "$temp_script"; then
+      log_success "Downloaded and validated new script version"
+      echo "$temp_script"
+      return 0
+    else
+      log_error "Downloaded script failed validation"
+      return 1
+    fi
+  else
+    log_error "Failed to download latest script from GitHub"
+    return 1
+  fi
+}
+
+# Create backup of current script
+create_script_backup() {
+  local script_path="$1"
+  local backup_path="${script_path}.backup.$(date +%s)"
+
+  if cp "$script_path" "$backup_path"; then
+    log_debug "Created backup: $backup_path"
+    echo "$backup_path"
+    return 0
+  else
+    log_error "Failed to create script backup"
+    return 1
+  fi
+}
+
+# Atomic script replacement
+replace_script_atomically() {
+  local current_script="$1"
+  local new_script="$2"
+  local backup_path="$3"
+
+  log_info "Performing atomic script replacement..."
+
+  # Make new script executable
+  chmod +x "$new_script" || {
+    log_error "Failed to make new script executable"
+    return 1
+  }
+
+  # Atomic move (should be atomic on most filesystems)
+  if mv "$new_script" "$current_script"; then
+    log_success "Script replaced successfully"
+    log_info "Backup available at: $backup_path"
+    return 0
+  else
+    log_error "Failed to replace script"
+    # Restore from backup if move failed
+    if [[ -f "$backup_path" ]]; then
+      cp "$backup_path" "$current_script"
+      log_info "Restored from backup due to replacement failure"
+    fi
+    return 1
+  fi
+}
+
+# Check and perform auto-update
+check_and_auto_update() {
+  if [[ "$AUTO_UPDATE_DISABLED" == "true" ]]; then
+    log_debug "Auto-update disabled, skipping version check"
+    return 0
+  fi
+
+  if [[ "$AUTO_UPDATE_ENABLED" != "true" ]]; then
+    log_debug "Auto-update not enabled, skipping"
+    return 0
+  fi
+
+  if [[ "$SELF_UPDATE_PERFORMED" == "true" ]]; then
+    log_debug "Self-update already performed this session, skipping"
+    return 0
+  fi
+
+  log_info "Checking for compass.sh updates..."
+
+  # Get latest version from GitHub
+  local latest_version
+  if ! latest_version=$(get_latest_version); then
+    log_warn "Could not check for updates - continuing with current version"
+    return 0
+  fi
+
+  # Compare with current version
+  local comparison_result
+  comparison_result=$(compare_versions "$SCRIPT_VERSION" "$latest_version")
+
+  case "$comparison_result" in
+  "update_available")
+    log_info "Update available: v$SCRIPT_VERSION → v$latest_version"
+    perform_auto_update "$latest_version"
+    return $?
+    ;;
+  "current")
+    log_debug "Already running latest version: v$SCRIPT_VERSION"
+    return 0
+    ;;
+  "newer")
+    log_debug "Running newer version than latest release: v$SCRIPT_VERSION"
+    return 0
+    ;;
+  "error")
+    log_warn "Version comparison failed - continuing with current version"
+    return 0
+    ;;
+  *)
+    log_warn "Unknown version comparison result: $comparison_result"
+    return 0
+    ;;
+  esac
+}
+
+# Perform the actual auto-update and restart
+perform_auto_update() {
+  local latest_version="$1"
+  local script_path="${BASH_SOURCE[0]:-$0}"
+
+  # Resolve script path to absolute path
+  script_path=$(readlink -f "$script_path")
+
+  log_info "Performing auto-update to v$latest_version..."
+
+  # Create temporary directory
+  local temp_dir
+  temp_dir=$(mktemp -d) || {
+    log_error "Failed to create temporary directory for update"
+    return 1
+  }
+
+  # Ensure cleanup on exit
+  trap "rm -rf '$temp_dir'" EXIT
+
+  # Download latest script
+  local new_script
+  if ! new_script=$(download_latest_script "$temp_dir"); then
+    log_error "Failed to download latest script"
+    return 1
+  fi
+
+  # Create backup
+  local backup_path
+  if ! backup_path=$(create_script_backup "$script_path"); then
+    log_error "Failed to create backup - aborting update"
+    return 1
+  fi
+
+  # Replace script atomically
+  if ! replace_script_atomically "$script_path" "$new_script" "$backup_path"; then
+    log_error "Failed to replace script - update aborted"
+    return 1
+  fi
+
+  # Mark update as performed to prevent loops
+  SELF_UPDATE_PERFORMED=true
+
+  log_success "Auto-update completed successfully!"
+  log_info "Restarting with updated script..."
+
+  # Restart with new version, preserving all original arguments
+  exec "$script_path" "$@"
+}
+
+#=============================================================================
+# End Auto-Update System Functions
+#=============================================================================
+
 # Print unified banner
 print_banner() {
-    echo -e "${BLUE}"
-    echo "╔══════════════════════════════════════════════════════════════╗"
-    echo "║              COMPASS Unified Setup v${SCRIPT_VERSION}              ║"
-    echo "║           Auto-Update + Memory-Optimized Launcher           ║"
-    echo "╚══════════════════════════════════════════════════════════════╝"
-    echo -e "${NC}"
+  echo -e "${BLUE}"
+  echo "╔══════════════════════════════════════════════════════════════╗"
+  echo "║              COMPASS Unified Setup v${SCRIPT_VERSION}"
+  echo "║        Self-Updating + Memory-Optimized Launcher             ║"
+  echo "╚══════════════════════════════════════════════════════════════╝"
+  echo -e "${NC}"
 }
 
 # Detect operating system
 detect_os() {
-    case "$OSTYPE" in
-        "linux-gnu"*) echo "linux" ;;
-        "darwin"*) echo "macos" ;;
-        "cygwin"|"msys"|"win32") echo "windows" ;;
-        *) echo "unknown" ;;
-    esac
+  case "$OSTYPE" in
+  "linux-gnu"*) echo "linux" ;;
+  "darwin"*) echo "macos" ;;
+  "cygwin" | "msys" | "win32") echo "windows" ;;
+  *) echo "unknown" ;;
+  esac
 }
 
 # Cross-platform memory detection
 get_system_memory_mb() {
-    local total_memory_mb=0
-    local os_type
-    os_type=$(detect_os)
-    
-    log_debug "Detecting system memory on ${os_type}..."
-    
-    case "$os_type" in
-        "linux")
-            if [[ -r "/proc/meminfo" ]]; then
-                local memory_kb
-                memory_kb=$(grep '^MemTotal:' /proc/meminfo | awk '{print $2}')
-                if [[ -n "$memory_kb" && "$memory_kb" =~ ^[0-9]+$ ]]; then
-                    total_memory_mb=$((memory_kb / 1024))
-                    log_debug "Linux memory detection: ${total_memory_mb}MB"
-                fi
-            fi
-            ;;
-        "macos")
-            if command -v sysctl >/dev/null 2>&1; then
-                local memory_bytes
-                memory_bytes=$(sysctl -n hw.memsize 2>/dev/null || echo "0")
-                if [[ -n "$memory_bytes" && "$memory_bytes" =~ ^[0-9]+$ ]] && (( memory_bytes > 0 )); then
-                    total_memory_mb=$((memory_bytes / 1024 / 1024))
-                    log_debug "macOS memory detection: ${total_memory_mb}MB"
-                fi
-            fi
-            ;;
-        "windows")
-            if command -v powershell.exe >/dev/null 2>&1; then
-                local memory_bytes
-                memory_bytes=$(powershell.exe -NoProfile -Command "(Get-WmiObject -Class Win32_ComputerSystem).TotalPhysicalMemory" 2>/dev/null | tr -d '\r' || echo "0")
-                if [[ -n "$memory_bytes" && "$memory_bytes" =~ ^[0-9]+$ ]] && (( memory_bytes > 0 )); then
-                    total_memory_mb=$((memory_bytes / 1024 / 1024))
-                    log_debug "Windows memory detection: ${total_memory_mb}MB"
-                fi
-            fi
-            ;;
-    esac
-    
-    # Fallback: try 'free' command (Linux/WSL)
-    if (( total_memory_mb == 0 )) && command -v free >/dev/null 2>&1; then
-        local memory_kb
-        memory_kb=$(free -k | awk '/^Mem:/ {print $2}' 2>/dev/null || echo "0")
-        if [[ -n "$memory_kb" && "$memory_kb" =~ ^[0-9]+$ ]] && (( memory_kb > 0 )); then
-            total_memory_mb=$((memory_kb / 1024))
-            log_debug "Fallback memory detection: ${total_memory_mb}MB"
-        fi
+  local total_memory_mb=0
+  local os_type
+  os_type=$(detect_os)
+
+  log_debug "Detecting system memory on ${os_type}..."
+
+  case "$os_type" in
+  "linux")
+    if [[ -r "/proc/meminfo" ]]; then
+      local memory_kb
+      memory_kb=$(grep '^MemTotal:' /proc/meminfo | awk '{print $2}')
+      if [[ -n "$memory_kb" && "$memory_kb" =~ ^[0-9]+$ ]]; then
+        total_memory_mb=$((memory_kb / 1024))
+        log_debug "Linux memory detection: ${total_memory_mb}MB"
+      fi
     fi
-    
-    echo "$total_memory_mb"
+    ;;
+  "macos")
+    if command -v sysctl >/dev/null 2>&1; then
+      local memory_bytes
+      memory_bytes=$(sysctl -n hw.memsize 2>/dev/null || echo "0")
+      if [[ -n "$memory_bytes" && "$memory_bytes" =~ ^[0-9]+$ ]] && ((memory_bytes > 0)); then
+        total_memory_mb=$((memory_bytes / 1024 / 1024))
+        log_debug "macOS memory detection: ${total_memory_mb}MB"
+      fi
+    fi
+    ;;
+  "windows")
+    if command -v powershell.exe >/dev/null 2>&1; then
+      local memory_bytes
+      memory_bytes=$(powershell.exe -NoProfile -Command "(Get-WmiObject -Class Win32_ComputerSystem).TotalPhysicalMemory" 2>/dev/null | tr -d '\r' || echo "0")
+      if [[ -n "$memory_bytes" && "$memory_bytes" =~ ^[0-9]+$ ]] && ((memory_bytes > 0)); then
+        total_memory_mb=$((memory_bytes / 1024 / 1024))
+        log_debug "Windows memory detection: ${total_memory_mb}MB"
+      fi
+    fi
+    ;;
+  esac
+
+  # Fallback: try 'free' command (Linux/WSL)
+  if ((total_memory_mb == 0)) && command -v free >/dev/null 2>&1; then
+    local memory_kb
+    memory_kb=$(free -k | awk '/^Mem:/ {print $2}' 2>/dev/null || echo "0")
+    if [[ -n "$memory_kb" && "$memory_kb" =~ ^[0-9]+$ ]] && ((memory_kb > 0)); then
+      total_memory_mb=$((memory_kb / 1024))
+      log_debug "Fallback memory detection: ${total_memory_mb}MB"
+    fi
+  fi
+
+  echo "$total_memory_mb"
 }
 
 # Calculate optimal memory allocation
 calculate_memory_allocation() {
-    local system_memory_mb="$1"
-    local allocated_memory_mb
-    
-    if (( system_memory_mb == 0 )); then
-        log_warn "Could not detect system memory, using default: ${DEFAULT_MEMORY_MB}MB"
-        allocated_memory_mb=$DEFAULT_MEMORY_MB
-    else
-        # Calculate 50% allocation
-        allocated_memory_mb=$(( (system_memory_mb * DEFAULT_MEMORY_PERCENTAGE) / 100 ))
-        
-        # Apply bounds checking
-        if (( allocated_memory_mb < MIN_MEMORY_MB )); then
-            log_warn "Calculated memory (${allocated_memory_mb}MB) below minimum, using ${MIN_MEMORY_MB}MB"
-            allocated_memory_mb=$MIN_MEMORY_MB
-        elif (( allocated_memory_mb > MAX_MEMORY_MB )); then
-            log_warn "Calculated memory (${allocated_memory_mb}MB) above maximum, using ${MAX_MEMORY_MB}MB"
-            allocated_memory_mb=$MAX_MEMORY_MB
-        fi
-        
-        log_info "System Memory: ${system_memory_mb}MB → Allocating: ${allocated_memory_mb}MB (${DEFAULT_MEMORY_PERCENTAGE}%)"
+  local system_memory_mb="$1"
+  local allocated_memory_mb
+
+  if ((system_memory_mb == 0)); then
+    log_warn "Could not detect system memory, using default: ${DEFAULT_MEMORY_MB}MB"
+    allocated_memory_mb=$DEFAULT_MEMORY_MB
+  else
+    # Calculate 50% allocation
+    allocated_memory_mb=$(((system_memory_mb * DEFAULT_MEMORY_PERCENTAGE) / 100))
+
+    # Apply bounds checking
+    if ((allocated_memory_mb < MIN_MEMORY_MB)); then
+      log_warn "Calculated memory (${allocated_memory_mb}MB) below minimum, using ${MIN_MEMORY_MB}MB"
+      allocated_memory_mb=$MIN_MEMORY_MB
+    elif ((allocated_memory_mb > MAX_MEMORY_MB)); then
+      log_warn "Calculated memory (${allocated_memory_mb}MB) above maximum, using ${MAX_MEMORY_MB}MB"
+      allocated_memory_mb=$MAX_MEMORY_MB
     fi
-    
-    echo "$allocated_memory_mb"
+
+    log_info "System Memory: ${system_memory_mb}MB → Allocating: ${allocated_memory_mb}MB (${DEFAULT_MEMORY_PERCENTAGE}%)"
+  fi
+
+  echo "$allocated_memory_mb"
 }
 
 # Validate dependencies
 validate_dependencies() {
-    log_info "Validating system dependencies..."
-    
-    local missing_deps=()
-    
-    # Core dependencies
-    command -v curl >/dev/null 2>&1 || missing_deps+=("curl")
-    command -v python3 >/dev/null 2>&1 || missing_deps+=("python3")
-    
-    # Check uvx availability
-    if ! command -v uvx >/dev/null 2>&1; then
-        log_warn "uvx not found, attempting installation..."
-        if command -v pip >/dev/null 2>&1; then
-            pip install uvx || missing_deps+=("uvx (installation failed)")
-        elif command -v pipx >/dev/null 2>&1; then
-            pipx install uvx || missing_deps+=("uvx (installation failed)")
-        else
-            missing_deps+=("uvx (pip/pipx not available)")
-        fi
+  log_info "Validating system dependencies..."
+
+  local missing_deps=()
+
+  # Core dependencies
+  command -v curl >/dev/null 2>&1 || missing_deps+=("curl")
+  command -v python3 >/dev/null 2>&1 || missing_deps+=("python3")
+
+  # Check uvx availability
+  if ! command -v uvx >/dev/null 2>&1; then
+    log_warn "uvx not found, attempting installation..."
+    if command -v pip >/dev/null 2>&1; then
+      pip install uvx || missing_deps+=("uvx (installation failed)")
+    elif command -v pipx >/dev/null 2>&1; then
+      pipx install uvx || missing_deps+=("uvx (installation failed)")
+    else
+      missing_deps+=("uvx (pip/pipx not available)")
     fi
-    
-    if [ ${#missing_deps[@]} -ne 0 ]; then
-        log_error "Missing required dependencies: ${missing_deps[*]}"
-        log_info "Please install missing dependencies and run setup again"
-        exit 1
-    fi
-    
-    # Validate Python JSON module
-    if ! python3 -c "import json" 2>/dev/null; then
-        log_error "Python json module not available"
-        exit 1
-    fi
-    
-    log_success "All dependencies validated"
+  fi
+
+  if [ ${#missing_deps[@]} -ne 0 ]; then
+    log_error "Missing required dependencies: ${missing_deps[*]}"
+    log_info "Please install missing dependencies and run setup again"
+    exit 1
+  fi
+
+  # Validate Python JSON module
+  if ! python3 -c "import json" 2>/dev/null; then
+    log_error "Python json module not available"
+    exit 1
+  fi
+
+  # Check for Python packaging module (for version comparison)
+  if ! python3 -c "import packaging.version" 2>/dev/null; then
+    log_debug "Python packaging module not available, will use fallback version comparison"
+  fi
+
+  log_success "All dependencies validated"
 }
 
 # Setup directory structure
 setup_directories() {
-    log_info "Setting up COMPASS directory structure..."
-    
-    # Core COMPASS directories
-    mkdir -p .claude/agents
-    mkdir -p .compass/handlers
-    mkdir -p docs
-    mkdir -p maps
-    
-    log_success "Directory structure ready"
+  log_info "Setting up COMPASS directory structure..."
+
+  # Core COMPASS directories
+  mkdir -p .claude/agents
+  mkdir -p .compass/handlers
+  mkdir -p docs
+  mkdir -p maps
+
+  log_success "Directory structure ready"
 }
 
 # Update COMPASS components from repository
 update_compass_components() {
-    if [[ "$UPDATE_PERFORMED" == "true" ]]; then
-        log_debug "Update already performed, skipping"
-        return 0
+  if [[ "$UPDATE_PERFORMED" == "true" ]]; then
+    log_debug "Update already performed, skipping"
+    return 0
+  fi
+
+  log_info "Updating COMPASS components from repository..."
+
+  local temp_dir
+  temp_dir=$(mktemp -d)
+
+  # Download and extract latest COMPASS
+  if curl -fsSL "${REPO_URL}/archive/${BRANCH}.tar.gz" | tar -xz -C "$temp_dir" --strip-components=1; then
+    log_success "Downloaded latest COMPASS components"
+
+    # Copy agents
+    if [[ -d "$temp_dir/.claude/agents" ]]; then
+      cp -r "$temp_dir/.claude/agents/." .claude/agents/
+      log_info "Updated COMPASS agents"
     fi
-    
-    log_info "Updating COMPASS components from repository..."
-    
-    local temp_dir
-    temp_dir=$(mktemp -d)
-    
-    # Download and extract latest COMPASS
-    if curl -fsSL "${REPO_URL}/archive/${BRANCH}.tar.gz" | tar -xz -C "$temp_dir" --strip-components=1; then
-        log_success "Downloaded latest COMPASS components"
-        
-        # Copy agents
-        if [[ -d "$temp_dir/.claude/agents" ]]; then
-            cp -r "$temp_dir/.claude/agents/." .claude/agents/
-            log_info "Updated COMPASS agents"
-        fi
-        
-        # Copy handlers
-        if [[ -d "$temp_dir/.compass/handlers" ]]; then
-            cp -r "$temp_dir/.compass/handlers/." .compass/handlers/
-            log_info "Updated COMPASS handlers"
-        fi
-        
-        # Copy documentation and maps
-        if [[ -d "$temp_dir/docs" ]]; then
-            cp -r "$temp_dir/docs/." docs/
-            log_info "Updated documentation"
-        fi
-        
-        if [[ -d "$temp_dir/maps" ]]; then
-            cp -r "$temp_dir/maps/." maps/
-            log_info "Updated pattern maps"
-        fi
-        
-        UPDATE_PERFORMED=true
-        log_success "COMPASS components updated successfully"
-    else
-        log_error "Failed to download COMPASS components"
-        exit 1
+
+    # Copy handlers
+    if [[ -d "$temp_dir/.compass/handlers" ]]; then
+      cp -r "$temp_dir/.compass/handlers/." .compass/handlers/
+      log_info "Updated COMPASS handlers"
     fi
-    
-    # Cleanup
-    rm -rf "$temp_dir"
+
+    # Copy documentation and maps
+    if [[ -d "$temp_dir/docs" ]]; then
+      cp -r "$temp_dir/docs/." docs/
+      log_info "Updated documentation"
+    fi
+
+    if [[ -d "$temp_dir/maps" ]]; then
+      cp -r "$temp_dir/maps/." maps/
+      log_info "Updated pattern maps"
+    fi
+
+    UPDATE_PERFORMED=true
+    log_success "COMPASS components updated successfully"
+  else
+    log_error "Failed to download COMPASS components"
+    exit 1
+  fi
+
+  # Cleanup
+  rm -rf "$temp_dir"
 }
 
 # Configure Claude settings with COMPASS integration
 configure_claude_settings() {
-    log_info "Configuring Claude with COMPASS integration..."
-    
-    local config_file="$HOME/.claude/settings.json"
-    local config_dir
-    config_dir="$(dirname "$config_file")"
-    
-    # Ensure .claude directory exists
-    mkdir -p "$config_dir"
-    
-    # Create or update settings.json
-    python3 << EOF
+  log_info "Configuring Claude with COMPASS integration..."
+
+  local config_file="$HOME/.claude/settings.json"
+  local config_dir
+  config_dir="$(dirname "$config_file")"
+
+  # Ensure .claude directory exists
+  mkdir -p "$config_dir"
+
+  # Create or update settings.json
+  python3 <<EOF
 import json
 import os
 
@@ -1055,76 +1343,76 @@ with open(config_path, 'w') as f:
 print("COMPASS integration configured successfully")
 EOF
 
-    log_success "Claude configured with COMPASS integration"
+  log_success "Claude configured with COMPASS integration"
 }
 
 # Check if Claude Code is initialized
 check_claude_initialization() {
-    log_info "Checking Claude Code initialization status..."
-    
-    local claude_config_dir="$HOME/.claude"
-    local credentials_file="$claude_config_dir/.credentials.json"
-    local settings_file="$claude_config_dir/settings.json"
-    local needs_initialization=false
-    
-    # Check if Claude config directory exists
-    if [[ ! -d "$claude_config_dir" ]]; then
-        log_info "Claude config directory not found, initialization needed"
-        needs_initialization=true
+  log_info "Checking Claude Code initialization status..."
+
+  local claude_config_dir="$HOME/.claude"
+  local credentials_file="$claude_config_dir/.credentials.json"
+  local settings_file="$claude_config_dir/settings.json"
+  local needs_initialization=false
+
+  # Check if Claude config directory exists
+  if [[ ! -d "$claude_config_dir" ]]; then
+    log_info "Claude config directory not found, initialization needed"
+    needs_initialization=true
+  fi
+
+  # Check if credentials exist
+  if [[ ! -f "$credentials_file" ]]; then
+    log_info "Claude credentials not found, authentication setup needed"
+    needs_initialization=true
+  fi
+
+  # Check configuration flags via claude config
+  local trust_accepted=false
+  local onboarding_complete=false
+
+  if command -v claude >/dev/null 2>&1; then
+    # Check trust dialog status
+    if claude config get hasTrustDialogAccepted 2>/dev/null | grep -q "true"; then
+      trust_accepted=true
     fi
-    
-    # Check if credentials exist
-    if [[ ! -f "$credentials_file" ]]; then
-        log_info "Claude credentials not found, authentication setup needed"
-        needs_initialization=true
+
+    # Check project onboarding status
+    if claude config get hasCompletedProjectOnboarding 2>/dev/null | grep -q "true"; then
+      onboarding_complete=true
     fi
-    
-    # Check configuration flags via claude config
-    local trust_accepted=false
-    local onboarding_complete=false
-    
-    if command -v claude >/dev/null 2>&1; then
-        # Check trust dialog status
-        if claude config get hasTrustDialogAccepted 2>/dev/null | grep -q "true"; then
-            trust_accepted=true
-        fi
-        
-        # Check project onboarding status  
-        if claude config get hasCompletedProjectOnboarding 2>/dev/null | grep -q "true"; then
-            onboarding_complete=true
-        fi
-    fi
-    
-    if [[ "$needs_initialization" == "true" ]]; then
-        log_warn "Claude Code requires initialization"
-        return 1
-    elif [[ "$trust_accepted" == "false" ]]; then
-        log_warn "Claude Code trust dialog needs acceptance"
-        return 1
-    elif [[ "$onboarding_complete" == "false" ]]; then
-        log_warn "Claude Code project onboarding incomplete"
-        return 1
-    else
-        log_success "Claude Code is properly initialized"
-        return 0
-    fi
+  fi
+
+  if [[ "$needs_initialization" == "true" ]]; then
+    log_warn "Claude Code requires initialization"
+    return 1
+  elif [[ "$trust_accepted" == "false" ]]; then
+    log_warn "Claude Code trust dialog needs acceptance"
+    return 1
+  elif [[ "$onboarding_complete" == "false" ]]; then
+    log_warn "Claude Code project onboarding incomplete"
+    return 1
+  else
+    log_success "Claude Code is properly initialized"
+    return 0
+  fi
 }
 
 # Initialize Claude Code if needed
 initialize_claude_code() {
-    log_info "Initializing Claude Code for first-time setup..."
-    
-    # Ensure Claude config directory exists
-    mkdir -p "$HOME/.claude"
-    
-    # Check if we need authentication setup
-    if [[ ! -f "$HOME/.claude/.credentials.json" ]]; then
-        log_info "Setting up Claude Code authentication..."
-        log_info "You will need to authenticate with your Claude account"
-        echo
-        
-        # Guide user through authentication
-        cat << EOF
+  log_info "Initializing Claude Code for first-time setup..."
+
+  # Ensure Claude config directory exists
+  mkdir -p "$HOME/.claude"
+
+  # Check if we need authentication setup
+  if [[ ! -f "$HOME/.claude/.credentials.json" ]]; then
+    log_info "Setting up Claude Code authentication..."
+    log_info "You will need to authenticate with your Claude account"
+    echo
+
+    # Guide user through authentication
+    cat <<EOF
 ${YELLOW}CLAUDE AUTHENTICATION REQUIRED${NC}
 
 Claude Code needs to authenticate with your Claude account.
@@ -1136,125 +1424,125 @@ ${CYAN}Choose your authentication method:${NC}
 
 ${GREEN}Recommendation:${NC} If you have a Claude subscription, use setup-token for the best experience.
 EOF
-        echo
-        read -p "Would you like to run 'claude setup-token' now? (y/N): " -r setup_token_response
-        
-        if [[ $setup_token_response =~ ^[Yy]$ ]]; then
-            log_info "Running Claude token setup..."
-            if claude setup-token; then
-                log_success "Claude authentication configured successfully"
-            else
-                log_warn "Token setup failed or was cancelled, will proceed with interactive login"
-                log_info "You'll be prompted to authenticate when Claude starts"
-            fi
-        else
-            log_info "Skipping token setup - you'll authenticate interactively when Claude starts"
-        fi
+    echo
+    read -p "Would you like to run 'claude setup-token' now? (y/N): " -r setup_token_response
+
+    if [[ $setup_token_response =~ ^[Yy]$ ]]; then
+      log_info "Running Claude token setup..."
+      if claude setup-token; then
+        log_success "Claude authentication configured successfully"
+      else
+        log_warn "Token setup failed or was cancelled, will proceed with interactive login"
+        log_info "You'll be prompted to authenticate when Claude starts"
+      fi
+    else
+      log_info "Skipping token setup - you'll authenticate interactively when Claude starts"
     fi
-    
-    # Create basic settings.json if it doesn't exist
-    local settings_file="$HOME/.claude/settings.json"
-    if [[ ! -f "$settings_file" ]]; then
-        log_info "Creating basic Claude settings configuration..."
-        cat > "$settings_file" << 'EOF'
+  fi
+
+  # Create basic settings.json if it doesn't exist
+  local settings_file="$HOME/.claude/settings.json"
+  if [[ ! -f "$settings_file" ]]; then
+    log_info "Creating basic Claude settings configuration..."
+    cat >"$settings_file" <<'EOF'
 {
   "model": "sonnet"
 }
 EOF
-        log_success "Basic Claude settings created"
-    fi
-    
-    log_success "Claude Code initialization complete"
+    log_success "Basic Claude settings created"
+  fi
+
+  log_success "Claude Code initialization complete"
 }
 
 # Install or update Claude Code using uvx
 install_update_claude_code() {
-    log_info "Installing/updating Claude Code via uvx..."
-    
-    # Check if uvx is working
-    if ! uvx --help >/dev/null 2>&1; then
-        log_error "uvx is not functioning properly"
-        exit 1
-    fi
-    
-    # Install/update claude-code package
-    log_info "Setting up Claude Code with uvx..."
-    
-    # Install Claude Code globally via npm
-    log_info "Installing Claude Code globally via npm..."
-    if npm i -g @anthropic-ai/claude-code 2>/dev/null; then
-        log_success "Claude Code installed/updated via npm"
-    else
-        log_warn "npm global installation failed or already up-to-date"
-    fi
-    
-    # Verify Claude Code is available via uvx
-    if claude --version >/dev/null 2>&1; then
-        log_success "Claude Code is available via uvx"
-    else
-        log_warn "Claude Code package verification failed, but will attempt execution"
-    fi
-    
-    # Check if Claude Code is initialized
-    if ! check_claude_initialization; then
-        initialize_claude_code
-    fi
-    
-    log_success "uvx Claude Code setup complete"
+  log_info "Installing/updating Claude Code via uvx..."
+
+  # Check if uvx is working
+  if ! uvx --help >/dev/null 2>&1; then
+    log_error "uvx is not functioning properly"
+    exit 1
+  fi
+
+  # Install/update claude-code package
+  log_info "Setting up Claude Code with uvx..."
+
+  # Install Claude Code globally via npm
+  log_info "Installing Claude Code globally via npm..."
+  if npm i -g @anthropic-ai/claude-code 2>/dev/null; then
+    log_success "Claude Code installed/updated via npm"
+  else
+    log_warn "npm global installation failed or already up-to-date"
+  fi
+
+  # Verify Claude Code is available via uvx
+  if claude --version >/dev/null 2>&1; then
+    log_success "Claude Code is available via uvx"
+  else
+    log_warn "Claude Code package verification failed, but will attempt execution"
+  fi
+
+  # Check if Claude Code is initialized
+  if ! check_claude_initialization; then
+    initialize_claude_code
+  fi
+
+  log_success "uvx Claude Code setup complete"
 }
 
 # Launch Claude Code with memory optimization
 launch_claude_with_memory() {
-    local memory_mb="$1"
-    shift
-    local args=("$@")
-    
-    log_info "Launching Claude Code with ${memory_mb}MB memory allocation..."
-    
-    log_info "Memory optimization: NODE_OPTIONS=--max-old-space-size=${memory_mb}"
-    log_success "Starting Claude Code with unified COMPASS setup..."
-    
-    # Enhanced process isolation before exec
-    # Wait longer for complete background process isolation
-    sleep 2
-    
-    # Clear all signal handlers before exec to prevent inheritance issues
-    trap - INT TERM EXIT HUP QUIT
-    
-    # Complete process cleanup and isolation
-    {
-        # Close all non-standard file descriptors
-        for fd in {3..255}; do
-            exec {fd}>&- 2>/dev/null || true
-        done
-        
-        # Ensure process group isolation
-        setsid 2>/dev/null || true
-        
-        # Final background process check
-        jobs -p | xargs -r kill -0 2>/dev/null || true
-        
-    } 2>/dev/null || true
-    
-    log_debug "Process isolation complete, launching Claude..."
-    
-    # Export memory optimization for child process
-    export NODE_OPTIONS="--max-old-space-size=${memory_mb}"
-    
-    # Launch Claude Code using uvx with all arguments
-    # If no arguments provided, ensure interactive mode
-    if [[ ${#args[@]} -eq 0 ]]; then
-        log_debug "No arguments provided, launching Claude in interactive mode"
-        exec claude
-    else
-        log_debug "Launching Claude with arguments: ${args[*]}"
-        exec claude "${args[@]}"
-    fi
+  local memory_mb="$1"
+  shift
+  local args=("$@")
+
+  log_info "Launching Claude Code with ${memory_mb}MB memory allocation..."
+
+  log_info "Memory optimization: NODE_OPTIONS=--max-old-space-size=${memory_mb}"
+  log_success "Starting Claude Code with unified COMPASS setup..."
+
+  # Enhanced process isolation before exec
+  # Wait longer for complete background process isolation
+  sleep 2
+
+  # Clear all signal handlers before exec to prevent inheritance issues
+  trap - INT TERM EXIT HUP QUIT
+
+  # Complete process cleanup and isolation
+  {
+    # Close all non-standard file descriptors
+    for fd in {3..255}; do
+      exec {fd}>&- 2>/dev/null || true
+    done
+
+    # Ensure process group isolation
+    setsid 2>/dev/null || true
+
+    # Final background process check
+    jobs -p | xargs -r kill -0 2>/dev/null || true
+
+  } 2>/dev/null || true
+
+  log_debug "Process isolation complete, launching Claude..."
+
+  # Export memory optimization for child process
+  export NODE_OPTIONS="--max-old-space-size=${memory_mb}"
+
+  # Launch Claude Code using uvx with all arguments
+  # If no arguments provided, ensure interactive mode
+  if [[ ${#args[@]} -eq 0 ]]; then
+    log_debug "No arguments provided, launching Claude in interactive mode"
+    exec claude
+  else
+    log_debug "Launching Claude with arguments: ${args[*]}"
+    exec claude "${args[@]}"
+  fi
 }
 
 # Show usage information
 show_usage() {
-    cat << EOF
+  cat <<EOF
 COMPASS Unified Setup Script v${SCRIPT_VERSION}
 
 DESCRIPTION:
@@ -1272,9 +1560,10 @@ USAGE:
 OPTIONS:
     --resume                Resume previous Claude session (passes --resume to Claude)
     --help                  Show this help message
-    --debug                 Enable debug output
+    --debug                 Enable debug output and disable auto-update
     --version               Show version information
     --disable-serena        Disable Serena MCP server integration
+    --no-auto-update        Disable automatic script updates
     --cleanup-serena        Run Serena MCP server cleanup and exit (internal use)
 
 EXAMPLES:
@@ -1307,179 +1596,202 @@ SERENA MCP INTEGRATION:
     - Integrates seamlessly with existing COMPASS workflow
     - Disable with: SERENA_INTEGRATION_DISABLED=true or --disable-serena
 
+AUTO-UPDATE SYSTEM:
+    - Automatically checks for script updates on GitHub before each execution
+    - Downloads and installs latest version if available
+    - Creates backup of current version before replacement
+    - Atomic replacement ensures no corruption during update
+    - Self-restarts with preserved arguments after successful update
+    - --debug flag disables auto-update for development safety
+    - --no-auto-update flag permanently disables updates for current run
+
 SIMPLIFIED WORKFLOW:
     Every execution automatically:
-    1. Updates COMPASS components from repository
-    2. Configures memory optimization  
-    3. Installs/updates Claude Code via uvx
-    4. Starts and registers Serena MCP server (if available)
-    5. Handles Claude Code initialization (if needed)
+    1. Checks for and applies compass.sh auto-updates (unless disabled)
+    2. Updates COMPASS components from repository
+    3. Configures memory optimization  
+    4. Installs/updates Claude Code via uvx
+    5. Starts and registers Serena MCP server (if available)
+    6. Handles Claude Code initialization (if needed)
        - Checks for existing Claude configuration
        - Guides through authentication setup
        - Creates basic settings configuration
-    6. Launches Claude with optimal settings and MCP integration
+    7. Launches Claude with optimal settings and MCP integration
 EOF
 }
 
 # Show version information
 show_version() {
-    echo "COMPASS Unified Setup v${SCRIPT_VERSION}"
-    echo "OS: $(detect_os)"
-    echo "Memory Detection: $(get_system_memory_mb)MB"
-    if command -v uvx >/dev/null 2>&1; then
-        echo "uvx: $(uvx --version 2>/dev/null || echo 'available')"
-    else
-        echo "uvx: not found"
-    fi
-    echo "Repository: $REPO_URL"
+  echo "COMPASS Unified Setup v${SCRIPT_VERSION}"
+  echo "OS: $(detect_os)"
+  echo "Memory Detection: $(get_system_memory_mb)MB"
+  if command -v uvx >/dev/null 2>&1; then
+    echo "uvx: $(uvx --version 2>/dev/null || echo 'available')"
+  else
+    echo "uvx: not found"
+  fi
+  echo "Repository: $REPO_URL"
 }
 
 # Main execution function
 main() {
-    local resume_session=false
-    
-    # Parse command line arguments
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            --resume)
-                resume_session=true
-                CLAUDE_ARGS+=(--resume)
-                shift
-                ;;
-            --help)
-                show_usage
-                exit 0
-                ;;
-            --debug)
-                export DEBUG=1
-                shift
-                ;;
-            --disable-serena)
-                export SERENA_INTEGRATION_DISABLED=true
-                shift
-                ;;
-            --cleanup-serena)
-                # Internal flag for Serena cleanup - used by timeout subprocess
-                # This ensures function availability in subprocess context
-                log_info "Running Serena MCP server cleanup via flag..."
-                
-                # Set up minimal environment for cleanup
-                export DEBUG="${DEBUG:-0}"
-                
-                # Execute cleanup with comprehensive error handling
-                local cleanup_success=false
-                if failsafe_cleanup_serena_processes 2>/dev/null; then
-                    cleanup_success=true
-                    log_success "Serena cleanup completed successfully"
-                else
-                    log_warn "Standard cleanup failed, attempting direct process cleanup"
-                    # Direct cleanup as last resort
-                    pkill -f "serena start-mcp-server" 2>/dev/null || true
-                    pkill -f "uvx.*serena" 2>/dev/null || true
-                    lsof -ti ":${SERENA_DEFAULT_PORT}" 2>/dev/null | xargs -r kill -TERM 2>/dev/null || true
-                    sleep 1
-                    lsof -ti ":${SERENA_DEFAULT_PORT}" 2>/dev/null | xargs -r kill -KILL 2>/dev/null || true
-                    rm -f .compass/serena-*.pid 2>/dev/null || true
-                    cleanup_success=true
-                    log_info "Direct cleanup completed"
-                fi
-                
-                if [[ "$cleanup_success" == "true" ]]; then
-                    exit 0
-                else
-                    log_error "All cleanup methods failed"
-                    exit 1
-                fi
-                ;;
-            --version)
-                show_version
-                exit 0
-                ;;
-            *)
-                # Pass any other arguments to Claude
-                CLAUDE_ARGS+=("$1")
-                shift
-                ;;
-        esac
-    done
-    
-    # Print banner
-    print_banner
-    
-    if [[ "$resume_session" == "true" ]]; then
-        log_info "Resume mode: Will restore previous Claude session"
-    fi
-    
-    # Phase 1: Foundation Setup
-    log_info "Phase 1: Foundation Setup"
-    validate_dependencies
-    setup_directories
-    
-    # Phase 2: Always Update COMPASS
-    log_info "Phase 2: Auto-Update COMPASS Components"
-    update_compass_components
-    
-    # Phase 3: Memory Optimization Configuration
-    log_info "Phase 3: Memory Optimization Configuration"
-    local system_memory_mb
-    system_memory_mb=$(get_system_memory_mb)
-    MEMORY_MB=$(calculate_memory_allocation "$system_memory_mb")
-    
-    # Phase 4: Claude Code Integration & Initialization
-    log_info "Phase 4: Claude Code Integration & Initialization"
-    configure_claude_settings
-    install_update_claude_code
-    
-    # Phase 4.5: Serena MCP Server Integration
-    log_info "Phase 4.5: Serena MCP Server Integration"
-    
-    # Use timeout to prevent hanging in Serena integration
-    # Fix: Call function directly without subprocess to maintain function access
-    if integrate_serena_mcp_server; then
-        log_success "Serena MCP server integration completed successfully"
+  local resume_session=false
+
+  # Phase 0: Early flag parsing for auto-update control
+  parse_early_debug_flag "$@"
+
+  # Phase 0.5: Check and perform auto-update (unless disabled)
+  if ! check_and_auto_update "$@"; then
+    log_warn "Auto-update failed, continuing with current version"
+  fi
+
+  # Parse command line arguments
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+    --resume)
+      resume_session=true
+      CLAUDE_ARGS+=(--resume)
+      shift
+      ;;
+    --help)
+      show_usage
+      exit 0
+      ;;
+    --debug)
+      export DEBUG=1
+      shift
+      ;;
+    --disable-serena)
+      export SERENA_INTEGRATION_DISABLED=true
+      shift
+      ;;
+    --no-auto-update)
+      # Already handled in early parsing, just consume the flag
+      shift
+      ;;
+    --cleanup-serena)
+      # Internal flag for Serena cleanup - used by timeout subprocess
+      # This ensures function availability in subprocess context
+      log_info "Running Serena MCP server cleanup via flag..."
+
+      # Set up minimal environment for cleanup
+      export DEBUG="${DEBUG:-0}"
+
+      # Execute cleanup with comprehensive error handling
+      local cleanup_success=false
+      if failsafe_cleanup_serena_processes 2>/dev/null; then
+        cleanup_success=true
+        log_success "Serena cleanup completed successfully"
+      else
+        log_warn "Standard cleanup failed, attempting direct process cleanup"
+        # Direct cleanup as last resort
+        pkill -f "serena start-mcp-server" 2>/dev/null || true
+        pkill -f "uvx.*serena" 2>/dev/null || true
+        lsof -ti ":${SERENA_DEFAULT_PORT}" 2>/dev/null | xargs -r kill -TERM 2>/dev/null || true
+        sleep 1
+        lsof -ti ":${SERENA_DEFAULT_PORT}" 2>/dev/null | xargs -r kill -KILL 2>/dev/null || true
+        rm -f .compass/serena-*.pid 2>/dev/null || true
+        cleanup_success=true
+        log_info "Direct cleanup completed"
+      fi
+
+      if [[ "$cleanup_success" == "true" ]]; then
+        exit 0
+      else
+        log_error "All cleanup methods failed"
+        exit 1
+      fi
+      ;;
+    --version)
+      show_version
+      exit 0
+      ;;
+    *)
+      # Pass any other arguments to Claude
+      CLAUDE_ARGS+=("$1")
+      shift
+      ;;
+    esac
+  done
+
+  # Print banner
+  print_banner
+
+  if [[ "$resume_session" == "true" ]]; then
+    log_info "Resume mode: Will restore previous Claude session"
+  fi
+
+  # Phase 1: Foundation Setup
+  log_info "Phase 1: Foundation Setup"
+  validate_dependencies
+  setup_directories
+
+  # Phase 2: Always Update COMPASS Components
+  log_info "Phase 2: Auto-Update COMPASS Components"
+  update_compass_components
+
+  # Phase 3: Memory Optimization Configuration
+  log_info "Phase 3: Memory Optimization Configuration"
+  local system_memory_mb
+  system_memory_mb=$(get_system_memory_mb)
+  MEMORY_MB=$(calculate_memory_allocation "$system_memory_mb")
+
+  # Phase 4: Claude Code Integration & Initialization
+  log_info "Phase 4: Claude Code Integration & Initialization"
+  configure_claude_settings
+  install_update_claude_code
+
+  # Phase 4.5: Serena MCP Server Integration
+  log_info "Phase 4.5: Serena MCP Server Integration"
+
+  # Use timeout to prevent hanging in Serena integration
+  # Fix: Call function directly without subprocess to maintain function access
+  if integrate_serena_mcp_server; then
+    log_success "Serena MCP server integration completed successfully"
+  else
+    local exit_code=$?
+    if [[ $exit_code -eq 124 ]]; then
+      log_warn "Serena MCP server integration timed out after 30 seconds - running cleanup"
     else
-        local exit_code=$?
-        if [[ $exit_code -eq 124 ]]; then
-            log_warn "Serena MCP server integration timed out after 30 seconds - running cleanup"
-        else
-            log_warn "Serena MCP server integration failed - running cleanup"
-        fi
-        
-        # Use flag-based cleanup approach to ensure function availability
-        local script_path="${BASH_SOURCE[0]:-$0}"
-        if [[ -f "$script_path" ]] && timeout 10 "$script_path" --cleanup-serena 2>/dev/null; then
-            log_debug "Serena cleanup via flag completed successfully"
-        else
-            log_warn "Flag-based cleanup failed, using fallback cleanup"
-            # Fallback cleanup for critical cases
-            pkill -f "serena start-mcp-server" 2>/dev/null || true
-            pkill -f "uvx.*serena" 2>/dev/null || true
-            rm -f .compass/*.pid 2>/dev/null || true
-            # Clean up any processes on default Serena port
-            lsof -ti ":${SERENA_DEFAULT_PORT}" 2>/dev/null | xargs -r kill -TERM 2>/dev/null || true
-        fi
+      log_warn "Serena MCP server integration failed - running cleanup"
     fi
-    
-    # Phase 5: Launch
-    log_info "Phase 5: Launch Preparation Complete"
-    echo
-    log_success "COMPASS Unified Setup Complete!"
-    
-    # Display integration status with comprehensive error suppression
-    {
-        local integration_status
-        integration_status=$(check_serena_integration_status 2>/dev/null) || integration_status="Serena MCP integration: Initializing"
-        echo "$integration_status"
-    } 2>/dev/null || {
-        log_info "Serena MCP integration: Status check unavailable"
-    }
-    
-    log_info "Launching Claude Code with unified configuration..."
-    echo
-    
-    # Launch Claude with memory optimization and all arguments
-    launch_claude_with_memory "$MEMORY_MB" "${CLAUDE_ARGS[@]}"
+
+    # Use flag-based cleanup approach to ensure function availability
+    local script_path="${BASH_SOURCE[0]:-$0}"
+    if [[ -f "$script_path" ]] && timeout 10 "$script_path" --cleanup-serena 2>/dev/null; then
+      log_debug "Serena cleanup via flag completed successfully"
+    else
+      log_warn "Flag-based cleanup failed, using fallback cleanup"
+      # Fallback cleanup for critical cases
+      pkill -f "serena start-mcp-server" 2>/dev/null || true
+      pkill -f "uvx.*serena" 2>/dev/null || true
+      rm -f .compass/*.pid 2>/dev/null || true
+      # Clean up any processes on default Serena port
+      lsof -ti ":${SERENA_DEFAULT_PORT}" 2>/dev/null | xargs -r kill -TERM 2>/dev/null || true
+    fi
+  fi
+
+  # Phase 5: Launch
+  log_info "Phase 5: Launch Preparation Complete"
+  echo
+  log_success "COMPASS Unified Setup Complete!"
+
+  # Display integration status with comprehensive error suppression
+  {
+    local integration_status
+    integration_status=$(check_serena_integration_status 2>/dev/null) || integration_status="Serena MCP integration: Initializing"
+    echo "$integration_status"
+  } 2>/dev/null || {
+    log_info "Serena MCP integration: Status check unavailable"
+  }
+
+  log_info "Launching Claude Code with unified configuration..."
+  echo
+
+  # Launch Claude with memory optimization and all arguments
+  launch_claude_with_memory "$MEMORY_MB" "${CLAUDE_ARGS[@]}"
 }
 
 # Execute main function with all arguments
 main "$@"
+
