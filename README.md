@@ -127,7 +127,13 @@ The COMPASS system now uses a single, unified launcher that handles everything a
 
    ```bash
    curl -O https://raw.githubusercontent.com/odysseyalive/claude-compass/main/compass.sh
+   ```
+
+   ```bash
    chmod +x compass.sh
+   ```
+
+   ```bash
    ./compass.sh
    ```
 
@@ -485,3 +491,4 @@ Because why leave things to chance when you can leave things to memory? And why 
 *"The path through complexity isn't about avoiding the maze - it's about building better maps. And having those maps update themselves."*
 
 ![COMPASS Logo](assets/compass_logo.svg)
+
