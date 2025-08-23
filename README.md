@@ -123,6 +123,8 @@ Your `maps/` directory captures the flows that text struggles to convey. SVG dia
 
 The COMPASS system now uses a single, unified launcher that handles everything automatically. Compass needs installed in each project directory where you intend to use it.
 
+- **FIRST, Install Core Dependencies**: [Core Dependencies](#core-dependencies-required)
+
 - **Install COMPASS**:
 
    ```bash
