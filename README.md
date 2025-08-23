@@ -123,7 +123,7 @@ Your `maps/` directory captures the flows that text struggles to convey. SVG dia
 
 The COMPASS system now uses a single, unified launcher that handles everything automatically. Compass needs installed in each project directory where you intend to use it.
 
-- **Install COMPASS with automatic setup**:
+- **Install COMPASS**:
 
    ```bash
    curl -O https://raw.githubusercontent.com/odysseyalive/claude-compass/main/compass.sh
@@ -133,7 +133,7 @@ The COMPASS system now uses a single, unified launcher that handles everything a
    chmod +x compass.sh
    ```
 
-- **Start Compass:**
+- **Start COMPASS**:
 
    ```bash
    ./compass.sh
