@@ -228,6 +228,8 @@ These are essential for any COMPASS + Serena setup and are automatically validat
   choco install libxml2
   ```
 
+- **Claude Code CLI**: Automatically installed and configured by the unified launcher
+
 #### Automatic Serena Integration
 
 **The unified launcher handles all Serena integration automatically:**
