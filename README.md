@@ -121,7 +121,7 @@ Your `maps/` directory captures the flows that text struggles to convey. SVG dia
 
 ### Unified Installation (1 step)
 
-The COMPASS system now uses a single, unified launcher that handles everything automatically:
+The COMPASS system now uses a single, unified launcher that handles everything automatically. Compass needs installed in each project directory where you intend to use it.
 
 - **Install COMPASS with automatic setup**:
 
@@ -133,7 +133,7 @@ The COMPASS system now uses a single, unified launcher that handles everything a
    chmod +x compass.sh
    ```
 
-- **Rune Compass:**
+- **Start Compass:**
 
    ```bash
    ./compass.sh
