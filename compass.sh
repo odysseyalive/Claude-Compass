@@ -525,7 +525,7 @@ register_serena_with_claude() {
   fi
 
   # Register with Claude MCP system
-  if claude mcp add serena --transport sse "$server_url" 2>/dev/null; then
+  if claude mcp add serena "$server_url" --transport sse 2>/dev/null; then
     log_success "Serena MCP server registered with Claude successfully"
 
     # Verify registration
