@@ -772,6 +772,13 @@ integrate_serena_mcp_server() {
     return 0
   fi
 
+  # Check if Claude is properly initialized before starting Serena
+  if ! early_check_claude_initialization; then
+    log_warn "Claude Code not initialized - skipping Serena integration"
+    log_warn "Run 'claude init' first to enable Serena MCP server"
+    return 1
+  fi
+
   # Check Serena availability first (fail fast if not available)
   if ! check_serena_availability; then
     log_warn "Serena not available - continuing without Serena integration"
@@ -1023,6 +1030,86 @@ replace_script_atomically() {
     fi
     return 1
   fi
+}
+
+# Early check for Claude initialization (before auto-update)
+early_check_claude_initialization() {
+  log_debug "Performing early Claude initialization check..."
+  
+  local claude_config_dir="$HOME/.claude"
+  local credentials_file="$claude_config_dir/.credentials.json"
+  local needs_claude_init=false
+  local claude_available=false
+  
+  # Check if Claude command is available
+  if command -v claude >/dev/null 2>&1; then
+    claude_available=true
+    log_debug "Claude command is available"
+  else
+    log_debug "Claude command not available yet"
+  fi
+  
+  # Check basic initialization requirements
+  if [[ ! -d "$claude_config_dir" ]]; then
+    log_debug "Claude config directory missing"
+    needs_claude_init=true
+  elif [[ ! -f "$credentials_file" ]]; then
+    log_debug "Claude credentials missing"
+    needs_claude_init=true
+  fi
+  
+  # If Claude is available, check configuration flags
+  if [[ "$claude_available" == "true" ]]; then
+    local trust_accepted=false
+    
+    # Check trust dialog status
+    if claude config get hasTrustDialogAccepted 2>/dev/null | grep -q "true"; then
+      trust_accepted=true
+    fi
+    
+    if [[ "$trust_accepted" == "false" ]]; then
+      log_debug "Claude trust dialog needs acceptance"
+      needs_claude_init=true
+    fi
+  fi
+  
+  if [[ "$needs_claude_init" == "true" ]]; then
+    return 1  # Claude needs initialization
+  else
+    return 0  # Claude is ready
+  fi
+}
+
+# Handle Claude initialization requirement before updates
+handle_claude_initialization_requirement() {
+  log_warn "Claude Code requires initialization before COMPASS can proceed."
+  echo
+  cat <<EOF
+${YELLOW}⚠️  CLAUDE INITIALIZATION REQUIRED${NC}
+
+COMPASS needs Claude Code to be properly initialized before it can:
+• Check for updates
+• Start Serena MCP server
+• Begin your session
+
+${CYAN}What needs to be done:${NC}
+• Claude Code authentication setup (one-time)
+• Trust dialog acceptance
+• Basic configuration creation
+
+${GREEN}How to proceed:${NC}
+1. Exit this script (press Ctrl+C or wait)
+2. Run: ${CYAN}claude init${NC}
+3. Follow the authentication prompts
+4. Accept the trust dialog when prompted
+5. Then run ${CYAN}./compass.sh${NC} again
+
+${YELLOW}Important:${NC} Claude must be initialized first to ensure proper setup.
+This is a one-time requirement for new installations.
+EOF
+  echo
+  echo "${RED}Exiting...${NC} Please run '${CYAN}claude init${NC}' first, then restart COMPASS."
+  exit 1
 }
 
 # Check and perform auto-update
@@ -1661,16 +1748,23 @@ AUTO-UPDATE SYSTEM:
 
 SIMPLIFIED WORKFLOW:
     Every execution automatically:
-    1. Checks for and applies compass.sh auto-updates (unless disabled)
-    2. Updates COMPASS components from repository
-    3. Configures memory optimization  
-    4. Installs/updates Claude Code via uvx
-    5. Starts and registers Serena MCP server (if available)
-    6. Handles Claude Code initialization (if needed)
-       - Checks for existing Claude configuration
-       - Guides through authentication setup
-       - Creates basic settings configuration
+    1. Checks if Claude Code is initialized (NEW - prevents premature updates)
+       - If not initialized: Sets up Claude Code first before updates
+       - Ensures proper authentication and trust dialog acceptance  
+       - Creates necessary configuration directories and settings
+    2. Checks for and applies compass.sh auto-updates (after Claude is ready)
+    3. Updates COMPASS components from repository
+    4. Configures memory optimization  
+    5. Installs/updates Claude Code via uvx
+    6. Starts and registers Serena MCP server (if available)
     7. Launches Claude with optimal settings and MCP integration
+
+FIRST-TIME USERS:
+    The script now intelligently detects when Claude Code needs initialization and:
+    - Pauses auto-update until Claude is ready
+    - Guides you through one-time authentication setup
+    - Explains what's happening at each step
+    - Only proceeds with updates after Claude is properly configured
 EOF
 }
 
@@ -1693,6 +1787,15 @@ main() {
 
   # Phase 0: Early flag parsing for auto-update control
   parse_early_debug_flag "$@"
+
+  # Phase 0.3: Early Claude initialization check (before auto-update)
+  if [[ "$AUTO_UPDATE_DISABLED" != "true" ]] && [[ "$AUTO_UPDATE_ENABLED" == "true" ]]; then
+    if ! early_check_claude_initialization; then
+      # Claude needs initialization - prompt user and exit
+      handle_claude_initialization_requirement
+      # This function will exit the script
+    fi
+  fi
 
   # Phase 0.5: Check and perform auto-update (unless disabled)
   if ! check_and_auto_update "$@"; then
