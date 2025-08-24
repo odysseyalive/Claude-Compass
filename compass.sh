@@ -2048,7 +2048,7 @@ main() {
     echo "• Memory optimization will be applied"
     echo "• Full enhanced workflow will be available"
     echo
-    echo "${RED}Please run '${CYAN}claude init${NC}${RED}' first, then restart COMPASS.${NC}"
+    echo -e "${RED}Please run '${CYAN}claude init${NC}${RED}' first, then restart COMPASS.${NC}"
     exit 1
   else
     log_success "Claude Code is properly initialized"
