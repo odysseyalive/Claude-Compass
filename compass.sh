@@ -1547,7 +1547,7 @@ if os.path.exists(config_path):
         print("Warning: Invalid JSON in settings file, creating new configuration")
         config = {}
 
-# Configure PreToolUse hooks for COMPASS
+# Configure hooks for COMPASS
 if 'hooks' not in config:
     config['hooks'] = {}
 
@@ -1555,6 +1555,19 @@ config['hooks']['PreToolUse'] = [
     {
         'description': 'COMPASS methodology enforcement with unified setup integration',
         'script': os.path.abspath('.compass/handlers/compass-handler.py')
+    }
+]
+
+config['hooks']['UserPromptSubmit'] = [
+    {
+        'matcher': '*',
+        'hooks': [
+            {
+                'type': 'command',
+                'command': os.path.abspath('.compass/handlers/compass-handler.py'),
+                'timeout': 30000
+            }
+        ]
     }
 ]
 
