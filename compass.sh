@@ -24,8 +24,11 @@ set -euo pipefail
 # Serena MCP server configuration
 readonly SERENA_DEFAULT_PORT=9121
 readonly SERENA_MEMORY_LIMIT_MB=512
-readonly SERENA_STARTUP_TIMEOUT=10
-readonly SERENA_HEALTH_CHECK_TIMEOUT=5
+readonly SERENA_STARTUP_TIMEOUT=30
+readonly SERENA_HEALTH_CHECK_TIMEOUT_INITIAL=10
+readonly SERENA_HEALTH_CHECK_TIMEOUT_STABLE=2
+readonly SERENA_UVX_INITIALIZATION_DELAY=8
+readonly SERENA_MONITOR_STARTUP_DELAY=45
 readonly SERENA_MONITOR_INTERVAL=30
 readonly SERENA_MAX_RETRIES=3
 
@@ -136,31 +139,68 @@ find_available_port() {
   return 1
 }
 
-# Check if Serena MCP server is healthy using port connectivity
+# Check if uvx Python process is actually running for Serena
+check_uvx_serena_process() {
+  local expected_pid="${1:-}"
+  
+  # Method 1: Check if expected PID is running and is Python process
+  if [[ -n "$expected_pid" ]] && kill -0 "$expected_pid" 2>/dev/null; then
+    # Verify it's actually a Python process running Serena
+    if ps -p "$expected_pid" -o command --no-headers 2>/dev/null | grep -q "python.*serena"; then
+      log_debug "uvx Python process verified (PID: $expected_pid)"
+      return 0
+    fi
+  fi
+  
+  # Method 2: Find Python processes running Serena via uvx
+  local serena_python_pids
+  serena_python_pids=$(pgrep -f "python.*serena.*start-mcp-server" 2>/dev/null || true)
+  
+  if [[ -n "$serena_python_pids" ]]; then
+    log_debug "Found uvx Serena Python processes: $serena_python_pids"
+    return 0
+  fi
+  
+  log_debug "No uvx Serena Python processes found"
+  return 1
+}
+
+# Progressive health check with intelligent timeout adjustment
 check_serena_server_health() {
   local port="$1"
+  local health_check_attempts="${2:-1}"
+  local timeout_duration
+  
+  # Progressive timeout: Start high, reduce after successful checks
+  if ((health_check_attempts <= 3)); then
+    timeout_duration="$SERENA_HEALTH_CHECK_TIMEOUT_INITIAL"
+  else
+    timeout_duration="$SERENA_HEALTH_CHECK_TIMEOUT_STABLE"
+  fi
+  
+  log_debug "Health check attempt $health_check_attempts using ${timeout_duration}s timeout"
 
   # Use multiple methods to check if port is responding
   # Method 1: bash TCP check
-  if timeout "$SERENA_HEALTH_CHECK_TIMEOUT" bash -c "echo >/dev/tcp/localhost/$port" 2>/dev/null; then
+  if timeout "$timeout_duration" bash -c "echo >/dev/tcp/localhost/$port" 2>/dev/null; then
     return 0
   fi
 
   # Method 2: netcat if available
-  if command -v nc >/dev/null 2>&1 && timeout "$SERENA_HEALTH_CHECK_TIMEOUT" nc -z localhost "$port" 2>/dev/null; then
+  if command -v nc >/dev/null 2>&1 && timeout "$timeout_duration" nc -z localhost "$port" 2>/dev/null; then
     return 0
   fi
 
   # Method 3: telnet if available
   if command -v telnet >/dev/null 2>&1; then
-    if timeout "$SERENA_HEALTH_CHECK_TIMEOUT" bash -c "echo quit | telnet localhost $port" >/dev/null 2>&1; then
+    if timeout "$timeout_duration" bash -c "echo quit | telnet localhost $port" >/dev/null 2>&1; then
       return 0
     fi
   fi
 
   # Method 4: curl if available (though Serena may not have HTTP endpoint)
   if command -v curl >/dev/null 2>&1; then
-    if timeout "$SERENA_HEALTH_CHECK_TIMEOUT" curl -s "http://localhost:$port/" >/dev/null 2>&1; then
+    if timeout "$timeout_duration" curl -s "http://localhost:$port/" >/dev/null 2>&1; then
       return 0
     fi
   fi
@@ -252,20 +292,24 @@ start_serena_mcp_server() {
 
   log_info "Waiting for Serena MCP server to become healthy..."
 
-  # Give server a moment to start before checking
-  sleep 2
+  # Extended delay for uvx initialization
+  log_info "Allowing ${SERENA_UVX_INITIALIZATION_DELAY}s for uvx initialization..."
+  sleep "$SERENA_UVX_INITIALIZATION_DELAY"
 
+  local health_check_count=0
   while ((wait_time < max_wait)); do
-    # First check if the process is still running
-    if ! kill -0 "$server_pid" 2>/dev/null; then
-      log_error "Serena MCP server process died during startup (PID: $server_pid)"
+    health_check_count=$((health_check_count + 1))
+    
+    # First check if the process is still running and is the expected Python process
+    if ! check_uvx_serena_process "$server_pid"; then
+      log_error "Serena MCP server uvx Python process not found or died (PID: $server_pid)"
       cleanup_serena_server
       return 1
     fi
 
-    # Then check if port is responding with shorter timeout for faster failure detection
-    if timeout 2 bash -c "echo >/dev/tcp/localhost/$port" 2>/dev/null; then
-      log_success "Serena MCP server healthy on port $port"
+    # Then check if port is responding with progressive timeout
+    if check_serena_server_health "$port" "$health_check_count"; then
+      log_success "Serena MCP server healthy on port $port (verified after $health_check_count health checks)"
       SERENA_PORT="$port"
       cache_serena_state "$port" "$server_pid"
       return 0
@@ -276,7 +320,7 @@ start_serena_mcp_server() {
 
     # Provide feedback every few seconds to show progress
     if ((wait_time % 3 == 0)); then
-      log_debug "Still waiting for Serena server on port $port (${wait_time}/${max_wait}s)"
+      log_debug "Still waiting for Serena server on port $port (${wait_time}/${max_wait}s, health check #$health_check_count)"
     fi
   done
 
@@ -305,12 +349,21 @@ monitor_serena_server() {
   }
 
   monitor_log "INFO" "Starting Serena MCP server health monitoring (PID: $$)"
+  monitor_log "INFO" "Waiting ${SERENA_MONITOR_STARTUP_DELAY}s before beginning health monitoring..."
+  
+  # Delay monitor startup to let server stabilize
+  sleep "$SERENA_MONITOR_STARTUP_DELAY"
+  
+  monitor_log "INFO" "Health monitoring active - checking every ${SERENA_MONITOR_INTERVAL}s"
 
   local consecutive_failures=0
   local max_consecutive_failures=5
+  local health_check_count=0
 
   while true; do
-    if ! check_serena_server_health "$port"; then
+    health_check_count=$((health_check_count + 1))
+    
+    if ! check_serena_server_health "$port" "$health_check_count"; then
       consecutive_failures=$((consecutive_failures + 1))
       monitor_log "WARN" "Serena MCP server unhealthy (failure $consecutive_failures/$max_consecutive_failures), attempting recovery..."
 
@@ -326,7 +379,8 @@ monitor_serena_server() {
           # Continue monitoring but with longer intervals and no recovery attempts
           while true; do
             sleep $((SERENA_MONITOR_INTERVAL * 3)) # 3x normal interval
-            if check_serena_server_health "$port"; then
+            health_check_count=$((health_check_count + 1))
+            if check_serena_server_health "$port" "$health_check_count"; then
               monitor_log "INFO" "Serena MCP server spontaneously recovered - resuming normal monitoring"
               consecutive_failures=0
               break # Exit degraded mode and resume normal monitoring
@@ -761,7 +815,7 @@ integrate_serena_mcp_server() {
     # Disown the background process completely to prevent signal inheritance
     disown "$monitor_pid" 2>/dev/null || true
 
-    log_debug "Background monitor started with PID: $monitor_pid"
+    log_debug "Background monitor starting with ${SERENA_MONITOR_STARTUP_DELAY}s delay (PID: $monitor_pid)"
   } 2>/dev/null || {
     log_debug "Background monitor setup completed with fallback"
   }
@@ -780,7 +834,7 @@ check_serena_integration_status() {
 
   if [[ "$SERENA_INTEGRATION_ENABLED" == "true" ]] &&
     [[ "$SERENA_PORT" -gt 0 ]] &&
-    check_serena_server_health "$SERENA_PORT" 2>/dev/null; then
+    check_serena_server_health "$SERENA_PORT" 1 2>/dev/null; then
     echo "${status_msg}Active (Port: $SERENA_PORT)"
     return 0
   else
