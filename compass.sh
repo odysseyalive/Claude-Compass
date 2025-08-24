@@ -159,7 +159,7 @@ find_available_port() {
 # Check if uvx Python process is actually running for Serena
 check_uvx_serena_process() {
   local expected_pid="${1:-}"
-  
+
   # Method 1: Check if expected PID is running and is Python process
   if [[ -n "$expected_pid" ]] && kill -0 "$expected_pid" 2>/dev/null; then
     # Verify it's actually a Python process running Serena
@@ -168,16 +168,16 @@ check_uvx_serena_process() {
       return 0
     fi
   fi
-  
+
   # Method 2: Find Python processes running Serena via uvx
   local serena_python_pids
   serena_python_pids=$(pgrep -f "python.*serena.*start-mcp-server" 2>/dev/null || true)
-  
+
   if [[ -n "$serena_python_pids" ]]; then
     log_debug "Found uvx Serena Python processes: $serena_python_pids"
     return 0
   fi
-  
+
   log_debug "No uvx Serena Python processes found"
   return 1
 }
@@ -187,14 +187,14 @@ check_serena_server_health() {
   local port="$1"
   local health_check_attempts="${2:-1}"
   local timeout_duration
-  
+
   # Progressive timeout: Start high, reduce after successful checks
   if ((health_check_attempts <= 3)); then
     timeout_duration="$SERENA_HEALTH_CHECK_TIMEOUT_INITIAL"
   else
     timeout_duration="$SERENA_HEALTH_CHECK_TIMEOUT_STABLE"
   fi
-  
+
   log_debug "Health check attempt $health_check_attempts using ${timeout_duration}s timeout"
 
   # Use multiple methods to check if port is responding
@@ -316,7 +316,7 @@ start_serena_mcp_server() {
   local health_check_count=0
   while ((wait_time < max_wait)); do
     health_check_count=$((health_check_count + 1))
-    
+
     # First check if the process is still running and is the expected Python process
     if ! check_uvx_serena_process "$server_pid"; then
       log_error "Serena MCP server uvx Python process not found or died (PID: $server_pid)"
@@ -367,10 +367,10 @@ monitor_serena_server() {
 
   monitor_log "INFO" "Starting Serena MCP server health monitoring (PID: $$)"
   monitor_log "INFO" "Waiting ${SERENA_MONITOR_STARTUP_DELAY}s before beginning health monitoring..."
-  
+
   # Delay monitor startup to let server stabilize
   sleep "$SERENA_MONITOR_STARTUP_DELAY"
-  
+
   monitor_log "INFO" "Health monitoring active - checking every ${SERENA_MONITOR_INTERVAL}s"
 
   local consecutive_failures=0
@@ -379,7 +379,7 @@ monitor_serena_server() {
 
   while true; do
     health_check_count=$((health_check_count + 1))
-    
+
     if ! check_serena_server_health "$port" "$health_check_count"; then
       consecutive_failures=$((consecutive_failures + 1))
       monitor_log "WARN" "Serena MCP server unhealthy (failure $consecutive_failures/$max_consecutive_failures), attempting recovery..."
@@ -813,7 +813,7 @@ start_serena_mcp_server_only() {
 
   # Store port for later registration
   SERENA_PORT="$serena_port"
-  
+
   log_success "Serena MCP server started successfully (Port: $serena_port, PID: $SERENA_PID)"
   log_info "Server ready for Claude initialization with enhanced capabilities"
   return 0
@@ -886,7 +886,7 @@ integrate_serena_mcp_server() {
     # Serena wasn't started in Phase 1, do full startup now
     start_serena_mcp_server_only
   fi
-  
+
   # Complete the integration
   complete_serena_mcp_integration
   return $?
@@ -1093,22 +1093,22 @@ replace_script_atomically() {
 # Early check for Claude initialization (before auto-update)
 early_check_claude_initialization() {
   log_debug "Performing early Claude initialization check..."
-  
+
   local claude_config_dir="$HOME/.claude"
   local credentials_file="$claude_config_dir/.credentials.json"
   local settings_file="$claude_config_dir/settings.json"
   local needs_claude_init=false
   local claude_available=false
-  
+
   # Check if Claude command is available
   if command -v claude >/dev/null 2>&1; then
     claude_available=true
     log_debug "Claude command is available"
   else
     log_debug "Claude command not available yet"
-    return 1  # Definitely needs initialization if command doesn't exist
+    return 1 # Definitely needs initialization if command doesn't exist
   fi
-  
+
   # Check basic initialization requirements (file-based checks are more reliable)
   if [[ ! -d "$claude_config_dir" ]]; then
     log_debug "Claude config directory missing"
@@ -1120,12 +1120,12 @@ early_check_claude_initialization() {
     log_debug "Claude settings file missing"
     needs_claude_init=true
   fi
-  
+
   # Enhanced config flag checking with timeouts and fallbacks for remote servers
   if [[ "$claude_available" == "true" ]] && [[ "$needs_claude_init" == "false" ]]; then
     local trust_accepted=false
     local onboarding_complete=false
-    
+
     # Check trust dialog status with timeout (5 seconds max)
     log_debug "Checking Claude trust dialog status..."
     if timeout 5 claude config get hasTrustDialogAccepted 2>/dev/null | grep -q "true"; then
@@ -1134,8 +1134,8 @@ early_check_claude_initialization() {
     else
       log_debug "Trust dialog check failed or returned false"
     fi
-    
-    # Check onboarding status with timeout (5 seconds max)  
+
+    # Check onboarding status with timeout (5 seconds max)
     log_debug "Checking Claude onboarding status..."
     if timeout 5 claude config get hasCompletedProjectOnboarding 2>/dev/null | grep -q "true"; then
       onboarding_complete=true
@@ -1143,7 +1143,7 @@ early_check_claude_initialization() {
     else
       log_debug "Project onboarding check failed or incomplete"
     fi
-    
+
     # If config commands failed (remote server issues), use heuristics
     if [[ "$trust_accepted" == "false" ]] || [[ "$onboarding_complete" == "false" ]]; then
       # Fallback: Check for signs of successful initialization
@@ -1156,19 +1156,19 @@ early_check_claude_initialization() {
         needs_claude_init=true
       fi
     fi
-    
+
     # Final determination
     if [[ "$trust_accepted" == "false" ]] || [[ "$onboarding_complete" == "false" ]]; then
       needs_claude_init=true
     fi
   fi
-  
+
   if [[ "$needs_claude_init" == "true" ]]; then
     log_debug "Claude needs initialization"
-    return 1  # Claude needs initialization
+    return 1 # Claude needs initialization
   else
     log_debug "Claude appears to be properly initialized"
-    return 0  # Claude is ready
+    return 0 # Claude is ready
   fi
 }
 
@@ -1200,7 +1200,7 @@ ${YELLOW}Important:${NC} Claude must be initialized first to ensure proper setup
 This is a one-time requirement for new installations.
 EOF
   echo
-  echo "${RED}Exiting...${NC} Please run '${CYAN}claude init${NC}' first, then restart COMPASS."
+  echo "${RED}Exiting...${NC} Please run '${CYAN}claude /init${NC}' first, then restart COMPASS."
   exit 1
 }
 
@@ -2017,11 +2017,11 @@ main() {
   # Phase 4: Claude Initialization Check and Prompt
   if [[ "$claude_needs_init" == "true" ]]; then
     log_info "Phase 4: Claude Code Initialization Required"
-    
+
     # Show enhanced initialization message with Serena info
     log_warn "Claude Code requires initialization to proceed with COMPASS setup."
     echo
-    
+
     # Use echo with proper variable expansion instead of cat heredoc
     echo -e "${YELLOW}⚠️  CLAUDE INITIALIZATION REQUIRED${NC}"
     echo
@@ -2058,7 +2058,7 @@ main() {
   log_info "Phase 5: Auto-Update COMPASS Components"
   update_compass_components
 
-  # Phase 6: Memory Optimization Configuration  
+  # Phase 6: Memory Optimization Configuration
   log_info "Phase 6: Memory Optimization Configuration"
   local system_memory_mb
   system_memory_mb=$(get_system_memory_mb)
@@ -2070,13 +2070,13 @@ main() {
 
   # Phase 8: Complete Serena MCP Server Integration
   log_info "Phase 8: Complete Serena MCP Server Integration"
-  
+
   if complete_serena_mcp_integration; then
     log_success "Serena MCP server integration completed successfully"
   else
     local exit_code=$?
     log_warn "Serena MCP server integration completion failed - server may still be running"
-    
+
     # Fallback cleanup for critical cases
     local script_path="${BASH_SOURCE[0]:-$0}"
     if [[ -f "$script_path" ]] && timeout 10 "$script_path" --cleanup-serena 2>/dev/null; then
@@ -2113,4 +2113,3 @@ main() {
 
 # Execute main function with all arguments
 main "$@"
-
