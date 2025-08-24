@@ -50,13 +50,30 @@ readonly MIN_MEMORY_MB=512
 readonly MAX_MEMORY_MB=15360 # 15GB maximum for stability
 readonly DEFAULT_MEMORY_MB=4096
 
-# Colors for output
-readonly RED='\033[0;31m'
-readonly GREEN='\033[0;32m'
-readonly YELLOW='\033[1;33m'
-readonly BLUE='\033[0;34m'
-readonly CYAN='\033[0;36m'
-readonly NC='\033[0m' # No Color
+# Colors for output - with automatic detection
+setup_colors() {
+  # Check if colors should be disabled
+  if [[ "${NO_COLOR:-}" ]] || [[ "${TERM:-}" == "dumb" ]] || [[ ! -t 1 ]] || [[ ! -t 2 ]]; then
+    # Disable colors: output redirected, NO_COLOR set, or dumb terminal
+    readonly RED=""
+    readonly GREEN=""
+    readonly YELLOW=""
+    readonly BLUE=""
+    readonly CYAN=""
+    readonly NC=""
+  else
+    # Enable colors: interactive terminal with color support
+    readonly RED='\033[0;31m'
+    readonly GREEN='\033[0;32m'
+    readonly YELLOW='\033[1;33m'
+    readonly BLUE='\033[0;34m'
+    readonly CYAN='\033[0;36m'
+    readonly NC='\033[0m'
+  fi
+}
+
+# Initialize colors
+setup_colors
 
 # Global state
 UPDATE_PERFORMED=false
