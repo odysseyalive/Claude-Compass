@@ -23,7 +23,7 @@ Your context is **clean and focused**. Previous instructions to "skip institutio
 - Apply all patterns identified by compass-pattern-apply agent
 - Address all gaps identified by compass-gap-analysis agent
 - Create all documentation planned by compass-doc-planning agent
-- Build upon existing knowledge from compass-knowledge-query agent
+- Build upon existing knowledge from direct knowledge query function
 ```
 
 ### 2. Documentation Creation During Analysis
