@@ -182,7 +182,7 @@ check_uvx_serena_process() {
   return 1
 }
 
-# Progressive health check with intelligent timeout adjustment
+# SSE-compatible health check with intelligent timeout adjustment
 check_serena_server_health() {
   local port="$1"
   local health_check_attempts="${2:-1}"
@@ -195,29 +195,48 @@ check_serena_server_health() {
     timeout_duration="$SERENA_HEALTH_CHECK_TIMEOUT_STABLE"
   fi
 
-  log_debug "Health check attempt $health_check_attempts using ${timeout_duration}s timeout"
+  log_debug "SSE health check attempt $health_check_attempts using ${timeout_duration}s timeout"
 
-  # Use multiple methods to check if port is responding
-  # Method 1: bash TCP check
-  if timeout "$timeout_duration" bash -c "echo >/dev/tcp/localhost/$port" 2>/dev/null; then
-    return 0
-  fi
-
-  # Method 2: netcat if available
-  if command -v nc >/dev/null 2>&1 && timeout "$timeout_duration" nc -z localhost "$port" 2>/dev/null; then
-    return 0
-  fi
-
-  # Method 3: telnet if available
-  if command -v telnet >/dev/null 2>&1; then
-    if timeout "$timeout_duration" bash -c "echo quit | telnet localhost $port" >/dev/null 2>&1; then
+  # Method 1: Check SSE endpoint specifically (Serena's primary interface)
+  if command -v curl >/dev/null 2>&1; then
+    # Test SSE endpoint with proper headers and expect SSE response
+    local sse_response
+    sse_response=$(timeout "$timeout_duration" curl -s -H "Accept: text/event-stream" -H "Cache-Control: no-cache" \
+      --max-time "$timeout_duration" "http://localhost:$port/sse" 2>/dev/null | head -1)
+    
+    # SSE streams typically start with data: or event: or comment (:)
+    if [[ -n "$sse_response" ]] && [[ "$sse_response" =~ ^(data:|event:|:) ]]; then
+      log_debug "SSE endpoint responding correctly"
       return 0
     fi
   fi
 
-  # Method 4: curl if available (though Serena may not have HTTP endpoint)
+  # Method 2: Check if the port accepts connections (TCP check)
+  if timeout "$timeout_duration" bash -c "echo >/dev/tcp/localhost/$port" 2>/dev/null; then
+    log_debug "Port accepting connections"
+    return 0
+  fi
+
+  # Method 3: netcat verification if available
+  if command -v nc >/dev/null 2>&1 && timeout "$timeout_duration" nc -z localhost "$port" 2>/dev/null; then
+    log_debug "Port verified via netcat"
+    return 0
+  fi
+
+  # Method 4: Fallback health endpoint check (if Serena provides one)
   if command -v curl >/dev/null 2>&1; then
-    if timeout "$timeout_duration" curl -s "http://localhost:$port/" >/dev/null 2>&1; then
+    if timeout "$timeout_duration" curl -sf --max-time "$timeout_duration" "http://localhost:$port/health" >/dev/null 2>&1; then
+      log_debug "Health endpoint responding"
+      return 0
+    fi
+  fi
+
+  # Method 5: Process validation - ensure the Python process is still running
+  if [[ -f ".compass/serena-mcp-server.pid" ]]; then
+    local server_pid
+    server_pid=$(cat .compass/serena-mcp-server.pid 2>/dev/null || echo "")
+    if [[ -n "$server_pid" ]] && check_uvx_serena_process "$server_pid"; then
+      log_debug "Server process still running, may be initializing"
       return 0
     fi
   fi
@@ -278,21 +297,26 @@ start_serena_mcp_server() {
   # Clean up any existing server first
   cleanup_serena_server >/dev/null 2>&1
 
-  # Start server in background with logging and timeout protection
+  # Start server in background with proper process group isolation and timeout protection
   {
-    # Use timeout to prevent hanging during server startup
-    timeout 15 uvx --from git+https://github.com/oraios/serena \
-      serena start-mcp-server \
-      --transport sse \
-      --port "$port" \
-      --context ide-assistant 2>&1 |
-      while IFS= read -r line; do
-        echo "$(date '+%Y-%m-%d %H:%M:%S') [SERENA] $line"
-      done
+    # Create new process group for better isolation and cleanup
+    setsid bash -c '
+      # Use timeout to prevent hanging during server startup - increased for SSE initialization
+      exec timeout 45 uvx --from git+https://github.com/oraios/serena \
+        serena start-mcp-server \
+        --transport sse \
+        --port '"$port"' \
+        --context ide-assistant 2>&1
+    ' | while IFS= read -r line; do
+      echo "$(date '+%Y-%m-%d %H:%M:%S') [SERENA] $line"
+    done
 
-    # If timeout occurred, log it
-    if [[ $? -eq 124 ]]; then
-      echo "$(date '+%Y-%m-%d %H:%M:%S') [SERENA] ERROR: Server startup timed out after 15 seconds"
+    # Check if timeout occurred
+    local exit_code=${PIPESTATUS[0]}
+    if [[ $exit_code -eq 124 ]]; then
+      echo "$(date '+%Y-%m-%d %H:%M:%S') [SERENA] ERROR: Server startup timed out after 45 seconds"
+    elif [[ $exit_code -ne 0 ]]; then
+      echo "$(date '+%Y-%m-%d %H:%M:%S') [SERENA] ERROR: Server startup failed with exit code $exit_code"
     fi
   } >"$log_file" 2>&1 &
 
@@ -632,70 +656,161 @@ update_serena_metrics() {
 }
 
 # Clean up Serena MCP server processes and state
-# Enhanced failsafe cleanup to handle orphaned processes and port conflicts
+# Enhanced failsafe cleanup to handle orphaned processes, zombie processes, and port conflicts
 failsafe_cleanup_serena_processes() {
-  log_debug "Running failsafe Serena process cleanup..."
+  log_debug "Running enhanced failsafe Serena process cleanup..."
 
-  # 1. Check if target port is in use and identify processes
+  local cleanup_errors=0
   local target_port="${SERENA_PORT:-$SERENA_DEFAULT_PORT}"
-  local port_pids=$(lsof -ti :"$target_port" 2>/dev/null || true)
 
+  # 1. Handle zombie and orphaned processes first
+  log_debug "Phase 1: Cleaning up zombie and orphaned processes"
+  
+  # Find and clean up zombie processes
+  local zombie_pids=$(ps axo stat,pid,command | awk '$1~/Z/ && /serena/ {print $2}' 2>/dev/null || true)
+  if [[ -n "$zombie_pids" ]]; then
+    log_warn "Found zombie Serena processes: $zombie_pids"
+    # Send SIGCHLD to parent processes to clean up zombies
+    for pid in $zombie_pids; do
+      local parent_pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ' || true)
+      if [[ -n "$parent_pid" ]] && [[ "$parent_pid" != "1" ]]; then
+        kill -CHLD "$parent_pid" 2>/dev/null || true
+      fi
+    done
+    sleep 1
+  fi
+
+  # 2. Check if target port is in use and identify processes with enhanced detection
+  log_debug "Phase 2: Port conflict resolution"
+  local port_pids=$(lsof -ti :"$target_port" 2>/dev/null || true)
+  
   if [[ -n "$port_pids" ]]; then
     log_warn "Port $target_port is in use by processes: $port_pids"
-    # Kill processes using the target port
-    echo "$port_pids" | xargs -r kill -TERM 2>/dev/null || true
+    
+    # Graceful termination first
+    for pid in $port_pids; do
+      if kill -0 "$pid" 2>/dev/null; then
+        log_debug "Gracefully terminating process $pid using port $target_port"
+        kill -TERM "$pid" 2>/dev/null || ((cleanup_errors++))
+      fi
+    done
+    
+    # Wait for graceful shutdown
+    sleep 3
+    
+    # Check if processes are still running and force kill if necessary
+    for pid in $port_pids; do
+      if kill -0 "$pid" 2>/dev/null; then
+        log_warn "Force killing stubborn process $pid using port $target_port"
+        kill -KILL "$pid" 2>/dev/null || ((cleanup_errors++))
+      fi
+    done
+    
+    # Additional wait for port to be released
     sleep 2
-    # Force kill if still running
-    echo "$port_pids" | xargs -r kill -KILL 2>/dev/null || true
   fi
 
-  # 2. Find all Serena processes regardless of PID files
-  local serena_pids=$(pgrep -f "serena start-mcp-server" 2>/dev/null || true)
-  if [[ -n "$serena_pids" ]]; then
-    log_warn "Found orphaned Serena processes: $serena_pids"
-    echo "$serena_pids" | xargs -r kill -TERM 2>/dev/null || true
-    sleep 2
-    # Force kill if still running
-    echo "$serena_pids" | xargs -r kill -KILL 2>/dev/null || true
-  fi
-
-  # 3. Clean up uvx processes that might be hanging
-  local uvx_serena_pids=$(pgrep -f "uvx.*serena" 2>/dev/null || true)
-  if [[ -n "$uvx_serena_pids" ]]; then
-    log_warn "Found orphaned uvx Serena processes: $uvx_serena_pids"
-    echo "$uvx_serena_pids" | xargs -r kill -TERM 2>/dev/null || true
-    sleep 1
-    echo "$uvx_serena_pids" | xargs -r kill -KILL 2>/dev/null || true
-  fi
-
-  # 4. Validate and clean up stale PID files
-  local pid_file=".compass/serena-mcp-server.pid"
-  local monitor_pid_file=".compass/serena-monitor.pid"
-
-  if [[ -f "$pid_file" ]]; then
-    local recorded_pid=$(cat "$pid_file" 2>/dev/null || true)
-    if [[ -n "$recorded_pid" ]] && ! kill -0 "$recorded_pid" 2>/dev/null; then
-      log_debug "Removing stale PID file for non-existent process: $recorded_pid"
-      rm -f "$pid_file"
+  # 3. Find and terminate all Serena-related processes with better pattern matching
+  log_debug "Phase 3: Comprehensive Serena process cleanup"
+  
+  # Multiple patterns to catch all Serena processes
+  local serena_patterns=("serena start-mcp-server" "python.*serena.*start-mcp-server" "uvx.*serena" "serena.*mcp")
+  
+  for pattern in "${serena_patterns[@]}"; do
+    local serena_pids=$(pgrep -f "$pattern" 2>/dev/null || true)
+    if [[ -n "$serena_pids" ]]; then
+      log_warn "Found processes matching '$pattern': $serena_pids"
+      
+      # Process group termination for better cleanup
+      for pid in $serena_pids; do
+        if kill -0 "$pid" 2>/dev/null; then
+          # Try to terminate the entire process group
+          local pgid=$(ps -o pgid= -p "$pid" 2>/dev/null | tr -d ' ' || echo "$pid")
+          if [[ -n "$pgid" ]] && [[ "$pgid" != "$pid" ]]; then
+            log_debug "Terminating process group $pgid for process $pid"
+            kill -TERM -"$pgid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null || ((cleanup_errors++))
+          else
+            kill -TERM "$pid" 2>/dev/null || ((cleanup_errors++))
+          fi
+        fi
+      done
+      
+      # Wait for graceful shutdown
+      sleep 2
+      
+      # Force kill remaining processes
+      for pid in $serena_pids; do
+        if kill -0 "$pid" 2>/dev/null; then
+          log_warn "Force killing stubborn Serena process $pid"
+          kill -KILL "$pid" 2>/dev/null || ((cleanup_errors++))
+        fi
+      done
     fi
-  fi
+  done
 
-  if [[ -f "$monitor_pid_file" ]]; then
-    local recorded_monitor_pid=$(cat "$monitor_pid_file" 2>/dev/null || true)
-    if [[ -n "$recorded_monitor_pid" ]] && ! kill -0 "$recorded_monitor_pid" 2>/dev/null; then
-      log_debug "Removing stale monitor PID file for non-existent process: $recorded_monitor_pid"
-      rm -f "$monitor_pid_file"
+  # 4. Enhanced stale PID file validation and cleanup
+  log_debug "Phase 4: Enhanced PID file cleanup"
+  local pid_files=(".compass/serena-mcp-server.pid" ".compass/serena-monitor.pid")
+  
+  for pid_file in "${pid_files[@]}"; do
+    if [[ -f "$pid_file" ]]; then
+      local recorded_pid=$(cat "$pid_file" 2>/dev/null || true)
+      if [[ -n "$recorded_pid" ]] && [[ "$recorded_pid" =~ ^[0-9]+$ ]]; then
+        if ! kill -0 "$recorded_pid" 2>/dev/null; then
+          log_debug "Removing stale PID file $pid_file for non-existent process: $recorded_pid"
+          rm -f "$pid_file" || ((cleanup_errors++))
+        else
+          # Process still exists, check if it's actually a Serena process
+          local process_cmd=$(ps -p "$recorded_pid" -o command --no-headers 2>/dev/null || true)
+          if [[ -n "$process_cmd" ]] && ! echo "$process_cmd" | grep -q "serena"; then
+            log_warn "PID file $pid_file contains PID $recorded_pid but process is not Serena: $process_cmd"
+            log_warn "Removing potentially corrupted PID file"
+            rm -f "$pid_file" || ((cleanup_errors++))
+          fi
+        fi
+      else
+        log_warn "Invalid PID in file $pid_file: '$recorded_pid'"
+        rm -f "$pid_file" || ((cleanup_errors++))
+      fi
     fi
-  fi
+  done
 
-  # 5. Final port availability check
+  # 5. Final comprehensive port and process verification
+  log_debug "Phase 5: Final verification and cleanup"
+  
+  # Multiple port check methods for reliability
+  local port_still_in_use=false
+  
   if lsof -ti :"$target_port" >/dev/null 2>&1; then
-    log_error "Port $target_port still in use after cleanup - startup may fail"
+    port_still_in_use=true
+  elif netstat -tuln 2>/dev/null | grep -q ":${target_port} "; then
+    port_still_in_use=true
+  elif ss -tuln 2>/dev/null | grep -q ":${target_port} "; then
+    port_still_in_use=true
+  fi
+  
+  if [[ "$port_still_in_use" == "true" ]]; then
+    log_error "Port $target_port still in use after comprehensive cleanup - startup may fail"
+    ((cleanup_errors++))
+  fi
+  
+  # Clean up any remaining cache/state files
+  rm -f .compass/cache/serena/server-state.json 2>/dev/null || true
+  
+  # Final process verification
+  local remaining_serena=$(pgrep -f "serena" 2>/dev/null | wc -l)
+  if [[ "$remaining_serena" -gt 0 ]]; then
+    log_warn "Still found $remaining_serena Serena-related processes after cleanup"
+    ((cleanup_errors++))
+  fi
+
+  if [[ "$cleanup_errors" -eq 0 ]]; then
+    log_debug "Enhanced failsafe cleanup completed successfully - port $target_port is available"
+    return 0
+  else
+    log_warn "Enhanced failsafe cleanup completed with $cleanup_errors errors - some issues may persist"
     return 1
   fi
-
-  log_debug "Failsafe cleanup completed - port $target_port is available"
-  return 0
 }
 
 cleanup_serena_server() {
@@ -848,10 +963,11 @@ complete_serena_mcp_integration() {
     log_warn "Claude MCP registration failed - Serena server running but not integrated with Claude"
   fi
 
-  # Start background health monitoring with complete process isolation
-  # Use setsid to create new session and nohup for process isolation
+  # Start background health monitoring with proper process group isolation
+  # Use setsid to create new session and process group for complete isolation
   {
-    nohup setsid monitor_serena_server "$SERENA_PORT" </dev/null >/dev/null 2>&1 &
+    # Create isolated monitoring process with proper process group
+    setsid nohup monitor_serena_server "$SERENA_PORT" </dev/null >/dev/null 2>&1 &
     local monitor_pid=$!
     echo "$monitor_pid" >.compass/serena-monitor.pid
     SERENA_MONITOR_PID="$monitor_pid"
@@ -859,9 +975,15 @@ complete_serena_mcp_integration() {
     # Disown the background process completely to prevent signal inheritance
     disown "$monitor_pid" 2>/dev/null || true
 
-    log_debug "Background monitor starting with ${SERENA_MONITOR_STARTUP_DELAY}s delay (PID: $monitor_pid)"
+    log_debug "Background monitor starting with process group isolation and ${SERENA_MONITOR_STARTUP_DELAY}s delay (PID: $monitor_pid)"
   } 2>/dev/null || {
-    log_debug "Background monitor setup completed with fallback"
+    # Fallback to standard background process if setsid fails
+    nohup monitor_serena_server "$SERENA_PORT" </dev/null >/dev/null 2>&1 &
+    local monitor_pid=$!
+    echo "$monitor_pid" >.compass/serena-monitor.pid
+    SERENA_MONITOR_PID="$monitor_pid"
+    disown "$monitor_pid" 2>/dev/null || true
+    log_debug "Background monitor setup completed with standard isolation (PID: $monitor_pid)"
   }
 
   # Mark integration as successful
