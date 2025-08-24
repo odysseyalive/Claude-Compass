@@ -1673,20 +1673,26 @@ if os.path.exists(config_path):
 if 'hooks' not in config:
     config['hooks'] = {}
 
-config['hooks']['PreToolUse'] = [
-    {
-        'description': 'COMPASS methodology enforcement with unified setup integration',
-        'script': os.path.abspath('.compass/handlers/compass-handler.py')
-    }
-]
-
 config['hooks']['UserPromptSubmit'] = [
     {
         'matcher': '*',
         'hooks': [
             {
                 'type': 'command',
-                'command': os.path.abspath('.compass/handlers/compass-handler.py'),
+                'command': '/home/francis/lab/claude-code/.compass/handlers/compass-handler.py',
+                'timeout': 30000
+            }
+        ]
+    }
+]
+
+config['hooks']['PreToolUse'] = [
+    {
+        'matcher': '*',
+        'hooks': [
+            {
+                'type': 'command',
+                'command': '/home/francis/lab/claude-code/.compass/handlers/compass-handler.py',
                 'timeout': 30000
             }
         ]

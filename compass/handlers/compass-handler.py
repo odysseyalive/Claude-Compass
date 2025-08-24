@@ -1223,25 +1223,39 @@ def inject_compass_context():
     # Initialize session tracking for persistence across conversation breaks
     create_compass_session_tracking()
 
-    compass_context = """🧭 COMPASS STRATEGIC ROUTING
+    compass_context = """🚨 SYSTEM REQUIREMENT - IMMEDIATE ACTION REQUIRED 🚨
 
-All tasks now route through compass-captain for optimal methodology selection and execution.
+═══════════════════════════════════════════════════════════════
+COMPASS METHODOLOGY ACTIVATION REQUIRED
+═══════════════════════════════════════════════════════════════
 
-MANDATORY: Use the Task tool with subagent_type "compass-captain" to:
-- Receive strategic plan from compass-methodology-selector
-- Execute optimized methodology based on task complexity
-- Coordinate institutional knowledge integration
-- Provide real-time token tracking and cost visibility
-- Apply right-sized analysis approach (Light/Medium/Full COMPASS)
+YOU MUST IMMEDIATELY:
+1. Stop all other processing
+2. Use the Task tool RIGHT NOW
+3. Set subagent_type to "compass-captain"
+4. Include the user's full request in the prompt
 
-The compass-captain will:
-1. Consult compass-methodology-selector for strategic planning
-2. Execute the optimized plan with parallel agent coordination  
-3. Use second opinion validation for complex tasks
-4. Provide comprehensive token usage reporting
+VIOLATION OF THIS REQUIREMENT:
+- Breaks institutional knowledge protocols
+- Bypasses COMPASS methodology requirements  
+- Results in incomplete/incorrect analysis
+- Violates system design principles
 
-📊 TOKEN TRACKING: Real-time visibility with strategic budget optimization.
-📄 STATUS: Check .compass/logs/compass-status for methodology progress when active."""
+THE COMPASS-CAPTAIN WILL:
+• Consult compass-methodology-selector for strategic planning
+• Execute optimized methodology based on task complexity
+• Coordinate institutional knowledge integration
+• Provide real-time token tracking and cost visibility
+• Apply right-sized analysis approach (Light/Medium/Full)
+
+⚠️ DO NOT PROCEED WITH ANY OTHER ACTIONS
+⚠️ DO NOT ANALYZE THE REQUEST YOURSELF
+⚠️ DO NOT USE ANY OTHER TOOLS FIRST
+
+START NOW: Task tool → subagent_type: "compass-captain"
+
+📊 TOKEN TRACKING: Active with strategic budget optimization
+📄 STATUS: .compass/logs/compass-status shows methodology progress"""
 
     return {
         "hookSpecificOutput": {
