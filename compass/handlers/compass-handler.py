@@ -2016,22 +2016,39 @@ def handle_pre_tool_use_with_token_tracking(input_data):
         if subagent_type in memory_intensive_agents:
             log_handler_activity("memory_agent_intercepted", f"CRITICAL: Routing {subagent_type} to subprocess isolation to prevent memory crash")
             
-            # Extract prompt from tool input
-            prompt = tool_input.get("prompt", "")
-            
-            # For compass-knowledge-query, use the specialized handler
+            # For compass-knowledge-query, delegate to sequential execution handler
+            # This ensures proper lock coordination and prevents parallel execution
             if subagent_type == "compass-knowledge-query":
-                subprocess_result = handle_compass_knowledge_query_subprocess(prompt)
+                # Let the sequential execution handler manage compass-knowledge-query
+                # This ensures lock file coordination and prevents system lockup
+                log_handler_activity("knowledge_query_delegated", "Delegating compass-knowledge-query to sequential execution handler")
+                # Continue to sequential execution handler - do not return early
             else:
-                # Execute subprocess-based agent execution
+                # Check for knowledge query lock before executing other memory-intensive agents
+                knowledge_lock_file = KNOWLEDGE_CACHE_DIR / ".knowledge_query_lock"
+                if knowledge_lock_file.exists():
+                    log_handler_activity("memory_agent_blocked_by_knowledge_lock", 
+                        f"Blocking memory-intensive agent {subagent_type} - compass-knowledge-query must complete first")
+                    
+                    return {
+                        "permissionDecision": "blocked",
+                        "permissionDecisionReason": f"🧭 COMPASS Sequential Execution: {subagent_type} blocked until compass-knowledge-query completes.\n\nThis prevents system lockup by ensuring knowledge query runs in isolation first.\n\nPlease wait for compass-knowledge-query to finish, then retry.",
+                        "blocked_agent": subagent_type,
+                        "blocking_reason": "compass-knowledge-query_sequential_execution"
+                    }
+                
+                # Extract prompt from tool input
+                prompt = tool_input.get("prompt", "")
+                
+                # Execute subprocess-based agent execution for other memory-intensive agents
                 subprocess_result = handle_compass_agent_subprocess(subagent_type, prompt)
-            
-            # Return subprocess result as tool output instead of allowing normal execution
-            # ⚠️  CRITICAL: This denial with custom reason prevents in-process execution
-            return {
-                "permissionDecision": "deny",
-                "permissionDecisionReason": f"🧭 COMPASS {subagent_type} (Memory-Safe Subprocess): {subprocess_result.get('status', 'completed')}\n\n{subprocess_result.get('summary', f'{subagent_type} executed in memory-safe subprocess to prevent JavaScript heap exhaustion.')}\n\n{'Knowledge Findings: ' + str(list(subprocess_result.get('knowledge_findings', {}).get('docs_analysis', {}).keys())[:3]) if subagent_type == 'compass-knowledge-query' else 'Subprocess execution completed successfully.'}"
-            }
+                
+                # Return subprocess result as tool output instead of allowing normal execution
+                # ⚠️  CRITICAL: This denial with custom reason prevents in-process execution
+                return {
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": f"🧭 COMPASS {subagent_type} (Memory-Safe Subprocess): {subprocess_result.get('status', 'completed')}\n\n{subprocess_result.get('summary', f'{subagent_type} executed in memory-safe subprocess to prevent JavaScript heap exhaustion.')}\n\nSubprocess execution completed successfully."
+                }
 
     # Continue with existing hook processing
     return handle_pre_tool_use(input_data)
@@ -3080,12 +3097,19 @@ def check_compass_agent_activity(input_data):
                     log_handler_activity("knowledge_lock_removed", "Lock file removed - other agents can now proceed")
             except Exception as e:
                 log_handler_activity("knowledge_lock_removal_error", f"Failed to remove lock file: {e}")
-                
-            return  # Early return to prevent normal agent execution
+            
+            # Return blocking response to prevent normal agent execution and provide subprocess result
+            result_data = {
+                "permissionDecision": "deny",
+                "permissionDecisionReason": f"🧭 COMPASS compass-knowledge-query (Sequential Execution): {subprocess_result.get('status', 'completed')}\n\n{subprocess_result.get('summary', 'compass-knowledge-query executed in sequential isolation to prevent system lockup.')}\n\n{'Knowledge Findings: ' + str(list(subprocess_result.get('knowledge_findings', {}).get('docs_analysis', {}).keys())[:3]) if subprocess_result.get('knowledge_findings', {}).get('docs_analysis') else 'Sequential execution completed successfully.'}"
+            }
+            
+            return result_data
         
         # BLOCK OTHER AGENTS: Wait for compass-knowledge-query to complete if lock exists
         elif subagent_type in ["compass-pattern-apply", "compass-doc-planning", "compass-data-flow", 
-                               "compass-gap-analysis", "compass-enhanced-analysis", "compass-cross-reference"]:
+                               "compass-gap-analysis", "compass-enhanced-analysis", "compass-cross-reference",
+                               "compass-dependency-tracker"]:
             if knowledge_lock_file.exists():
                 log_handler_activity("agent_blocked_by_knowledge_lock", 
                     f"Blocking {subagent_type} - compass-knowledge-query must complete first")
