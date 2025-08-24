@@ -1096,6 +1096,7 @@ early_check_claude_initialization() {
   
   local claude_config_dir="$HOME/.claude"
   local credentials_file="$claude_config_dir/.credentials.json"
+  local settings_file="$claude_config_dir/settings.json"
   local needs_claude_init=false
   local claude_available=false
   
@@ -1105,35 +1106,68 @@ early_check_claude_initialization() {
     log_debug "Claude command is available"
   else
     log_debug "Claude command not available yet"
+    return 1  # Definitely needs initialization if command doesn't exist
   fi
   
-  # Check basic initialization requirements
+  # Check basic initialization requirements (file-based checks are more reliable)
   if [[ ! -d "$claude_config_dir" ]]; then
     log_debug "Claude config directory missing"
     needs_claude_init=true
   elif [[ ! -f "$credentials_file" ]]; then
     log_debug "Claude credentials missing"
     needs_claude_init=true
+  elif [[ ! -f "$settings_file" ]]; then
+    log_debug "Claude settings file missing"
+    needs_claude_init=true
   fi
   
-  # If Claude is available, check configuration flags
-  if [[ "$claude_available" == "true" ]]; then
+  # Enhanced config flag checking with timeouts and fallbacks for remote servers
+  if [[ "$claude_available" == "true" ]] && [[ "$needs_claude_init" == "false" ]]; then
     local trust_accepted=false
+    local onboarding_complete=false
     
-    # Check trust dialog status
-    if claude config get hasTrustDialogAccepted 2>/dev/null | grep -q "true"; then
+    # Check trust dialog status with timeout (5 seconds max)
+    log_debug "Checking Claude trust dialog status..."
+    if timeout 5 claude config get hasTrustDialogAccepted 2>/dev/null | grep -q "true"; then
       trust_accepted=true
+      log_debug "Trust dialog accepted"
+    else
+      log_debug "Trust dialog check failed or returned false"
     fi
     
-    if [[ "$trust_accepted" == "false" ]]; then
-      log_debug "Claude trust dialog needs acceptance"
+    # Check onboarding status with timeout (5 seconds max)  
+    log_debug "Checking Claude onboarding status..."
+    if timeout 5 claude config get hasCompletedProjectOnboarding 2>/dev/null | grep -q "true"; then
+      onboarding_complete=true
+      log_debug "Project onboarding complete"
+    else
+      log_debug "Project onboarding check failed or incomplete"
+    fi
+    
+    # If config commands failed (remote server issues), use heuristics
+    if [[ "$trust_accepted" == "false" ]] || [[ "$onboarding_complete" == "false" ]]; then
+      # Fallback: Check for signs of successful initialization
+      if [[ -d "$claude_config_dir/projects" ]] && [[ -d "$claude_config_dir/shell-snapshots" ]] && [[ -s "$credentials_file" ]]; then
+        log_debug "Config commands failed but files suggest Claude is initialized"
+        trust_accepted=true
+        onboarding_complete=true
+      else
+        log_debug "Config commands failed and files don't suggest full initialization"
+        needs_claude_init=true
+      fi
+    fi
+    
+    # Final determination
+    if [[ "$trust_accepted" == "false" ]] || [[ "$onboarding_complete" == "false" ]]; then
       needs_claude_init=true
     fi
   fi
   
   if [[ "$needs_claude_init" == "true" ]]; then
+    log_debug "Claude needs initialization"
     return 1  # Claude needs initialization
   else
+    log_debug "Claude appears to be properly initialized"
     return 0  # Claude is ready
   fi
 }
@@ -1987,32 +2021,32 @@ main() {
     # Show enhanced initialization message with Serena info
     log_warn "Claude Code requires initialization to proceed with COMPASS setup."
     echo
-    cat <<EOF
-${YELLOW}⚠️  CLAUDE INITIALIZATION REQUIRED${NC}
-
-COMPASS needs Claude Code to be properly initialized before continuing.
-
-${CYAN}Enhanced Setup Available:${NC}
-$(if [[ "$SERENA_PORT" -gt 0 ]]; then
-  echo "✅ Serena MCP server is running on port $SERENA_PORT"
-  echo "   Your initialization will have advanced code analysis capabilities!"
-else
-  echo "ℹ️  Serena MCP server could not be started"
-  echo "   Standard initialization will proceed"
-fi)
-
-${GREEN}Required Steps:${NC}
-1. Run: ${CYAN}claude init${NC}
-2. Follow authentication prompts  
-3. Accept trust dialog when prompted
-4. Then restart COMPASS with: ${CYAN}./compass.sh${NC}
-
-${YELLOW}After initialization:${NC}
-• COMPASS will auto-update components
-• Serena integration will complete automatically  
-• Memory optimization will be applied
-• Full enhanced workflow will be available
-EOF
+    
+    # Use echo with proper variable expansion instead of cat heredoc
+    echo -e "${YELLOW}⚠️  CLAUDE INITIALIZATION REQUIRED${NC}"
+    echo
+    echo "COMPASS needs Claude Code to be properly initialized before continuing."
+    echo
+    echo -e "${CYAN}Enhanced Setup Available:${NC}"
+    if [[ "$SERENA_PORT" -gt 0 ]]; then
+      echo "✅ Serena MCP server is running on port $SERENA_PORT"
+      echo "   Your initialization will have advanced code analysis capabilities!"
+    else
+      echo "ℹ️  Serena MCP server could not be started"
+      echo "   Standard initialization will proceed"
+    fi
+    echo
+    echo -e "${GREEN}Required Steps:${NC}"
+    echo -e "1. Run: ${CYAN}claude init${NC}"
+    echo "2. Follow authentication prompts"
+    echo "3. Accept trust dialog when prompted"
+    echo -e "4. Then restart COMPASS with: ${CYAN}./compass.sh${NC}"
+    echo
+    echo -e "${YELLOW}After initialization:${NC}"
+    echo "• COMPASS will auto-update components"
+    echo "• Serena integration will complete automatically"
+    echo "• Memory optimization will be applied"
+    echo "• Full enhanced workflow will be available"
     echo
     echo "${RED}Please run '${CYAN}claude init${NC}${RED}' first, then restart COMPASS.${NC}"
     exit 1
