@@ -762,21 +762,14 @@ setup_serena_signal_handlers() {
   log_debug "Serena MCP server signal handlers configured"
 }
 
-# Main function to integrate Serena MCP server with COMPASS
-integrate_serena_mcp_server() {
-  log_info "Initializing Serena MCP server integration..."
+# Phase 1: Start Serena MCP server only (before Claude init)
+start_serena_mcp_server_only() {
+  log_info "Starting Serena MCP server (Phase 1 - Pre-initialization)..."
 
   # Check if Serena integration should be enabled
   if [[ "${SERENA_INTEGRATION_DISABLED:-}" == "true" ]]; then
     log_info "Serena MCP integration disabled by environment variable"
     return 0
-  fi
-
-  # Check if Claude is properly initialized before starting Serena
-  if ! early_check_claude_initialization; then
-    log_warn "Claude Code not initialized - skipping Serena integration"
-    log_warn "Run 'claude init' first to enable Serena MCP server"
-    return 1
   fi
 
   # Check Serena availability first (fail fast if not available)
@@ -801,20 +794,47 @@ integrate_serena_mcp_server() {
     return 1
   fi
 
+  # Store port for later registration
+  SERENA_PORT="$serena_port"
+  
+  log_success "Serena MCP server started successfully (Port: $serena_port, PID: $SERENA_PID)"
+  log_info "Server ready for Claude initialization with enhanced capabilities"
+  return 0
+}
+
+# Phase 2: Complete Serena integration after Claude is initialized
+complete_serena_mcp_integration() {
+  log_info "Completing Serena MCP server integration (Phase 2 - Post-initialization)..."
+
+  # Check if Serena was started in Phase 1
+  if [[ "$SERENA_PORT" -eq 0 ]] || [[ "$SERENA_PID" -eq 0 ]]; then
+    log_debug "Serena not started in Phase 1, skipping Phase 2"
+    return 1
+  fi
+
+  # Verify server is still running
+  if ! check_serena_server_health "$SERENA_PORT" 1; then
+    log_warn "Serena server no longer healthy, attempting restart"
+    if ! start_serena_mcp_server_with_retry "$SERENA_PORT"; then
+      log_warn "Failed to restart Serena server"
+      return 1
+    fi
+  fi
+
   # Configure Claude settings
-  if ! configure_serena_mcp_settings "$serena_port"; then
+  if ! configure_serena_mcp_settings "$SERENA_PORT"; then
     log_warn "Serena MCP settings configuration failed - server running but not optimally configured"
   fi
 
   # Register with Claude
-  if ! register_serena_with_claude "$serena_port"; then
+  if ! register_serena_with_claude "$SERENA_PORT"; then
     log_warn "Claude MCP registration failed - Serena server running but not integrated with Claude"
   fi
 
   # Start background health monitoring with complete process isolation
   # Use setsid to create new session and nohup for process isolation
   {
-    nohup setsid monitor_serena_server "$serena_port" </dev/null >/dev/null 2>&1 &
+    nohup setsid monitor_serena_server "$SERENA_PORT" </dev/null >/dev/null 2>&1 &
     local monitor_pid=$!
     echo "$monitor_pid" >.compass/serena-monitor.pid
     SERENA_MONITOR_PID="$monitor_pid"
@@ -830,8 +850,29 @@ integrate_serena_mcp_server() {
   # Mark integration as successful
   SERENA_INTEGRATION_ENABLED=true
 
-  log_success "Serena MCP server integration complete (Port: $serena_port, PID: $SERENA_PID)"
+  log_success "Serena MCP server integration complete (Port: $SERENA_PORT, PID: $SERENA_PID)"
   return 0
+}
+
+# Main function to integrate Serena MCP server with COMPASS (legacy wrapper)
+integrate_serena_mcp_server() {
+  log_info "Initializing Serena MCP server integration..."
+
+  # Check if Claude is properly initialized before starting Serena
+  if ! early_check_claude_initialization; then
+    log_warn "Claude Code not initialized - attempting Phase 1 only"
+    return start_serena_mcp_server_only
+  fi
+
+  # If Claude is initialized, do full integration
+  if [[ "$SERENA_PORT" -eq 0 ]]; then
+    # Serena wasn't started in Phase 1, do full startup now
+    start_serena_mcp_server_only
+  fi
+  
+  # Complete the integration
+  complete_serena_mcp_integration
+  return $?
 }
 
 # Function to check Serena integration status
@@ -1746,25 +1787,33 @@ AUTO-UPDATE SYSTEM:
     - --debug flag disables auto-update for development safety
     - --no-auto-update flag permanently disables updates for current run
 
-SIMPLIFIED WORKFLOW:
-    Every execution automatically:
-    1. Checks if Claude Code is initialized (NEW - prevents premature updates)
-       - If not initialized: Sets up Claude Code first before updates
-       - Ensures proper authentication and trust dialog acceptance  
-       - Creates necessary configuration directories and settings
-    2. Checks for and applies compass.sh auto-updates (after Claude is ready)
-    3. Updates COMPASS components from repository
-    4. Configures memory optimization  
-    5. Installs/updates Claude Code via uvx
-    6. Starts and registers Serena MCP server (if available)
-    7. Launches Claude with optimal settings and MCP integration
+ENHANCED BOOTSTRAP WORKFLOW:
+    Every execution automatically follows this optimized sequence:
+    1. Checks if Claude Code command exists (installs if needed)
+    2. Installs/updates Claude Code via npm/uvx 
+    3. Starts Serena MCP server BEFORE Claude initialization (SUPERPOWERS!)
+    4. Checks Claude initialization status
+       - If not initialized: Prompts for 'claude init' with Serena already running
+       - User gets enhanced initialization experience with advanced capabilities
+    5. Updates COMPASS components from repository (after Claude ready)
+    6. Configures memory optimization
+    7. Completes Serena MCP server integration (registration with Claude)
+    8. Launches Claude with optimal settings and full MCP integration
+
+KEY INNOVATION - SERENA FIRST:
+    ✨ Serena MCP server starts BEFORE 'claude init'
+    ✨ Users get advanced code analysis during initial setup
+    ✨ Enhanced capabilities available from first session
+    ✨ No need to restart after adding Serena later
 
 FIRST-TIME USERS:
-    The script now intelligently detects when Claude Code needs initialization and:
-    - Pauses auto-update until Claude is ready
-    - Guides you through one-time authentication setup
-    - Explains what's happening at each step
-    - Only proceeds with updates after Claude is properly configured
+    The script provides an enhanced initialization experience:
+    - Installs Claude Code automatically if not present
+    - Starts Serena MCP server before prompting for 'claude init'
+    - Shows whether Serena superpowers are available during setup
+    - Guides through authentication with enhanced capabilities ready
+    - Completes all integrations automatically after 'claude init'
+    - No manual MCP server setup required
 EOF
 }
 
@@ -1784,22 +1833,36 @@ show_version() {
 # Main execution function
 main() {
   local resume_session=false
+  local claude_needs_init=false
+  local claude_needs_install=false
 
   # Phase 0: Early flag parsing for auto-update control
   parse_early_debug_flag "$@"
 
-  # Phase 0.3: Early Claude initialization check (before auto-update)
-  if [[ "$AUTO_UPDATE_DISABLED" != "true" ]] && [[ "$AUTO_UPDATE_ENABLED" == "true" ]]; then
+  # Phase 0.1: Check if Claude command exists at all
+  if ! command -v claude >/dev/null 2>&1; then
+    log_info "Claude Code not installed - will install before initialization"
+    claude_needs_install=true
+    claude_needs_init=true
+  else
+    # Phase 0.2: Check if Claude needs initialization (command exists but not initialized)
     if ! early_check_claude_initialization; then
-      # Claude needs initialization - prompt user and exit
-      handle_claude_initialization_requirement
-      # This function will exit the script
+      claude_needs_init=true
     fi
   fi
 
-  # Phase 0.5: Check and perform auto-update (unless disabled)
-  if ! check_and_auto_update "$@"; then
-    log_warn "Auto-update failed, continuing with current version"
+  # Phase 0.3: Skip auto-update if Claude needs installation or init
+  # (We want to get Claude working first before updating COMPASS)
+  if [[ "$claude_needs_install" == "true" ]] || [[ "$claude_needs_init" == "true" ]]; then
+    log_info "Deferring COMPASS auto-update until after Claude setup"
+    AUTO_UPDATE_DISABLED=true
+  fi
+
+  # Phase 0.4: Check and perform auto-update (unless disabled)
+  if [[ "$AUTO_UPDATE_DISABLED" != "true" ]] && [[ "$AUTO_UPDATE_ENABLED" == "true" ]]; then
+    if ! check_and_auto_update "$@"; then
+      log_warn "Auto-update failed, continuing with current version"
+    fi
   fi
 
   # Parse command line arguments
@@ -1883,53 +1946,101 @@ main() {
   validate_dependencies
   setup_directories
 
-  # Phase 2: Always Update COMPASS Components
-  log_info "Phase 2: Auto-Update COMPASS Components"
+  # Phase 2: Claude Code Installation (if needed)
+  if [[ "$claude_needs_install" == "true" ]]; then
+    log_info "Phase 2: Claude Code Installation"
+    install_update_claude_code
+  else
+    log_info "Phase 2: Claude Code already installed, updating if needed"
+    install_update_claude_code
+  fi
+
+  # Phase 3: Serena MCP Server Pre-initialization (superpowers for init!)
+  log_info "Phase 3: Serena MCP Server Pre-initialization"
+  if start_serena_mcp_server_only; then
+    log_success "Serena MCP server ready - Claude init will have enhanced capabilities"
+  else
+    log_info "Continuing without Serena pre-initialization"
+  fi
+
+  # Phase 4: Claude Initialization Check and Prompt
+  if [[ "$claude_needs_init" == "true" ]]; then
+    log_info "Phase 4: Claude Code Initialization Required"
+    
+    # Show enhanced initialization message with Serena info
+    log_warn "Claude Code requires initialization to proceed with COMPASS setup."
+    echo
+    cat <<EOF
+${YELLOW}⚠️  CLAUDE INITIALIZATION REQUIRED${NC}
+
+COMPASS needs Claude Code to be properly initialized before continuing.
+
+${CYAN}Enhanced Setup Available:${NC}
+$(if [[ "$SERENA_PORT" -gt 0 ]]; then
+  echo "✅ Serena MCP server is running on port $SERENA_PORT"
+  echo "   Your initialization will have advanced code analysis capabilities!"
+else
+  echo "ℹ️  Serena MCP server could not be started"
+  echo "   Standard initialization will proceed"
+fi)
+
+${GREEN}Required Steps:${NC}
+1. Run: ${CYAN}claude init${NC}
+2. Follow authentication prompts  
+3. Accept trust dialog when prompted
+4. Then restart COMPASS with: ${CYAN}./compass.sh${NC}
+
+${YELLOW}After initialization:${NC}
+• COMPASS will auto-update components
+• Serena integration will complete automatically  
+• Memory optimization will be applied
+• Full enhanced workflow will be available
+EOF
+    echo
+    echo "${RED}Please run '${CYAN}claude init${NC}${RED}' first, then restart COMPASS.${NC}"
+    exit 1
+  else
+    log_success "Claude Code is properly initialized"
+  fi
+
+  # Phase 5: Update COMPASS Components (now that Claude is ready)
+  log_info "Phase 5: Auto-Update COMPASS Components"
   update_compass_components
 
-  # Phase 3: Memory Optimization Configuration
-  log_info "Phase 3: Memory Optimization Configuration"
+  # Phase 6: Memory Optimization Configuration  
+  log_info "Phase 6: Memory Optimization Configuration"
   local system_memory_mb
   system_memory_mb=$(get_system_memory_mb)
   MEMORY_MB=$(calculate_memory_allocation "$system_memory_mb")
 
-  # Phase 4: Claude Code Integration & Initialization
-  log_info "Phase 4: Claude Code Integration & Initialization"
+  # Phase 7: Claude Configuration
+  log_info "Phase 7: Claude Configuration"
   configure_claude_settings
-  install_update_claude_code
 
-  # Phase 4.5: Serena MCP Server Integration
-  log_info "Phase 4.5: Serena MCP Server Integration"
-
-  # Use timeout to prevent hanging in Serena integration
-  # Fix: Call function directly without subprocess to maintain function access
-  if integrate_serena_mcp_server; then
+  # Phase 8: Complete Serena MCP Server Integration
+  log_info "Phase 8: Complete Serena MCP Server Integration"
+  
+  if complete_serena_mcp_integration; then
     log_success "Serena MCP server integration completed successfully"
   else
     local exit_code=$?
-    if [[ $exit_code -eq 124 ]]; then
-      log_warn "Serena MCP server integration timed out after 30 seconds - running cleanup"
-    else
-      log_warn "Serena MCP server integration failed - running cleanup"
-    fi
-
-    # Use flag-based cleanup approach to ensure function availability
+    log_warn "Serena MCP server integration completion failed - server may still be running"
+    
+    # Fallback cleanup for critical cases
     local script_path="${BASH_SOURCE[0]:-$0}"
     if [[ -f "$script_path" ]] && timeout 10 "$script_path" --cleanup-serena 2>/dev/null; then
       log_debug "Serena cleanup via flag completed successfully"
     else
       log_warn "Flag-based cleanup failed, using fallback cleanup"
-      # Fallback cleanup for critical cases
       pkill -f "serena start-mcp-server" 2>/dev/null || true
       pkill -f "uvx.*serena" 2>/dev/null || true
       rm -f .compass/*.pid 2>/dev/null || true
-      # Clean up any processes on default Serena port
       lsof -ti ":${SERENA_DEFAULT_PORT}" 2>/dev/null | xargs -r kill -TERM 2>/dev/null || true
     fi
   fi
 
-  # Phase 5: Launch
-  log_info "Phase 5: Launch Preparation Complete"
+  # Phase 9: Launch Preparation Complete
+  log_info "Phase 9: Launch Preparation Complete"
   echo
   log_success "COMPASS Unified Setup Complete!"
 
