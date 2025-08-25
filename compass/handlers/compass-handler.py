@@ -783,7 +783,7 @@ def handle_user_prompt_submit(input_data):
     
     SYSTEM INTEGRATION:
     - Input: Claude Code UserPromptSubmit hook event with user prompt
-    - Processing: Logs prompt routing for audit trail
+    - Processing: Uses unified compass_handler_core for consistent processing
     - Output: inject_compass_context() result for compass-captain activation
     - Coordination: compass-captain determines appropriate methodology approach
     
@@ -797,6 +797,7 @@ def handle_user_prompt_submit(input_data):
         None: If no prompt provided (graceful degradation)
     
     CRITICAL DEPENDENCIES:
+    - compass_handler_core(): Unified handler function (NEW ARCHITECTURE)
     - inject_compass_context(): COMPASS context injection mechanism
     - compass-captain agent: Methodology coordination and enforcement
     - .compass/logs/: Activity logging for audit and debugging
@@ -806,19 +807,13 @@ def handle_user_prompt_submit(input_data):
     2. Testing bypass prevention mechanisms
     3. Verifying compass-captain integration continues to work
     4. Ensuring methodology-selector strategic planning integration
+    5. Understanding unified function architecture maintains same behavior
     """
 
-    user_prompt = input_data.get("prompt", "")
-    if not user_prompt:
-        return None
-
-    log_handler_activity(
-        "prompt_routing", f"Routing to compass-captain: {user_prompt[:100]}..."
-    )
-
-    # Route ALL tasks to compass-captain (which will use methodology-selector for strategic planning)
-    # This ensures COMPASS coordination for initial and subsequent prompts
-    return inject_compass_context()
+    # Delegate to unified core function with UserPromptSubmit hook type
+    # This ensures identical context injection behavior as before, 
+    # but now uses the unified architecture for consistency with PreToolUse
+    return compass_handler_core(input_data, "UserPromptSubmit")
 
 
 def detect_compass_agent_in_prompt(prompt):
@@ -916,6 +911,208 @@ def load_agent_instructions(agent_name):
         return f"Error loading {agent_name}. Please read .claude/agents/{agent_name}.md manually using Read tool."
 
 
+def compass_handler_core(input_data, hook_type):
+    """
+    UNIFIED FUNCTION: Core handler for both PreToolUse and UserPromptSubmit hooks
+    
+    This function implements the unified architecture that:
+    1. Detects hook-specific parameters and validates input
+    2. Applies recursion checks ONLY for tool use scenarios
+    3. Uses EXACTLY THE SAME context injection path for both hook types
+    4. Formats return values appropriately for each hook type
+    
+    DESIGN GOALS:
+    - Single source of truth for compass context injection
+    - Recursion prevention only applies to tool use scenarios  
+    - Maintain compatibility with both hook event types
+    - Clean separation between recursion logic and context injection
+    
+    ARGS:
+        input_data (dict): Hook event data with hook-specific fields:
+            - UserPromptSubmit: {"prompt": str, ...other_fields}
+            - PreToolUse: {"tool_name": str, "tool_input": dict, ...other_fields}
+        hook_type (str): "UserPromptSubmit" or "PreToolUse"
+    
+    RETURNS:
+        dict: Hook-appropriate response:
+            - UserPromptSubmit: inject_compass_context() result
+            - PreToolUse: permission decision with compass context
+        None: If validation fails (graceful degradation)
+    
+    CRITICAL: This function maintains the exact same context injection behavior
+    for both hook types, only differing in recursion checks and return formatting.
+    """
+    
+    # STEP 1: Parameter Detection and Initial Validation
+    if hook_type == "UserPromptSubmit":
+        user_prompt = input_data.get("prompt", "")
+        if not user_prompt:
+            return None
+        
+        log_handler_activity(
+            "prompt_routing", f"Routing to compass-captain: {user_prompt[:100]}..."
+        )
+        
+        # UserPromptSubmit: No recursion checks needed, go directly to context injection
+        compass_context = inject_compass_context()
+        return compass_context
+        
+    elif hook_type == "PreToolUse":
+        tool_name = input_data.get("tool_name", "")
+        tool_input = input_data.get("tool_input", {})
+        
+        if not tool_name:
+            return create_permission_decision_with_compass_context(
+                "deny", "No tool name provided"
+            )
+            
+        log_handler_activity("tool_intercept", f"Intercepted: {tool_name}")
+        
+        # STEP 2: Tool Use Recursion Checks (ONLY for PreToolUse)
+        
+        # FILE PATH VALIDATION: Prevent root directory file creation
+        file_safety_result = validate_file_operation_safety(tool_name, tool_input)
+        if not file_safety_result["safe"]:
+            log_handler_activity("file_path_violation", f"Blocked unsafe file operation: {tool_name}")
+            return create_permission_decision_with_compass_context(
+                "deny", 
+                file_safety_result["reason"]
+            )
+
+        # RECURSION PREVENTION: Skip validation for compass-upstream-validator to prevent infinite loops
+        if (
+            tool_name == "Task"
+            and tool_input.get("subagent_type") == "compass-upstream-validator"
+        ):
+            log_handler_activity(
+                "recursion_prevention", "Enhanced upstream validator recursion prevention"
+            )
+            enhanced_message = create_enhanced_recursion_message(
+                "upstream_validator",
+                tool_name=tool_name,
+                subagent_type=tool_input.get("subagent_type"),
+                validation_depth=int(os.environ.get("COMPASS_VALIDATION_DEPTH", "0"))
+            )
+            return create_permission_decision_with_compass_context(
+                "allow", 
+                enhanced_message
+            )
+
+        # DEPTH LIMITING: Prevent deep validation chains
+        validation_depth = int(os.environ.get("COMPASS_VALIDATION_DEPTH", "0"))
+        if validation_depth >= 3:
+            log_handler_activity(
+                "depth_limit", f"Enhanced depth limit messaging - max depth reached ({validation_depth})"
+            )
+            enhanced_message = create_enhanced_recursion_message(
+                "depth_limit",
+                tool_name=tool_name,
+                subagent_type=tool_input.get("subagent_type"),
+                validation_depth=validation_depth
+            )
+            return create_permission_decision_with_compass_context(
+                "allow", 
+                enhanced_message
+            )
+
+        # Check for double_check parameter and trigger upstream validation
+        double_check = tool_input.get("double_check", False)
+        if double_check:
+            log_handler_activity(
+                "upstream_validation", f"Double-check requested for {tool_name}"
+            )
+
+            # Increment validation depth tracking
+            os.environ["COMPASS_VALIDATION_DEPTH"] = str(validation_depth + 1)
+            try:
+                validation_result = trigger_upstream_validation(tool_name, tool_input)
+            finally:
+                # Always decrement depth when done
+                if validation_depth > 0:
+                    os.environ["COMPASS_VALIDATION_DEPTH"] = str(validation_depth)
+                else:
+                    os.environ.pop("COMPASS_VALIDATION_DEPTH", None)
+            if validation_result and not validation_result.get("valid", True):
+                return create_permission_decision_with_compass_context(
+                    "deny",
+                    f"⚠️ Upstream validation failed: {validation_result.get('reason', 'Unknown error')}\n\nSuggestions: {validation_result.get('suggestions', [])}"
+                )
+
+        # Check if this tool usage requires COMPASS methodology
+        if requires_compass_methodology(tool_name, tool_input):
+            # Block the tool usage and provide guidance (regardless of COMPASS context status)
+            log_handler_activity(
+                "compass_required", f"Blocking {tool_name} - COMPASS required"
+            )
+            
+            session_context = get_compass_session_context()
+            
+            if not compass_context_active():
+                compass_message = f"""🧭 COMPASS METHODOLOGY REQUIRED
+
+⚠️ **SYSTEMATIC ANALYSIS REQUIRED**: Tool '{tool_name}' detected as requiring COMPASS methodology
+
+🧠 **WHY COMPASS IS REQUIRED**:
+• Complex analytical tasks require systematic approach
+• Prevents ad-hoc analysis that misses institutional knowledge
+• Ensures quality control through 6-phase methodology
+• Integrates with existing patterns and documentation
+
+📊 **PREPARATION FOR COMPASS**:
+• No active COMPASS session detected
+• Ready to initialize systematic methodology
+• Tool will be coordinated through proper phases
+
+✅ **REQUIRED ACTIONS**:
+1. **Initialize COMPASS**: Use Task tool with subagent_type='compass-captain'
+2. **Methodology Coordination**: compass-captain will coordinate full 6-phase COMPASS approach
+3. **Progress Tracking**: Check .compass/logs/compass-status for methodology progress
+4. **Quality Assurance**: Systematic approach ensures comprehensive analysis
+
+🎯 **NEXT STEP**: Use Task tool with subagent_type='compass-captain' to begin systematic analysis"""
+                
+            else:
+                compass_message = f"""🧭 COMPASS ENFORCEMENT ACTIVE
+
+⚠️ **TOOL COORDINATION REQUIRED**: Tool '{tool_name}' requires COMPASS coordination during active session
+
+🧠 **WHY THIS IS BLOCKED**:
+• COMPASS session is already active - requires coordination
+• Direct tool usage bypasses systematic methodology
+• All analysis must maintain institutional knowledge integration
+• Prevents fragmented approach during systematic analysis
+
+📊 **CURRENT SESSION CONTEXT**:
+• Session Duration: {session_context['session_duration']}
+• Current Phase: {session_context['current_phase']}
+• Total Tokens Used: {session_context['total_tokens']:,}
+• Agents Run: {', '.join(session_context['agents_run'][:3]) if session_context['agents_run'] else 'None yet'}
+
+✅ **REQUIRED ACTION**:
+Use Task tool with subagent_type='compass-captain' for proper tool coordination
+
+❌ **BLOCKED**: Direct {tool_name} tool usage during active COMPASS session
+
+🎯 **NEXT STEP**: compass-captain will coordinate {tool_name} usage through appropriate methodology phase"""
+            
+            return create_permission_decision_with_compass_context(
+                "deny", 
+                compass_message
+            )
+
+        # STEP 3: Allow the tool and inject compass context (SAME PATH as UserPromptSubmit)
+        log_handler_activity("tool_allowed", f"Allowing {tool_name}")
+        return create_permission_decision_with_compass_context(
+            "allow", 
+            "COMPASS validation passed"
+        )
+    
+    else:
+        # Invalid hook type
+        log_handler_activity("invalid_hook_type", f"Unknown hook type: {hook_type}")
+        return None
+
+
 def inject_compass_context():
     """Route all tasks to compass-captain with strategic planning architecture"""
 
@@ -951,6 +1148,35 @@ The compass-captain will:
             "additionalContext": compass_context,
         }
     }
+
+
+def create_permission_decision_with_compass_context(decision, reason):
+    """
+    Create permission decision that includes compass context injection
+    Combines PreToolUse permission decisions with compass context like UserPromptSubmit
+    
+    ARGS:
+        decision (str): "allow" or "deny" permission decision
+        reason (str): Human-readable explanation for the decision
+    
+    RETURNS:
+        dict: Combined permission decision and compass context injection
+    """
+    # Get compass context from inject_compass_context
+    compass_injection = inject_compass_context()
+    
+    # Combine permission decision with compass context injection
+    # Change hookEventName from UserPromptSubmit to PreToolUse for proper event handling
+    result = {
+        "permissionDecision": decision,
+        "permissionDecisionReason": reason,
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "additionalContext": compass_injection["hookSpecificOutput"]["additionalContext"],
+        }
+    }
+    
+    return result
 
 
 def handle_pre_tool_use(input_data):
@@ -998,6 +1224,7 @@ def handle_pre_tool_use(input_data):
         None: No intervention required (implicit allow)
     
     CRITICAL DEPENDENCIES:
+    - compass_handler_core(): Unified handler function (NEW ARCHITECTURE)
     - validate_file_operation_safety(): File system security validation
     - requires_compass_methodology(): Analysis tool detection
     - compass_context_active(): COMPASS state verification
@@ -1014,96 +1241,13 @@ def handle_pre_tool_use(input_data):
     3. Verifying recursion prevention mechanisms work correctly
     4. Ensuring security validations remain comprehensive
     5. Testing COMPASS enforcement under various scenarios
+    6. Understanding unified function architecture maintains same behavior
     """
 
-    tool_name = input_data.get("tool_name", "")
-    tool_input = input_data.get("tool_input", {})
-
-    log_handler_activity("tool_intercept", f"Intercepted: {tool_name}")
-
-    # FILE PATH VALIDATION: Prevent root directory file creation
-    file_safety_result = validate_file_operation_safety(tool_name, tool_input)
-    if not file_safety_result["safe"]:
-        log_handler_activity("file_path_violation", f"Blocked unsafe file operation: {tool_name}")
-        return {
-            "permissionDecision": "deny",
-            "permissionDecisionReason": file_safety_result["reason"],
-        }
-
-    # RECURSION PREVENTION: Skip validation for compass-upstream-validator to prevent infinite loops
-    if (
-        tool_name == "Task"
-        and tool_input.get("subagent_type") == "compass-upstream-validator"
-    ):
-        log_handler_activity(
-            "recursion_prevention", "Skipping validation for compass-upstream-validator"
-        )
-        return {
-            "permissionDecision": "allow",
-            "permissionDecisionReason": "COMPASS upstream validator - recursion prevention",
-        }
-
-    # DEPTH LIMITING: Prevent deep validation chains
-    validation_depth = int(os.environ.get("COMPASS_VALIDATION_DEPTH", "0"))
-    if validation_depth >= 3:
-        log_handler_activity(
-            "depth_limit", f"Max validation depth reached ({validation_depth})"
-        )
-        return {
-            "permissionDecision": "allow",
-            "permissionDecisionReason": "COMPASS depth limit - preventing runaway validation",
-        }
-
-    # Check for double_check parameter and trigger upstream validation
-    double_check = tool_input.get("double_check", False)
-    if double_check:
-        log_handler_activity(
-            "upstream_validation", f"Double-check requested for {tool_name}"
-        )
-
-        # Increment validation depth tracking
-        os.environ["COMPASS_VALIDATION_DEPTH"] = str(validation_depth + 1)
-        try:
-            validation_result = trigger_upstream_validation(tool_name, tool_input)
-        finally:
-            # Always decrement depth when done
-            if validation_depth > 0:
-                os.environ["COMPASS_VALIDATION_DEPTH"] = str(validation_depth)
-            else:
-                os.environ.pop("COMPASS_VALIDATION_DEPTH", None)
-        if validation_result and not validation_result.get("valid", True):
-            return {
-                "permissionDecision": "deny",
-                "permissionDecisionReason": f"⚠️ Upstream validation failed: {validation_result.get('reason', 'Unknown error')}\n\nSuggestions: {validation_result.get('suggestions', [])}",
-            }
-
-    # Check if this tool usage requires COMPASS methodology
-    if requires_compass_methodology(tool_name, tool_input):
-        # Block the tool usage and provide guidance (regardless of COMPASS context status)
-        log_handler_activity(
-            "compass_required", f"Blocking {tool_name} - COMPASS required"
-        )
-        
-        if not compass_context_active():
-            compass_message = "🧭 COMPASS METHODOLOGY REQUIRED\n\nThe tool '{}' requires systematic analysis.\n\nREQUIRED ACTION:\n1. Use the compass-captain agent\n2. This will coordinate the full 6-phase COMPASS methodology\n3. Check .compass/logs/compass-status file for current progress\n\nCOMPASS ensures institutional knowledge integration and prevents ad-hoc analysis.".format(
-                tool_name
-            )
-        else:
-            compass_message = "🧭 COMPASS ENFORCEMENT ACTIVE\n\nThe tool '{}' requires COMPASS coordination.\n\nREQUIRED ACTION:\n1. Use Task tool with subagent_type='compass-captain'\n2. compass-captain will coordinate this tool usage through proper methodology\n3. All analysis must go through COMPASS agents during active sessions\n\n✅ REQUIRED: Task tool with subagent_type='compass-captain'\n❌ BLOCKED: Direct {} tool usage during COMPASS session".format(
-                tool_name, tool_name
-            )
-        
-        return {
-            "permissionDecision": "deny",
-            "permissionDecisionReason": compass_message,
-        }
-
-    # Allow the tool to proceed
-    log_handler_activity("tool_allowed", f"Allowing {tool_name}")
-    return {
-        "permissionDecision": "allow",
-        "permissionDecisionReason": "COMPASS validation passed",
-    }
+    # Delegate to unified core function with PreToolUse hook type
+    # This ensures identical recursion prevention and context injection behavior as before,
+    # but now uses the unified architecture for consistency with UserPromptSubmit
+    return compass_handler_core(input_data, "PreToolUse")
 
 
 def estimate_agent_tokens(agent_type, prompt_content, tool_input=None):
@@ -1608,8 +1752,20 @@ def handle_pre_tool_use_with_token_tracking(input_data):
         if tool_name == "Task":
             subagent_type = tool_input.get("subagent_type", "")
             if subagent_type == "compass-captain":
-                # Allow compass-captain - this is exactly what we want
-                pass  
+                # COMPASS CAPTAIN RECURSION PREVENTION: Check if compass-captain is calling itself
+                log_handler_activity(
+                    "compass_captain_recursion_check", 
+                    f"Checking compass-captain recursion during active COMPASS session"
+                )
+                enhanced_message = create_enhanced_recursion_message(
+                    "compass_captain",
+                    tool_name=tool_name,
+                    subagent_type=subagent_type
+                )
+                return create_permission_decision_with_compass_context(
+                    "deny", 
+                    enhanced_message
+                )  
             elif subagent_type in [
                 "compass-knowledge-discovery", "compass-enhanced-analysis", 
                 "compass-cross-reference", "compass-data-flow", "compass-dependency-tracker"
@@ -1618,10 +1774,34 @@ def handle_pre_tool_use_with_token_tracking(input_data):
                 pass
             else:
                 # Block all other Task tool usage - force compass-captain
-                return {
-                    "permissionDecision": "deny",
-                    "permissionDecisionReason": "🧭 COMPASS ENFORCEMENT: Must use compass-captain for methodology coordination.\n\nCOMPASS session is active. All analysis must go through compass-captain to ensure systematic methodology.\n\n✅ REQUIRED: Task tool with subagent_type='compass-captain'\n❌ BLOCKED: Task tool with subagent_type='" + subagent_type + "'"
-                }
+                session_context = get_compass_session_context()
+                enhanced_enforcement_message = f"""🧭 COMPASS ENFORCEMENT: Task Tool Blocked
+
+⚠️ **UNAUTHORIZED AGENT DETECTED**: '{subagent_type}' attempted during active COMPASS session
+
+🧠 **WHY THIS IS BLOCKED**:
+• COMPASS session requires coordination through compass-captain
+• Prevents bypass of systematic methodology enforcement
+• Ensures all analysis follows proper 6-phase COMPASS approach
+• Maintains institutional knowledge integration and quality standards
+
+📊 **CURRENT SESSION CONTEXT**:
+• Session Duration: {session_context['session_duration']}
+• Current Phase: {session_context['current_phase']}
+• Total Tokens Used: {session_context['total_tokens']:,}
+• Agents Already Run: {', '.join(session_context['agents_run'][:3]) if session_context['agents_run'] else 'None yet'}
+
+✅ **REQUIRED ACTION**: 
+Use Task tool with subagent_type='compass-captain' for proper methodology coordination
+
+❌ **BLOCKED**: Task tool with subagent_type='{subagent_type}' during COMPASS session
+
+🎯 **NEXT STEP**: compass-captain will coordinate the appropriate methodology approach for your request."""
+                
+                return create_permission_decision_with_compass_context(
+                    "deny",
+                    enhanced_enforcement_message
+                )
         elif tool_name in ["TodoWrite"]:
             # Allow TodoWrite for progress tracking
             pass
@@ -1630,10 +1810,34 @@ def handle_pre_tool_use_with_token_tracking(input_data):
             log_handler_activity("compass_tool_bypass", f"Allowing {tool_name} during COMPASS session")
         else:
             # Block all other tools - force compass-captain usage
-            return {
-                "permissionDecision": "deny", 
-                "permissionDecisionReason": f"🧭 COMPASS ENFORCEMENT: {tool_name} tool blocked during COMPASS session.\n\nCOMPASS methodology requires coordination through compass-captain.\n\n✅ REQUIRED: Task tool with subagent_type='compass-captain'\n❌ BLOCKED: {tool_name} tool during active COMPASS session"
-            }
+            session_context = get_compass_session_context()
+            enhanced_tool_block_message = f"""🧭 COMPASS ENFORCEMENT: Non-Task Tool Blocked
+
+⚠️ **UNAUTHORIZED TOOL DETECTED**: '{tool_name}' attempted during active COMPASS session
+
+🧠 **WHY THIS IS BLOCKED**:
+• COMPASS session requires all tools to go through compass-captain coordination
+• Prevents bypass of systematic methodology enforcement  
+• Ensures proper tool usage context within COMPASS phases
+• Maintains institutional knowledge integration standards
+
+📊 **CURRENT SESSION CONTEXT**:
+• Session Duration: {session_context['session_duration']}
+• Current Phase: {session_context['current_phase']}
+• Total Tokens Used: {session_context['total_tokens']:,}
+• Recent Activity: {session_context['recent_activity']}
+
+✅ **REQUIRED ACTION**: 
+Use Task tool with subagent_type='compass-captain' for proper coordination
+
+❌ **BLOCKED**: {tool_name} tool during active COMPASS session
+
+🎯 **NEXT STEP**: compass-captain will coordinate appropriate tool usage within methodology context."""
+            
+            return create_permission_decision_with_compass_context(
+                "deny", 
+                enhanced_tool_block_message
+            )
 
     # Detect COMPASS agent usage and track tokens
     if tool_name == "Task":
@@ -2895,6 +3099,182 @@ This is a double_check=true validation request requiring complete upstream verif
     except Exception as e:
         log_handler_activity("upstream_validation_error", f"Validation error: {e}")
         return {"valid": False, "reason": f"Validation system error: {e}"}
+
+
+def get_compass_session_context():
+    """
+    Get comprehensive COMPASS session context for enhanced messaging
+    
+    RETURNS:
+        dict: Session context including current state, active agents, token usage, etc.
+    """
+    context = {
+        "session_active": compass_context_active(),
+        "session_duration": "Unknown",
+        "agents_run": [],
+        "current_phase": "Unknown",
+        "total_tokens": 0,
+        "validation_depth": int(os.environ.get("COMPASS_VALIDATION_DEPTH", "0")),
+        "recent_activity": "None detected"
+    }
+    
+    try:
+        # Get session token data for context
+        session_tokens = get_current_session_tokens()
+        if session_tokens:
+            context["total_tokens"] = session_tokens.get("total", 0)
+            context["session_duration"] = calculate_session_duration(session_tokens)
+            
+            # Get agents that have been run
+            by_agent = session_tokens.get("by_agent", {})
+            context["agents_run"] = list(by_agent.keys())
+            
+            # Identify current phase based on most recent agent
+            if by_agent:
+                last_agent = max(by_agent.keys(), key=lambda x: by_agent[x].get("last_used", ""))
+                context["current_phase"] = map_agent_to_phase(last_agent) or "Unknown"
+        
+        # Check session tracking file for recent activity
+        logs_dir = Path(".compass/logs")
+        session_file = logs_dir / "compass-session.json"
+        if session_file.exists():
+            try:
+                with open(session_file, "r") as f:
+                    session_data = json.load(f)
+                context["recent_activity"] = session_data.get("last_activity", "None detected")
+            except (json.JSONDecodeError, FileNotFoundError):
+                pass
+                
+    except Exception as e:
+        # Graceful degradation - don't let context gathering break the handler
+        log_handler_activity("context_error", f"Failed to gather session context: {e}")
+        
+    return context
+
+
+def create_enhanced_recursion_message(recursion_type, tool_name=None, subagent_type=None, validation_depth=0):
+    """
+    Create comprehensive, educational recursion prevention message
+    
+    ARGS:
+        recursion_type (str): Type of recursion detected ('compass_captain', 'upstream_validator', 'depth_limit')
+        tool_name (str): Name of tool that triggered recursion check
+        subagent_type (str): Subagent type if applicable
+        validation_depth (int): Current validation depth level
+        
+    RETURNS:
+        str: Enhanced educational message with context and actionable alternatives
+    """
+    session_context = get_compass_session_context()
+    
+    if recursion_type == "compass_captain":
+        return f"""🛑 COMPASS CAPTAIN RECURSION PREVENTED
+
+⚠️ **RECURSION PATTERN DETECTED**: compass-captain called during active COMPASS session
+
+🧠 **WHY THIS IS BLOCKED**:
+• Prevents infinite coordination loops where compass-captain calls itself
+• Avoids resource waste from nested methodology enforcement
+• Maintains clean agent delegation hierarchy and prevents stack overflow
+• Ensures single point of methodology control and coordination
+
+📊 **CURRENT SESSION CONTEXT**:
+• Session Duration: {session_context['session_duration']}
+• Agents Already Run: {', '.join(session_context['agents_run'][:5]) if session_context['agents_run'] else 'None yet'}
+• Current Phase: {session_context['current_phase']}
+• Total Tokens Used: {session_context['total_tokens']:,}
+• Validation Depth: {session_context['validation_depth']}
+
+✅ **CORRECTIVE ACTIONS**:
+1. **Direct Agent Coordination**: Use specific COMPASS agents directly:
+   - Phase 1: compass-knowledge-discovery, compass-todo-sync
+   - Phase 2: compass-pattern-apply, compass-doc-planning, compass-data-flow
+   - Phase 3: compass-gap-analysis
+   - Phase 4: compass-enhanced-analysis
+   - Phase 5: compass-cross-reference
+   
+2. **Check Session Status**: Review .compass/logs/compass-status for current methodology progress
+
+3. **Alternative Coordination**: If methodology reset needed, wait for session timeout or use direct agent calls
+
+4. **Phase-Specific Action**: Based on current phase '{session_context['current_phase']}', consider appropriate next agent
+
+🎯 **RECOMMENDED NEXT STEP**: Use Task tool with specific compass agent based on current methodology phase."""
+
+    elif recursion_type == "upstream_validator":
+        return f"""🛑 UPSTREAM VALIDATOR RECURSION PREVENTED
+
+⚠️ **RECURSION PATTERN DETECTED**: compass-upstream-validator called during validation chain
+
+🧠 **WHY THIS IS BLOCKED**:
+• Prevents infinite validation loops where upstream validator calls itself
+• Avoids exponential resource consumption from recursive repository checks
+• Maintains validation chain integrity and prevents circular dependencies
+• Ensures bounded validation depth for system stability
+
+📊 **CURRENT SESSION CONTEXT**:
+• Session Duration: {session_context['session_duration']}
+• Current Validation Depth: {validation_depth}
+• COMPASS Session Active: {'Yes' if session_context['session_active'] else 'No'}
+• Total Tokens Used: {session_context['total_tokens']:,}
+• Recent Activity: {session_context['recent_activity']}
+
+✅ **CORRECTIVE ACTIONS**:
+1. **Manual Validation**: If upstream validation needed, use direct repository commands:
+   - git fetch upstream  
+   - git diff upstream/main..HEAD
+   - Manual review of changes
+
+2. **Alternative Validation**: Use compass-second-opinion for expert consultation instead
+
+3. **Process Validation**: Check if validation is actually needed for your current task
+
+4. **Validation Chain Review**: Examine validation depth ({validation_depth}) to understand call stack
+
+🎯 **RECOMMENDED NEXT STEP**: Proceed with original tool usage - upstream validation already in progress."""
+
+    elif recursion_type == "depth_limit":
+        return f"""🛑 VALIDATION DEPTH LIMIT REACHED
+
+⚠️ **DEPTH LIMITING ACTIVATED**: Maximum validation depth ({validation_depth}) exceeded
+
+🧠 **WHY THIS IS BLOCKED**:
+• Prevents runaway validation chains that could consume excessive resources
+• Avoids infinite loops in complex validation scenarios
+• Maintains system stability under recursive validation patterns
+• Ensures bounded computational complexity for validation operations
+
+📊 **CURRENT SESSION CONTEXT**:
+• Session Duration: {session_context['session_duration']}
+• Maximum Depth Reached: {validation_depth}/3
+• COMPASS Session Active: {'Yes' if session_context['session_active'] else 'No'}
+• Agents Run: {', '.join(session_context['agents_run'][:3]) if session_context['agents_run'] else 'None yet'}
+• Total Tokens Used: {session_context['total_tokens']:,}
+
+✅ **CORRECTIVE ACTIONS**:
+1. **Proceed Without Deep Validation**: Continue with original tool usage - basic validation completed
+
+2. **Manual Validation**: If thorough validation needed, perform manual checks:
+   - Review repository state manually
+   - Check for obvious conflicts or issues
+   - Use git status and git diff for change review
+
+3. **Reset Validation Chain**: Wait for validation depth to reset naturally or restart session
+
+4. **Alternative Approach**: Use compass-second-opinion for expert guidance on complex validation needs
+
+🎯 **RECOMMENDED NEXT STEP**: Proceed with tool usage - validation depth limit provides sufficient safety."""
+
+    else:
+        return f"""🛑 RECURSION PREVENTION ACTIVE
+
+⚠️ **RECURSION PATTERN DETECTED**: {recursion_type}
+• Tool: {tool_name or 'Unknown'}
+• Subagent: {subagent_type or 'Unknown'}
+
+📊 **SESSION CONTEXT**: {session_context['total_tokens']:,} tokens used, {len(session_context['agents_run'])} agents run
+
+✅ **CORRECTIVE ACTION**: Review COMPASS methodology documentation and use appropriate direct agent calls."""
 
 
 def log_handler_activity(action, details):

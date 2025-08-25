@@ -117,165 +117,90 @@ Your `docs/` directory evolves organically, growing smarter with each iteration.
 
 Your `maps/` directory captures the flows that text struggles to convey. SVG diagrams with machine-readable metadata let Claude Code recognize patterns visually, connecting similar flows across different parts of your codebase.
 
-## Quick Start: Installation
+## Prerequisites
 
-### Quick Setup (2 steps)
+Before installing COMPASS, ensure you have the required environment set up:
 
-- **Initialize Claude Code project**:
+### Step 1: Install the Environment
 
-   ```bash
-   claude /init
-   ```
-
-   Exit Claude Code after initialization
-
-- **Install COMPASS**:
-
-   ```bash
-   bash -c "$(curl -fsSL https://raw.githubusercontent.com/odysseyalive/claude-compass/main/setup.sh)"
-   ```
-
-- Update Compass:
-
-   ```bash
-   bash -c "$(curl -fsSL https://raw.githubusercontent.com/odysseyalive/claude-compass/main/setup.sh)" -- update
-   ```
-
-Your Claude Code environment now has COMPASS capabilities and will initialize the `docs/` and `maps/` directories for the first complex analysis.
-
-## Enhanced Capabilities: Integration with Serena
-
-**COMPASS reaches its full potential when paired with Serena** - an open-source coding agent toolkit that transforms any LLM into a fully-featured development assistant. Instead of working around the limitations of text-only analysis, Serena gives Claude Code semantic understanding of your codebase through Language Server Protocol (LSP) integration.
-
-Serena transforms Claude Code from a conversation partner into a true development collaborator by providing IDE-like capabilities through the Model Context Protocol (MCP):
-
-- **Semantic code analysis** through language servers for precise symbol-level understanding
-- **LSP-powered navigation** that works like your favorite IDE - find definitions, references, completions
-- **Multi-language support** including Python, TypeScript/JavaScript, PHP, Go, Rust, C#, Ruby, Swift, Java, and more
-- **Symbolic code editing** - no more imprecise string replacements or line counting errors
-- **Cross-project intelligence** that understands your entire codebase architecture
-
-**Project**: <https://github.com/oraios/serena>
-
-### What Serena Actually Provides
-
-Unlike traditional development tools that require specific IDE configurations, Serena operates as an **MCP server** that any MCP-compatible client can connect to. This means:
-
-- **Universal compatibility** - Works with Claude Code, Claude Desktop, Cursor, VSCode extensions, and any MCP client
-- **Language server integration** - Uses the same LSP technology that powers modern IDEs
-- **Semantic understanding** - Finds symbols, references, and relationships rather than just text patterns
-- **Intelligent editing** - Edits code at the symbol level with tools like `insert_after_symbol` and `replace_symbol_body`
-- **Free and open source** - No subscriptions, no API costs beyond your LLM usage
-
-#### Core Dependencies (Required)
-
-These are essential for any COMPASS + Serena setup:
-
-- **Python 3.11+**: Serena's runtime requirement
-- **uv package manager**: Modern Python package management that Serena depends on
-
-  ```bash
-  # Install uv if you don't have it
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-  ```
-
-- **Node.js** (includes npm): Required for TypeScript/JavaScript language server support
-
-  ```bash
-  # Recommended: Use nvm for version management
-  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
-  source ~/.bashrc  # or restart your terminal
-  nvm install 20  # LTS version
-  nvm use 20
-  ```
-
-- **xmllint**: Critical for SVG validation - prevents broken visual maps that can derail pattern recognition
-
-  ```bash
-  # macOS
-  brew install libxml2
-  
-  # Ubuntu/Debian
-  sudo apt-get install libxml2-utils
-  
-  # Windows (via Chocolatey)
-  choco install libxml2
-  ```
-
-#### Language Server Integration
-
-Serena automatically manages language servers for supported languages. When you activate a project, it:
-
-- **Starts appropriate language servers** based on your project's languages
-- **Provides semantic analysis** - understands your code structure, not just text
-- **Enables intelligent navigation** - finds symbols, references, and definitions across your entire codebase
-- **Supports multi-language projects** - handles polyglot codebases seamlessly
-
-**Directly supported languages** (out of the box):
-
-- Python, TypeScript/JavaScript, PHP (with Intelephense), Go, Rust, C#, Ruby, Swift, Java, Elixir, Clojure, Bash, C/C++
-
-**Language-specific setup** (if you want premium features):
-
-For **PHP with Intelephense premium features**:
+**Python 3.11+** (required for Serena integration):
 
 ```bash
-# Set your license key as an environment variable
-export INTELEPHENSE_LICENSE_KEY="your-license-key-here"
+# Check your Python version
+python3 --version
 ```
 
-For **Go development**:
-
-- `gopls` is automatically installed when needed
-
-For **Java projects**:
-
-- Java JDK 11+ recommended for optimal language server performance
-
-### Setting Up Serena
-
-The beauty of Serena is its flexibility - you can run it in multiple ways depending on your workflow:
-
-#### Option 1: Direct Integration with Claude Code (Recommended)
-
-From your project directory:
+**uv package manager** (modern Python package management):
 
 ```bash
-claude mcp add serena -- uvx --from git+https://github.com/oraios/serena serena start-mcp-server --context ide-assistant --project $(pwd)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-This automatically:
+**Node.js with npm** (for TypeScript/JavaScript language server support):
 
-- Downloads and runs the latest Serena
-- Configures it for IDE-like assistance
-- Activates your current project
-- Provides semantic code analysis immediately
+```bash
+# Recommended: Use nvm for version management
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+```
 
-#### Option 2: SSE Mode for Advanced Users
+```bash
+source ~/.bashrc
+```
 
-If you prefer to manage the server process yourself:
+```bash
+nvm install 20
+```
 
-1. **Start Serena in SSE mode**:
+```bash
+nvm use 20
+```
 
-   ```bash
-   uvx --from git+https://github.com/oraios/serena serena start-mcp-server --transport sse --port 9121 --context ide-assistant
-   ```
+**xmllint** (critical for SVG validation):
 
-2. **Connect Claude Code** (Needs run within each project root directory):
+```bash
+# macOS
+brew install libxml2
+```
 
-   ```bash
-   claude mcp add serena --transport sse http://localhost:9121/sse
-   ```
+```bash
+# Ubuntu/Debian
+sudo apt-get install libxml2-utils
+```
 
-3. **Activate your project in Claude Code**:
+```bash
+# Windows (via Chocolatey)
+choco install libxml2
+```
 
-   ```
-   "Activate the project /path/to/your/project"
-   ```
+### Step 2: Install Claude Code
 
-#### Option 3: Claude Desktop Integration
+Install Claude Code globally using npm:
 
-Add to your `claude_desktop_config.json`:
+```bash
+npm install -g @anthropic-ai/claude-code
+```
+
+For additional platform-specific instructions, see the official [Claude Code installation guide](https://github.com/anthropics/claude-code).
+
+### Step 3: Install Serena (Optional but Recommended)
+
+Serena transforms Claude Code into a true development collaborator with IDE-like capabilities:
+
+**Direct integration with your project**:
+
+Start the Serena MCP server:
+
+```bash
+uvx --from git+https://github.com/oraios/serena serena start-mcp-server --transport sse --port 9121 --context ide-assistant
+```
+
+Add Serena to Claude (from project root):
+
+```bash
+claude mcp add serena --transport sse http://localhost:9121/sse
+```
+
+**Alternative: Claude Desktop integration** - Add to your `claude_desktop_config.json`:
 
 ```json
 {
@@ -292,16 +217,109 @@ Add to your `claude_desktop_config.json`:
 }
 ```
 
-Then activate your project: `"Activate the project /path/to/your/project"`
+Then activate your project:
+
+```
+"Activate the project /path/to/your/project"
+```
+
+## Installation
+
+With prerequisites in place, installing COMPASS is straightforward:
+
+### Install Prerequisites
+
+Ensure you've completed all steps in the [Prerequisites section](#prerequisites) above.
+
+### Start Serena MCP Server (if using Serena)
+
+First, start the Serena MCP server:
+
+```bash
+uvx --from git+https://github.com/oraios/serena serena start-mcp-server --transport sse --port 9121 --context ide-assistant
+```
+
+### Add Serena to Claude (if using Serena)
+
+Then, from your project root directory, add Serena to Claude:
+
+```bash
+claude mcp add serena --transport sse http://localhost:9121/sse
+```
+
+### Initialize Claude Code Project
+
+```bash
+claude /init
+```
+
+Exit Claude Code after initialization.
+
+### Install COMPASS
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/odysseyalive/claude-compass/main/setup.sh)"
+```
+
+Your Claude Code environment now has COMPASS capabilities and will initialize the `docs/` and `maps/` directories for the first complex analysis.
+
+### Update COMPASS
+
+Keeping your COMPASS installation current ensures you have access to the latest agents, capabilities, and improvements to the methodology. The setup script handles updates intelligently, preserving your existing `docs/` and `maps/` directories while refreshing all agents and technical enforcement systems.
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/odysseyalive/claude-compass/main/setup.sh)" -- update
+```
+
+**What the update accomplishes:**
+
+- **Refreshes all 26+ COMPASS agents** with latest behavioral improvements and new capabilities
+- **Updates technical enforcement systems** including the compass-handler.py and hook configurations  
+- **Validates your installation** ensuring all components work together seamlessly
+- **Preserves your institutional knowledge** - your existing `docs/` and `maps/` directories remain untouched
+- **Maintains configuration** while updating to the latest settings and optimizations
+
+Your navigation tools stay sharp, your institutional memory stays intact, and your COMPASS grows more capable with each update.
+
+## Enhanced Capabilities: Integration with Serena
+
+**COMPASS reaches its full potential when paired with Serena** - an open-source coding agent toolkit that transforms Claude Code into a true development collaborator through Language Server Protocol (LSP) integration.
+
+**Project**: <https://github.com/oraios/serena>
+
+### What Serena Provides
+
+Serena operates as an **MCP server** that gives Claude Code IDE-like capabilities:
+
+- **Semantic code analysis** - understands your code structure, not just text patterns
+- **LSP-powered navigation** - find definitions, references, and completions across your entire codebase
+- **Multi-language support** - Python, TypeScript/JavaScript, PHP, Go, Rust, C#, Ruby, Swift, Java, and more
+- **Symbolic code editing** - precise edits at the symbol level using tools like `insert_after_symbol`
+- **Universal compatibility** - works with Claude Code, Claude Desktop, and any MCP client
+- **Free and open source** - no subscriptions required
+
+### Language Server Integration
+
+Serena automatically manages language servers based on your project's languages, providing semantic analysis and intelligent navigation for polyglot codebases.
+
+**Optional language-specific setup**:
+
+**PHP with Intelephense premium features**:
+
+```bash
+export INTELEPHENSE_LICENSE_KEY="your-license-key-here"
+```
+
+**Java projects**: JDK 11+ recommended for optimal language server performance.
 
 ### Why This Integration Matters for COMPASS
 
 With Serena providing semantic code understanding, COMPASS transforms from a documentation system into a true **institutional knowledge engine**:
 
-- **Precise pattern recognition** - Serena understands code structure, so COMPASS can map architectural patterns accurately
-- **Symbolic code analysis** - Instead of guessing at function boundaries, COMPASS knows exactly how your code is organized
-- **Cross-reference precision** - Links between documentation and actual code become reliable and maintained
-- **Architecture evolution tracking** - As Serena edits code symbolically, COMPASS automatically updates its understanding of your system
+- **Precise pattern recognition** - COMPASS can map architectural patterns accurately with code structure understanding
+- **Symbolic code analysis** - knows exactly how your code is organized rather than guessing at boundaries  
+- **Cross-reference precision** - reliable links between documentation and actual code
+- **Architecture evolution tracking** - updates understanding as Serena edits code symbolically
 
 The combination means Claude Code doesn't just remember what you talked about - it understands how your actual codebase evolved and can make connections between abstract discussions and concrete implementation details.
 
