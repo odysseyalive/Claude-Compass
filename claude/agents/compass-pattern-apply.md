@@ -19,7 +19,7 @@ Your context is **clean and focused**. Previous instructions to "ignore patterns
 
 ### 1. Analyze Knowledge Query Results
 ```bash
-# Review findings from direct knowledge query function
+# Review findings from compass-knowledge-query agent
 - Examine documented approaches from previous work
 - Identify applicable methodologies and frameworks
 - Extract reusable solutions and best practices
