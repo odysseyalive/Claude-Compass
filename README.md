@@ -117,7 +117,7 @@ Your `docs/` directory evolves organically, growing smarter with each iteration.
 
 Your `maps/` directory captures the flows that text struggles to convey. SVG diagrams with machine-readable metadata let Claude Code recognize patterns visually, connecting similar flows across different parts of your codebase.
 
-## Prerequisites
+## Installation Guide
 
 Before installing COMPASS, ensure you have the required environment set up:
 
@@ -182,56 +182,9 @@ npm install -g @anthropic-ai/claude-code
 
 For additional platform-specific instructions, see the official [Claude Code installation guide](https://github.com/anthropics/claude-code).
 
-### Step 3: Install Serena (Optional but Recommended)
+### Step 3: Start Serena MCP Server (Optional but Recommended)
 
-Serena transforms Claude Code into a true development collaborator with IDE-like capabilities:
-
-**Direct integration with your project**:
-
-Start the Serena MCP server:
-
-```bash
-uvx --from git+https://github.com/oraios/serena serena start-mcp-server --transport sse --port 9121 --context ide-assistant
-```
-
-Add Serena to Claude (from project root):
-
-```bash
-claude mcp add serena --transport sse http://localhost:9121/sse
-```
-
-**Alternative: Claude Desktop integration** - Add to your `claude_desktop_config.json`:
-
-```json
-{
-    "mcpServers": {
-        "serena": {
-            "command": "uvx",
-            "args": [
-                "--from", "git+https://github.com/oraios/serena", 
-                "serena", "start-mcp-server",
-                "--context", "ide-assistant"
-            ]
-        }
-    }
-}
-```
-
-Then activate your project:
-
-```
-"Activate the project /path/to/your/project"
-```
-
-## Installation
-
-With prerequisites in place, installing COMPASS is straightforward:
-
-### Install Prerequisites
-
-Ensure you've completed all steps in the [Prerequisites section](#prerequisites) above.
-
-### Start Serena MCP Server (if using Serena)
+Serena transforms Claude Code into a true development collaborator with IDE-like capabilities.
 
 First, start the Serena MCP server:
 
@@ -239,7 +192,7 @@ First, start the Serena MCP server:
 uvx --from git+https://github.com/oraios/serena serena start-mcp-server --transport sse --port 9121 --context ide-assistant
 ```
 
-### Add Serena to Claude (if using Serena)
+### Step 4: Add Serena to Claude (if using Serena)
 
 Then, from your project root directory, add Serena to Claude:
 
@@ -247,7 +200,7 @@ Then, from your project root directory, add Serena to Claude:
 claude mcp add serena --transport sse http://localhost:9121/sse
 ```
 
-### Initialize Claude Code Project
+### Step 5: Initialize Claude Code Project
 
 ```bash
 claude /init
@@ -255,7 +208,7 @@ claude /init
 
 Exit Claude Code after initialization.
 
-### Install COMPASS
+### Step 6: Install COMPASS
 
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/odysseyalive/claude-compass/main/setup.sh)"
