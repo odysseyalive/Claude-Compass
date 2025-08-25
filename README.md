@@ -69,7 +69,7 @@ Use compass-doc-planning to create a documentation strategy for our new async pr
 **Understanding existing patterns before building something new**:
 
 ```
-Use compass-knowledge-query to find existing approaches to user authentication flows in our docs and maps
+Use compass-knowledge-discovery to find existing approaches to user authentication flows in our docs and maps
 ```
 
 **Getting expert perspective on architectural decisions**:
@@ -344,7 +344,7 @@ The `compass-captain` orchestrates a network of specialized agents, each focused
 
 **compass-methodology-selector** - Strategic analysis planning. Determines the optimal approach (light, medium, or full methodology) based on task complexity and creates execution plans.
 
-**compass-knowledge-query** - Institutional memory access. Searches existing `docs/` and `maps/` directories to understand what you already know before starting new analysis.
+**compass-knowledge-discovery** - Institutional memory access. Searches existing `docs/` and `maps/` directories to understand what you already know before starting new analysis.
 
 **compass-pattern-apply** - Pattern matching specialist. Takes documented approaches from your knowledge base and applies them to current challenges.
 

@@ -223,7 +223,9 @@ install_agents() {
   local agents=(
     "compass-captain"
     "compass-methodology-selector"
-    "compass-knowledge-query"
+    "compass-knowledge-discovery"
+    "compass-knowledge-reader"
+    "compass-knowledge-synthesizer"
     "compass-pattern-apply"
     "compass-data-flow"
     "compass-gap-analysis"
@@ -440,7 +442,9 @@ validate_installation() {
   local agents=(
     "compass-captain"
     "compass-methodology-selector"
-    "compass-knowledge-query"
+    "compass-knowledge-discovery"
+    "compass-knowledge-reader"
+    "compass-knowledge-synthesizer"
     "compass-pattern-apply"
     "compass-data-flow"
     "compass-gap-analysis"
@@ -473,7 +477,7 @@ validate_installation() {
     exit 1
   fi
 
-  log_success "All COMPASS agents installed successfully (22 total agents including methodology selector, writing/academic/memory specialists, authentication specialists, upstream validation, dependency tracking, breakthrough documentation, and todo synchronization)"
+  log_success "All COMPASS agents installed successfully (24 total agents including methodology selector, knowledge discovery/reader/synthesizer specialists, writing/academic/memory specialists, authentication specialists, upstream validation, dependency tracking, breakthrough documentation, and todo synchronization)"
 
   # Test .claude/settings.json syntax
   if command -v python3 >/dev/null 2>&1; then
