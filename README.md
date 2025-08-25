@@ -216,7 +216,7 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/odysseyalive/claude-comp
 
 Your Claude Code environment now has COMPASS capabilities and will initialize the `docs/` and `maps/` directories for the first complex analysis.
 
-### Update COMPASS
+### Updating COMPASS
 
 Keeping your COMPASS installation current ensures you have access to the latest agents, capabilities, and improvements to the methodology. The setup script handles updates intelligently, preserving your existing `docs/` and `maps/` directories while refreshing all agents and technical enforcement systems.
 
