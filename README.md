@@ -342,7 +342,7 @@ The `compass-captain` orchestrates a network of specialized agents, each focused
 
 ### Core Methodology Agents
 
-**compass-methodology-selector** - Strategic analysis planning. Determines the optimal approach (light, medium, or full methodology) based on task complexity and creates execution plans.
+**compass-complexity-analyzer** - Task complexity assessment and methodology selection. Analyzes task requirements with institutional knowledge to determine the optimal approach (light, medium, or full methodology) for execution.
 
 **compass-knowledge-discovery** - Institutional memory access. Searches existing `docs/` and `maps/` directories to understand what you already know before starting new analysis.
 

@@ -222,7 +222,9 @@ install_agents() {
 
   local agents=(
     "compass-captain"
-    "compass-methodology-selector"
+    "compass-complexity-analyzer"
+    "compass-strategy-builder"
+    "compass-validation-coordinator"
     "compass-knowledge-discovery"
     "compass-knowledge-reader"
     "compass-knowledge-synthesizer"
@@ -441,7 +443,9 @@ validate_installation() {
   local missing_agents=()
   local agents=(
     "compass-captain"
-    "compass-methodology-selector"
+    "compass-complexity-analyzer"
+    "compass-strategy-builder"
+    "compass-validation-coordinator"
     "compass-knowledge-discovery"
     "compass-knowledge-reader"
     "compass-knowledge-synthesizer"
@@ -477,7 +481,7 @@ validate_installation() {
     exit 1
   fi
 
-  log_success "All COMPASS agents installed successfully (24 total agents including methodology selector, knowledge discovery/reader/synthesizer specialists, writing/academic/memory specialists, authentication specialists, upstream validation, dependency tracking, breakthrough documentation, and todo synchronization)"
+  log_success "All COMPASS agents installed successfully (26 total agents including complexity analyzer, strategy builder, validation coordinator, knowledge discovery/reader/synthesizer specialists, writing/academic/memory specialists, authentication specialists, upstream validation, dependency tracking, breakthrough documentation, and todo synchronization)"
 
   # Test .claude/settings.json syntax
   if command -v python3 >/dev/null 2>&1; then
@@ -552,7 +556,7 @@ show_success_message() {
   echo ""
   echo "✅ COMPASS technical enforcement active - blocks operations without methodology compliance!"
   echo "🛡️ PreToolUse hooks provide true bypass resistance through operation blocking!"
-  echo "⚡ Strategic planning via compass-methodology-selector optimizes token usage and execution!"
+  echo "⚡ Strategic planning via micro-agent architecture (complexity-analyzer, strategy-builder, validation-coordinator) optimizes token usage and execution!"
   echo "🔄 Parallel agent coordination delivers 20-25% performance improvement!"
   echo "🧭⚓️ Ready to navigate any codebase with institutional knowledge and expert execution!"
 }
