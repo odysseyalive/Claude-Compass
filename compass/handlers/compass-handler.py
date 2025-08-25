@@ -3131,7 +3131,9 @@ def get_compass_session_context():
             
             # Identify current phase based on most recent agent
             if by_agent:
-                last_agent = max(by_agent.keys(), key=lambda x: by_agent[x].get("last_used", ""))
+                # Fix: by_agent values are integers (token counts), not dictionaries
+                # Use the agent with the highest token count as the most recent
+                last_agent = max(by_agent.keys(), key=lambda x: by_agent[x])
                 context["current_phase"] = map_agent_to_phase(last_agent) or "Unknown"
         
         # Check session tracking file for recent activity
