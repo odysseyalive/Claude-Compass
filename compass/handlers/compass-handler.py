@@ -454,6 +454,116 @@ def cleanup_memory():
         pass
 
 
+def cleanup_compass_status_if_stale():
+    """
+    COMPASS STATUS STALE SESSION CLEANUP: Automatically clean up compass status when session is stale
+    
+    PURPOSE:
+    - Check if COMPASS session is stale (>10 minutes of inactivity)
+    - Automatically remove compass-status file when staleness detected
+    - Prevent stale status information from persisting
+    - Add redundancy prevention to avoid multiple cleanup calls
+    
+    FEATURES:
+    - Staleness detection based on 10-minute inactivity timeout
+    - Automatic cleanup when session is determined stale
+    - Redundancy prevention to avoid multiple cleanup attempts
+    - Comprehensive logging for audit trail and debugging
+    - Safe execution with exception handling
+    
+    TRIGGERED BY:
+    - Session validation checks during hook processing
+    - Any function that needs to verify session freshness
+    - PreToolUse hooks that check for active COMPASS sessions
+    
+    INTEGRATION POINTS:
+    - check_compass_session_active() - detects when session is NOT active (stale)
+    - Session validation flows - ensures cleanup happens automatically
+    - Hook processing - maintains clean state during normal operations
+    """
+    try:
+        # Define compass status file path
+        logs_dir = Path(".compass/logs")
+        status_file = logs_dir / "compass-status"
+        
+        # Only proceed if status file exists (no point cleaning if already clean)
+        if not status_file.exists():
+            return False  # No cleanup needed
+        
+        # Check if session is stale (NOT active means stale)
+        if not check_compass_session_active():
+            # Session is stale - perform cleanup
+            status_file.unlink()
+            log_handler_activity("stale_session_cleanup", "Removed compass-status file due to stale session (>10 min inactivity)")
+            return True  # Cleanup performed
+        else:
+            # Session is still active - no cleanup needed
+            return False  # No cleanup needed
+            
+    except Exception as e:
+        # Cleanup should never crash the handler
+        log_handler_activity("stale_session_cleanup_error", f"Error during stale session cleanup: {e}")
+        return False
+
+
+def cleanup_compass_status():
+    """
+    COMPASS STATUS CLEANUP: Remove compass status file on session end/stop
+    
+    PURPOSE:
+    - Clean up compass-status file when session ends or stops
+    - Prevent stale COMPASS state from persisting between sessions
+    - Ensure clean state for next Claude Code session
+    - Remove compass status tracking when hooks indicate session termination
+    
+    SAFETY FEATURES:
+    - Silent failure on missing file (already cleaned)
+    - Exception handling to prevent handler crashes
+    - Proper logging of cleanup operations
+    - Path validation to ensure correct file removal
+    - Redundancy prevention with stale session cleanup
+    
+    TRIGGERED BY:
+    - Stop hook: When user stops current session
+    - SessionEnd hook: When session terminates normally
+    - Cleanup operations: During memory or state cleanup
+    
+    CLEANUP OPERATIONS:
+    1. Check if compass-status file exists
+    2. Remove file safely with error handling
+    3. Log cleanup operation for audit trail
+    4. Never throw exceptions (cleanup must be stable)
+    
+    CRITICAL FOR:
+    - Session hygiene: Clean state between sessions
+    - Status accuracy: Prevent stale status information
+    - System reliability: Proper cleanup on termination
+    - User experience: Clear session boundaries
+    
+    DO NOT MODIFY WITHOUT:
+    1. Understanding session lifecycle requirements
+    2. Testing with actual Stop/SessionEnd hook triggers
+    3. Verifying exception safety (function must never throw)
+    4. Ensuring proper logging for debugging
+    """
+    try:
+        # Define compass status file path
+        logs_dir = Path(".compass/logs")
+        status_file = logs_dir / "compass-status"
+        
+        # Check if status file exists and remove it
+        if status_file.exists():
+            status_file.unlink()
+            log_handler_activity("compass_status_cleanup", "Removed compass-status file on session end/stop")
+        else:
+            log_handler_activity("compass_status_cleanup", "No compass-status file to clean (already clean)")
+            
+    except Exception as e:
+        # Cleanup should never crash the handler
+        log_handler_activity("compass_status_cleanup_error", f"Error cleaning compass-status: {e}")
+        pass
+
+
 def rotate_log_file(log_file):
     """Rotate log file when it gets too large"""
     try:
@@ -674,6 +784,8 @@ def main():
     HOOK EVENT ROUTING (CORE COMPASS ENFORCEMENT):
     - UserPromptSubmit → handle_user_prompt_submit() → compass-captain injection
     - PreToolUse → handle_pre_tool_use_with_token_tracking() → tool validation
+    - Stop → cleanup_compass_status() → compass-status file removal
+    - SessionEnd → cleanup_compass_status() → compass-status file removal
     
     ⚠️  MODIFICATION CHECKLIST (ABSOLUTELY REQUIRED):
     □ Full understanding of Claude Code hook integration contracts
@@ -720,7 +832,7 @@ def main():
         hook_event = input_data.get("hook_event_name", "")
 
         # Validate hook event
-        valid_events = ["UserPromptSubmit", "PreToolUse"]
+        valid_events = ["UserPromptSubmit", "PreToolUse", "Stop", "SessionEnd", "SubagentStop"]
         if hook_event and hook_event not in valid_events:
             log_handler_activity("unknown_hook", f"Unknown hook event: {hook_event}")
 
@@ -733,6 +845,19 @@ def main():
             result = handle_pre_tool_use_with_token_tracking(input_data)
             if result:
                 print(json.dumps(result, ensure_ascii=False))
+
+        elif hook_event == "SubagentStop":
+            # Basic SubagentStop hook processing (detailed logging removed)
+            log_handler_activity(hook_event, "SubagentStop event processed")
+
+        elif hook_event == "Stop" or hook_event == "SessionEnd":
+            # Clean up compass status file on session termination
+            cleanup_compass_status()
+            log_handler_activity(hook_event, "compass-status cleaned up on session termination")
+
+        # STALE SESSION CLEANUP: Automatically clean up compass-status if session is stale
+        # This runs during all hook processing to ensure timely cleanup when sessions exceed 10-minute timeout
+        cleanup_compass_status_if_stale()
 
         # Check for COMPASS agent usage and update status
         check_compass_agent_activity(input_data)
@@ -2419,7 +2544,7 @@ def compass_context_active():
         recent_files = [
             f
             for f in docs_dir.glob("*.md")
-            if f.stat().st_mtime > (datetime.now().timestamp() - 1800)  # 30 minutes
+            if f.stat().st_mtime > (datetime.now().timestamp() - 600)  # 10 minutes
         ]
         if recent_files:
             return True
@@ -2442,11 +2567,11 @@ def is_recent_timestamp(timestamp_str):
 
 
 def is_recent_timestamp_extended(timestamp_str):
-    """Check if timestamp is within the last 30 minutes (extended for COMPASS sessions)"""
+    """Check if timestamp is within the last 10 minutes (extended for COMPASS sessions)"""
     try:
         timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
         now = datetime.now().astimezone()
-        return (now - timestamp).total_seconds() < 1800  # 30 minutes
+        return (now - timestamp).total_seconds() < 600  # 10 minutes
     except Exception:
         return False
 
@@ -2469,7 +2594,7 @@ def check_compass_session_active():
 
         # Check if there was recent activity
         last_activity = session_data.get("last_activity", "")
-        if is_session_timestamp_valid(last_activity, 1800):  # 30 minutes
+        if is_session_timestamp_valid(last_activity, 600):  # 10 minutes
             return True
 
     except (json.JSONDecodeError, FileNotFoundError):

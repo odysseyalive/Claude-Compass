@@ -389,6 +389,42 @@ configure_claude_settings() {
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "HOOK_PATH_PLACEHOLDER",
+            "timeout": 10000
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "HOOK_PATH_PLACEHOLDER",
+            "timeout": 10000
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "HOOK_PATH_PLACEHOLDER",
+            "timeout": 10000
+          }
+        ]
+      }
     ]
   }
 }
@@ -490,10 +526,24 @@ validate_installation() {
         log_success ".claude/settings.json syntax is valid"
 
         # Verify hook configuration correctness
-        if grep -q "PreToolUse" "$CURRENT_DIR/.claude/settings.json" && grep -q ".compass/handlers/compass-handler.py" "$CURRENT_DIR/.claude/settings.json"; then
-          log_success "Hook configuration properly configured for technical enforcement"
+        local required_hooks=("UserPromptSubmit" "PreToolUse" "Stop" "SessionEnd" "SubagentStop")
+        local missing_hooks=()
+        
+        for hook in "${required_hooks[@]}"; do
+          if ! grep -q "$hook" "$CURRENT_DIR/.claude/settings.json"; then
+            missing_hooks+=("$hook")
+          fi
+        done
+        
+        if [[ ${#missing_hooks[@]} -eq 0 ]] && grep -q ".compass/handlers/compass-handler.py" "$CURRENT_DIR/.claude/settings.json"; then
+          log_success "Hook configuration properly configured for technical enforcement (all 5 hooks: UserPromptSubmit, PreToolUse, Stop, SessionEnd, SubagentStop)"
         else
-          log_warning "Hook configuration may not be using PreToolUse with .compass/handlers/compass-handler.py"
+          if [[ ${#missing_hooks[@]} -gt 0 ]]; then
+            log_warning "Missing hook configurations: ${missing_hooks[*]}"
+          fi
+          if ! grep -q ".compass/handlers/compass-handler.py" "$CURRENT_DIR/.claude/settings.json"; then
+            log_warning "Hook configuration may not be using .compass/handlers/compass-handler.py"
+          fi
         fi
       else
         log_error ".claude/settings.json contains syntax errors"

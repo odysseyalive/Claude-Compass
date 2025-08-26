@@ -2,13 +2,19 @@
 
 ## The Hook: Why Leave Things to Chance?
 
+[↑ Contents](#contents)
+
 Have you ever wanted your [Claude Code](https://github.com/anthropics/claude-code) environment to feel like a familiar friend with each session?
 
 I built this kit because I was tired of watching brilliant AI get lost in the same mazes, iteration after iteration. Code presents us with endless puzzles - complex async flows, tangled dependencies, performance bottlenecks that seem to appear from nowhere. Without memory, without context, even the most sophisticated LLM can spiral into needless loops, suggesting the same debugging approaches that didn't work yesterday, or missing the patterns that would illuminate the path forward.
 
 There's something almost tragic about watching an AI rediscover the same insights over and over, like a detective who burns their case notes each night. The breakthrough you had last week becomes tomorrow's mystery all over again.
 
+[↑ Contents](#contents)
+
 ## The Solution: What COMPASS Changes
+
+[↑ Contents](#contents)
 
 COMPASS transforms Claude Code from a brilliant but forgetful assistant into something more like a seasoned colleague - one who remembers not just what you built, but *why* you built it that way. Who sees the subtle patterns that connect today's authentication bug to last month's race condition. Who builds institutional memory from every uncertainty, every investigation, every hard-won insight.
 
@@ -34,7 +40,27 @@ COMPASS operates on two foundational principles:
 
 ![COMPASS Workflow](assets/compass_workflow.svg)
 
+[↑ Contents](#contents)
+
+## Contents
+
+- [The Hook: Why Leave Things to Chance?](#the-hook-why-leave-things-to-chance)
+- [The Solution: What COMPASS Changes](#the-solution-what-compass-changes)
+- [The Experience Preview](#the-experience-preview)
+- [Use Cases: How COMPASS Actually Works](#use-cases-how-compass-actually-works)
+- [Technical Foundation: How It Works](#technical-foundation-how-it-works)
+- [Installation Guide](#installation-guide)
+- [Running COMPASS](#running-compass)
+- [Enhanced Capabilities: Integration with Serena](#enhanced-capabilities-integration-with-serena)
+- [Applications: Beyond the Codebase](#applications-beyond-the-codebase)
+- [Agent Index: The COMPASS Crew](#agent-index-the-compass-crew)
+- [The Philosophy](#the-philosophy)
+
+---
+
 ## The Experience Preview
+
+[↑ Contents](#contents)
 
 Instead of explaining the same architectural decisions repeatedly, you'll find Claude Code saying things like:
 
@@ -46,7 +72,11 @@ Instead of reinventing debugging approaches, it becomes:
 
 Your Claude Code environment grows more knowledgeable with each interaction, building the kind of institutional memory that usually takes teams years to develop.
 
+[↑ Contents](#contents)
+
 ## Use Cases: How COMPASS Actually Works
+
+[↑ Contents](#contents)
 
 ### The Automatic Experience
 
@@ -104,7 +134,11 @@ The beauty is that even when you call agents manually, they still contribute to 
 
 Ready to dive deeper? **[Explore All The Compass Tools...](#agent-index-the-compass-crew)** to discover the complete network of specialized agents at your disposal.
 
+[↑ Contents](#contents)
+
 ## Technical Foundation: How It Works
+
+[↑ Contents](#contents)
 
 ### The Two-Directory Approach
 
@@ -117,7 +151,11 @@ Your `docs/` directory evolves organically, growing smarter with each iteration.
 
 Your `maps/` directory captures the flows that text struggles to convey. SVG diagrams with machine-readable metadata let Claude Code recognize patterns visually, connecting similar flows across different parts of your codebase.
 
+[↑ Contents](#contents)
+
 ## Installation Guide
+
+[↑ Contents](#contents)
 
 Before installing COMPASS, ensure you have the required environment set up:
 
@@ -216,6 +254,85 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/odysseyalive/claude-comp
 
 Your Claude Code environment now has COMPASS capabilities and will initialize the `docs/` and `maps/` directories for the first complex analysis.
 
+[↑ Contents](#contents)
+
+## Running COMPASS
+
+[↑ Contents](#contents)
+
+Once COMPASS is installed, using it is straightforward and largely automatic. Here's your day-to-day workflow:
+
+### Starting Your Development Session
+
+**If using Serena (Recommended)**:
+
+Start the Serena MCP server first:
+
+```bash
+uvx --from git+https://github.com/oraios/serena serena start-mcp-server --transport sse --port 9121 --context ide-assistant
+```
+
+Keep this terminal window open - Serena runs as a background service that Claude Code connects to.
+
+**Launch Claude Code**:
+
+From your project directory:
+
+```bash
+claude
+```
+
+That's it. COMPASS is now active and ready to enhance your Claude Code experience.
+
+### How COMPASS Automatically Engages
+
+COMPASS operates through intelligent detection - you don't need to remember special commands or flags. When Claude Code encounters scenarios that benefit from institutional memory and systematic analysis, COMPASS automatically activates:
+
+**Automatic Triggers**:
+- Complex debugging scenarios that could benefit from previous investigation patterns
+- Architectural decisions that need historical context
+- Performance analysis where past optimizations might apply
+- Documentation tasks that should build on existing knowledge
+- Any situation where Claude Code detects uncertainty that could be resolved through investigation
+
+**What You'll Notice**:
+- Claude Code responses become richer with context from your `docs/` directory
+- Complex problems get structured investigation approaches instead of ad-hoc solutions
+- Visual diagrams appear in your `maps/` directory for complex data flows
+- Solutions reference and build upon previous work instead of starting from scratch
+
+### Manual Agent Invocation
+
+While the automatic flow handles most scenarios, you can directly call specific COMPASS agents when you want targeted analysis:
+
+```
+Use compass-knowledge-discovery to find existing approaches to user authentication flows in our docs and maps
+```
+
+```
+Use compass-data-flow to create a wire diagram showing how user requests flow through our microservices architecture
+```
+
+```
+Use compass-second-opinion to evaluate whether our current database schema design makes sense for our scaling requirements
+```
+
+### Key Workflow Notes
+
+**Directory Structure**: COMPASS automatically maintains two directories:
+- `docs/` - Your growing institutional knowledge base
+- `maps/` - Visual representations of complex flows and relationships
+
+**Memory Builds Over Time**: Each interaction contributes to your project's institutional memory. The system becomes more valuable as your `docs/` and `maps/` directories grow with captured insights.
+
+**Language Server Integration**: With Serena running, COMPASS gains precise code understanding, making pattern recognition and architectural analysis significantly more accurate.
+
+**No Configuration Required**: COMPASS works out of the box with sensible defaults. The system learns your project's patterns organically through use.
+
+**Background Operation**: COMPASS operates transparently - your normal Claude Code workflow remains unchanged, but becomes enhanced with institutional memory and systematic analysis.
+
+[↑ Contents](#contents)
+
 ### Updating COMPASS
 
 Keeping your COMPASS installation current ensures you have access to the latest agents, capabilities, and improvements to the methodology. The setup script handles updates intelligently, preserving your existing `docs/` and `maps/` directories while refreshing all agents and technical enforcement systems.
@@ -234,7 +351,11 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/odysseyalive/claude-comp
 
 Your navigation tools stay sharp, your institutional memory stays intact, and your COMPASS grows more capable with each update.
 
+[↑ Contents](#contents)
+
 ## Enhanced Capabilities: Integration with Serena
+
+[↑ Contents](#contents)
 
 **COMPASS reaches its full potential when paired with Serena** - an open-source coding agent toolkit that transforms Claude Code into a true development collaborator through Language Server Protocol (LSP) integration.
 
@@ -276,7 +397,11 @@ With Serena providing semantic code understanding, COMPASS transforms from a doc
 
 The combination means Claude Code doesn't just remember what you talked about - it understands how your actual codebase evolved and can make connections between abstract discussions and concrete implementation details.
 
+[↑ Contents](#contents)
+
 ## Applications: Beyond the Codebase
+
+[↑ Contents](#contents)
 
 COMPASS works beyond just coding. The same patterns that make sense of tangled code can organize complex research. The memory that stops you from debugging the same issue twice can stop you from chasing the same research rabbit holes.
 
@@ -307,7 +432,11 @@ The same visual mapping that shows code bottlenecks can show gaps in arguments. 
 
 COMPASS doesn't care if you're debugging code or untangling policy contradictions. Both are patterns waiting to be recognized, mapped, and remembered.
 
+[↑ Contents](#contents)
+
 ## Agent Index: The COMPASS Crew
+
+[↑ Contents](#contents)
 
 The `compass-captain` orchestrates a network of specialized agents, each focused on a specific aspect of analysis. Think of them as different experts you might call in for a complex project - each brings their own perspective and can also be called manually when you need targeted help.
 
@@ -361,11 +490,17 @@ The `compass-captain` orchestrates a network of specialized agents, each focused
 
 Each agent can be called individually when you need specific expertise, but they work together automatically when the `compass-captain` orchestrates a full analysis. The system scales from quick targeted help to comprehensive institutional analysis depending on what your project needs.
 
+[↑ Contents](#contents)
+
 ## The Philosophy
+
+[↑ Contents](#contents)
 
 COMPASS embodies a simple belief: that every challenge overcome should make the next challenge easier. That uncertainty should transform into knowledge. That the mazes we navigate today should become the maps that guide us tomorrow.
 
 Because why leave things to chance when you can leave things to memory?
+
+[↑ Contents](#contents)
 
 ---
 
