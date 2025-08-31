@@ -2,7 +2,7 @@
 
 ## The Hook: Why Leave Things to Chance?
 
-[↑ Contents](#contents)
+[↓ Contents](#contents)
 
 Have you ever wanted your [Claude Code](https://github.com/anthropics/claude-code) environment to feel like a familiar friend with each session?
 
@@ -10,11 +10,11 @@ I built this kit because I was tired of watching brilliant AI get lost in the sa
 
 There's something almost tragic about watching an AI rediscover the same insights over and over, like a detective who burns their case notes each night. The breakthrough you had last week becomes tomorrow's mystery all over again.
 
-[↑ Contents](#contents)
+[↓ Contents](#contents)
 
 ## The Solution: What COMPASS Changes
 
-[↑ Contents](#contents)
+[↓ Contents](#contents)
 
 COMPASS transforms Claude Code from a brilliant but forgetful assistant into something more like a seasoned colleague - one who remembers not just what you built, but *why* you built it that way. Who sees the subtle patterns that connect today's authentication bug to last month's race condition. Who builds institutional memory from every uncertainty, every investigation, every hard-won insight.
 
@@ -42,7 +42,7 @@ COMPASS operates on two foundational principles:
 
 ![COMPASS Workflow](assets/compass_workflow.svg)
 
-[↑ Contents](#contents)
+[↓ Contents](#contents)
 
 ## Contents
 
@@ -291,6 +291,7 @@ That's it. COMPASS is now active and ready to enhance your Claude Code experienc
 COMPASS operates through intelligent detection - you don't need to remember special commands or flags. When Claude Code encounters scenarios that benefit from institutional memory and systematic analysis, COMPASS automatically activates:
 
 **Automatic Triggers**:
+
 - Complex debugging scenarios that could benefit from previous investigation patterns
 - Architectural decisions that need historical context
 - Performance analysis where past optimizations might apply
@@ -298,6 +299,7 @@ COMPASS operates through intelligent detection - you don't need to remember spec
 - Any situation where Claude Code detects uncertainty that could be resolved through investigation
 
 **What You'll Notice**:
+
 - Claude Code responses become richer with context from your `.serena/memories/` directory
 - Complex problems get structured investigation approaches instead of ad-hoc solutions
 - Visual diagrams appear in your `.serena/maps/` directory for complex data flows
@@ -322,6 +324,7 @@ Use compass-second-opinion to evaluate whether our current database schema desig
 ### Key Workflow Notes
 
 **Directory Structure**: COMPASS automatically maintains two directories:
+
 - `.serena/memories/` - Your growing institutional knowledge base
 - `.serena/maps/` - Visual representations of complex flows and relationships
 
