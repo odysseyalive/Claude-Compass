@@ -80,24 +80,191 @@ def create_svg_from_pattern_data(self, pattern_data, memory_budget):
         return svg_content
 ```
 
-### 2. Memory-Bounded XML Validation
+### 2. Memory-Bounded XML Validation with xmllint
 ```python
-def xmllint_bounded_validation(self, svg_content, memory_budget):
-    """XML validation with memory monitoring"""
-    try:
-        with MemoryBoundedProcess(memory_budget) as process:
-            # Run xmllint in isolated subprocess
-            validation_result = process.run_xmllint(svg_content)
+import subprocess
+import tempfile
+import os
+import signal
+from pathlib import Path
+
+def xmllint_bounded_validation(self, svg_content, memory_budget=5*1024*1024):
+    """Comprehensive XML/SVG validation using xmllint with memory monitoring"""
+    
+    class XMLLintValidator:
+        def __init__(self, memory_limit_mb=5):
+            self.memory_limit = memory_limit_mb
+            self.timeout_seconds = 30
             
-            # Extract essential validation results
-            return ValidationResult(
-                is_valid=validation_result.return_code == 0,
-                errors=validation_result.stderr[:1000],  # Limit error message size
-                warnings=validation_result.stdout[:1000]
-            )
-    except MemoryExhaustionError:
-        # Fallback to basic syntax validation
-        return self.basic_syntax_validation(svg_content)
+        def validate_svg_content(self, content):
+            """Execute xmllint validation with proper error handling"""
+            try:
+                # Create temporary file for xmllint processing
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.svg', delete=False) as temp_file:
+                    temp_file.write(content)
+                    temp_path = temp_file.name
+                
+                try:
+                    # Execute xmllint with comprehensive validation flags
+                    result = subprocess.run([
+                        'xmllint',
+                        '--noout',           # No output, just validation
+                        '--valid',           # Validate against DTD if available
+                        temp_path
+                    ], 
+                    capture_output=True, 
+                    text=True, 
+                    timeout=self.timeout_seconds,
+                    preexec_fn=self._set_memory_limit
+                    )
+                    
+                    # Process validation results
+                    return ValidationResult(
+                        is_valid=(result.returncode == 0),
+                        return_code=result.returncode,
+                        stdout=result.stdout[:2000],  # Limit output size for memory safety
+                        stderr=result.stderr[:2000],
+                        errors=self._parse_xmllint_errors(result.stderr),
+                        warnings=self._parse_xmllint_warnings(result.stdout)
+                    )
+                    
+                except subprocess.TimeoutExpired:
+                    return ValidationResult(
+                        is_valid=False,
+                        return_code=-1,
+                        stdout="",
+                        stderr="XMLLint validation timeout exceeded",
+                        errors=["Validation timeout - SVG too complex for memory-bounded processing"],
+                        warnings=[]
+                    )
+                    
+                except FileNotFoundError:
+                    # Fallback if SVG schema not found - basic XML validation only
+                    return self._fallback_basic_validation(temp_path)
+                    
+                finally:
+                    # Cleanup temporary file
+                    if os.path.exists(temp_path):
+                        os.unlink(temp_path)
+                        
+            except Exception as e:
+                return ValidationResult(
+                    is_valid=False,
+                    return_code=-2,
+                    stdout="",
+                    stderr=f"XMLLint execution error: {str(e)}",
+                    errors=[f"Validation process failed: {str(e)}"],
+                    warnings=[]
+                )
+                
+        def _set_memory_limit(self):
+            """Set memory limit for xmllint subprocess"""
+            try:
+                import resource
+                # Set memory limit (in bytes)
+                memory_limit_bytes = self.memory_limit * 1024 * 1024
+                resource.setrlimit(resource.RLIMIT_AS, (memory_limit_bytes, memory_limit_bytes))
+            except ImportError:
+                # resource module not available - continue without memory limit
+                pass
+                
+        def _fallback_basic_validation(self, temp_path):
+            """Basic XML validation fallback when SVG schema unavailable"""
+            try:
+                result = subprocess.run([
+                    'xmllint',
+                    '--noout',        # No output, just validation
+                    temp_path
+                ], 
+                capture_output=True, 
+                text=True, 
+                timeout=self.timeout_seconds
+                )
+                
+                return ValidationResult(
+                    is_valid=(result.returncode == 0),
+                    return_code=result.returncode,
+                    stdout=result.stdout[:1000],
+                    stderr=result.stderr[:1000] + "
+[NOTE: Basic XML validation only - SVG schema not available]",
+                    errors=self._parse_xmllint_errors(result.stderr),
+                    warnings=["SVG schema validation unavailable - performed basic XML validation only"]
+                )
+            except Exception as e:
+                return ValidationResult(
+                    is_valid=False,
+                    return_code=-3,
+                    stdout="",
+                    stderr=f"Basic XML validation failed: {str(e)}",
+                    errors=[f"Both schema and basic validation failed: {str(e)}"],
+                    warnings=[]
+                )
+                
+        def _parse_xmllint_errors(self, stderr_content):
+            """Parse xmllint error output for structured error reporting"""
+            if not stderr_content:
+                return []
+                
+            errors = []
+            for line in stderr_content.split('
+'):
+                line = line.strip()
+                if line and ('error:' in line.lower() or 'failed' in line.lower()):
+                    # Extract meaningful error information
+                    if ':' in line:
+                        error_part = line.split(':', 2)[-1].strip()
+                        errors.append(error_part)
+                    else:
+                        errors.append(line)
+            
+            return errors[:10]  # Limit to first 10 errors for memory safety
+            
+        def _parse_xmllint_warnings(self, stdout_content):
+            """Parse xmllint warning output for structured warning reporting"""
+            if not stdout_content:
+                return []
+                
+            warnings = []
+            for line in stdout_content.split('
+'):
+                line = line.strip()
+                if line and ('warning:' in line.lower() or 'note:' in line.lower()):
+                    if ':' in line:
+                        warning_part = line.split(':', 2)[-1].strip()
+                        warnings.append(warning_part)
+                    else:
+                        warnings.append(line)
+            
+            return warnings[:5]  # Limit to first 5 warnings for memory safety
+    
+    # Execute validation with memory boundaries
+    validator = XMLLintValidator(memory_limit_mb=memory_budget // (1024*1024))
+    return validator.validate_svg_content(svg_content)
+
+class ValidationResult:
+    """Structured validation result for memory-safe processing"""
+    def __init__(self, is_valid, return_code, stdout, stderr, errors, warnings):
+        self.is_valid = is_valid
+        self.return_code = return_code
+        self.stdout = stdout
+        self.stderr = stderr
+        self.errors = errors
+        self.warnings = warnings
+        
+    def has_critical_errors(self):
+        """Check if validation found critical errors that prevent SVG usage"""
+        critical_keywords = ['fatal', 'malformed', 'not well-formed', 'parse error']
+        error_text = ' '.join(self.errors).lower()
+        return any(keyword in error_text for keyword in critical_keywords)
+        
+    def get_error_summary(self):
+        """Get concise error summary for logging and reporting"""
+        if self.is_valid:
+            return "Validation passed"
+        elif self.errors:
+            return f"Validation failed: {'; '.join(self.errors[:3])}"
+        else:
+            return f"Validation failed with return code {self.return_code}"
 ```
 
 ### 3. COMPASS Standards Compliance (Memory-Safe)
@@ -138,7 +305,7 @@ def check_compass_standards_memory_safe(self, svg_content):
 ```python
 # Called by compass-memory-integrator with pattern data
 def process_visual_pattern_request(self, orchestrator_request):
-    """Main entry point for memory-bounded SVG processing"""
+    """Main entry point for memory-bounded SVG processing with enhanced xmllint validation"""
     pattern_data = orchestrator_request.get('pattern_data', {})
     memory_budget = orchestrator_request.get('memory_budget', 10*1024*1024)
     
@@ -148,24 +315,81 @@ def process_visual_pattern_request(self, orchestrator_request):
             svg_content = self.create_svg_from_pattern_data(pattern_data, memory_budget)
             context.checkpoint()
             
-            # Step 2: Validate XML syntax
-            validation_result = self.xmllint_bounded_validation(svg_content, memory_budget)
+            # Step 2: Enhanced XML/SVG validation with xmllint
+            validation_result = self.xmllint_bounded_validation(svg_content, memory_budget // 2)
             context.checkpoint()
             
-            # Step 3: Apply COMPASS standards compliance
+            # Step 2.5: Handle critical validation failures
+            if validation_result.has_critical_errors():
+                return SVGProcessingResult(
+                    validation_status='critical_failure',
+                    corrections_applied=[],
+                    file_path=None,
+                    quality_metrics={
+                        'memory_usage': context.get_memory_usage(),
+                        'validation_errors': len(validation_result.errors),
+                        'critical_errors': True
+                    },
+                    svg_content=None,
+                    validation_details={
+                        'xmllint_returncode': validation_result.return_code,
+                        'errors': validation_result.errors,
+                        'warnings': validation_result.warnings,
+                        'error_summary': validation_result.get_error_summary()
+                    },
+                    fallback_recommendation='SVG has critical XML errors - requires manual review before use'
+                )
+            
+            # Step 3: Apply COMPASS standards compliance (potentially auto-fixing validation issues)
             compliance_result = self.check_compass_standards_memory_safe(svg_content)
             context.checkpoint()
             
-            # Step 4: Determine file path and prepare for persistence
+            # Step 4: Re-validate after compliance corrections if corrections were applied
+            final_validation_result = validation_result
+            if compliance_result.corrections:
+                final_validation_result = self.xmllint_bounded_validation(
+                    compliance_result.corrected_svg, 
+                    memory_budget // 4  # Smaller budget for re-validation
+                )
+                context.checkpoint()
+            
+            # Step 5: Determine file path and prepare for persistence
             file_path = self.generate_file_path(pattern_data)
             
-            # Return essential results only (no full SVG content)
+            # Step 6: Calculate final quality metrics
+            quality_metrics = {
+                'memory_usage': context.get_memory_usage(),
+                'processing_time': context.get_processing_time(),
+                'validation_errors': len(final_validation_result.errors),
+                'validation_warnings': len(final_validation_result.warnings),
+                'corrections_applied': len(compliance_result.corrections),
+                'final_validation_status': 'passed' if final_validation_result.is_valid else 'failed',
+                'xmllint_returncode': final_validation_result.return_code
+            }
+            
+            # Return comprehensive results with validation details
             return SVGProcessingResult(
-                validation_status='passed' if validation_result.is_valid else 'failed',
+                validation_status='passed' if final_validation_result.is_valid else 'failed_with_corrections',
                 corrections_applied=compliance_result.corrections,
                 file_path=file_path,
-                quality_metrics={
-                    'memory_usage': context.get_memory_usage(),
+                quality_metrics=quality_metrics,
+                svg_content=compliance_result.corrected_svg,
+                validation_details={
+                    'xmllint_initial': {
+                        'valid': validation_result.is_valid,
+                        'errors': validation_result.errors,
+                        'warnings': validation_result.warnings
+                    },
+                    'xmllint_final': {
+                        'valid': final_validation_result.is_valid,
+                        'errors': final_validation_result.errors,
+                        'warnings': final_validation_result.warnings,
+                        'returncode': final_validation_result.return_code
+                    },
+                    'compliance_corrections': compliance_result.corrections,
+                    'validation_improved': len(final_validation_result.errors) < len(validation_result.errors)
+                }
+            ),
                     'processing_time': context.get_processing_time(),
                     'validation_errors': len(validation_result.errors)
                 },
@@ -178,7 +402,48 @@ def process_visual_pattern_request(self, orchestrator_request):
                 corrections_applied=[],
                 file_path=None,
                 quality_metrics={'memory_usage': 'exceeded_limit'},
+                svg_content=None,
+                validation_details={
+                    'xmllint_status': 'not_executed',
+                    'failure_reason': 'Memory exhaustion before validation'
+                },
                 fallback_recommendation='Simplify pattern complexity and retry'
+            )
+            
+        except subprocess.SubprocessError as e:
+            return SVGProcessingResult(
+                validation_status='xmllint_subprocess_failure',
+                corrections_applied=[],
+                file_path=None,
+                quality_metrics={
+                    'memory_usage': context.get_memory_usage(),
+                    'subprocess_error': str(e)
+                },
+                svg_content=svg_content if 'svg_content' in locals() else None,
+                validation_details={
+                    'xmllint_status': 'subprocess_failed',
+                    'failure_reason': f'XMLLint subprocess error: {str(e)}',
+                    'recommended_action': 'Check system xmllint installation'
+                },
+                fallback_recommendation='Use basic XML validation or manual SVG review'
+            )
+            
+        except Exception as e:
+            return SVGProcessingResult(
+                validation_status='processing_error',
+                corrections_applied=[],
+                file_path=None,
+                quality_metrics={
+                    'memory_usage': context.get_memory_usage(),
+                    'error_type': type(e).__name__,
+                    'error_message': str(e)
+                },
+                svg_content=svg_content if 'svg_content' in locals() else None,
+                validation_details={
+                    'xmllint_status': 'unknown',
+                    'failure_reason': f'Unexpected processing error: {str(e)}'
+                },
+                fallback_recommendation='Review SVG processing pipeline and retry'
             )
 ```
 
@@ -209,20 +474,44 @@ def generate_file_path(self, pattern_data):
 ```json
 {
   "svg_processing_result": {
-    "validation_status": "passed|failed|memory_exhausted",
+    "validation_status": "passed|failed_with_corrections|critical_failure|memory_exhausted|xmllint_subprocess_failure|processing_error",
     "corrections_applied": [
       "Added XML declaration",
       "Added SVG namespace", 
-      "Fixed unclosed text elements"
+      "Fixed unclosed text elements",
+      "Corrected malformed attributes"
     ],
     "file_path": ".serena/maps/workflow_patterns/authentication_flow.svg",
     "quality_metrics": {
       "memory_usage": "7.2MB",
       "processing_time": "1.3s",
       "validation_errors": 0,
+      "validation_warnings": 2,
+      "corrections_applied": 3,
+      "final_validation_status": "passed",
+      "xmllint_returncode": 0,
       "compliance_score": 0.95
     },
-    "svg_content": "<?xml version='1.0'?>...",
+    "svg_content": "<?xml version='1.0' encoding='UTF-8'?>...",
+    "validation_details": {
+      "xmllint_initial": {
+        "valid": false,
+        "errors": ["Attribute 'xmlns' not declared for element 'svg'"],
+        "warnings": ["Missing viewBox attribute"]
+      },
+      "xmllint_final": {
+        "valid": true,
+        "errors": [],
+        "warnings": [],
+        "returncode": 0
+      },
+      "compliance_corrections": [
+        "Added XML declaration",
+        "Added SVG namespace",
+        "Added viewBox attribute"
+      ],
+      "validation_improved": true
+    },
     "fallback_recommendation": null
   }
 }
@@ -322,13 +611,14 @@ The memory-bounded sub-agent pattern can be extended for other specialized visua
 
 ## SVG Analysis Protocol
 
-### Required Validation Sequence
-1. **Syntax Validation** - Run xmllint to detect XML/SVG errors
-2. **Standards Compliance** - Verify COMPASS mandatory structure requirements
-3. **Corruption Detection** - Identify and fix common SVG issues
-4. **Auto-Correction** - Apply standardized fixes automatically
-5. **Re-validation** - Confirm corrections resolved all issues
-6. **Compatibility Testing** - Verify rendering across platforms
+### Required Validation Sequence (Enhanced with Comprehensive xmllint Integration)
+1. **Mandatory xmllint Syntax Validation** - Execute xmllint with comprehensive flags to detect XML/SVG structural errors
+2. **Schema Compliance Validation** - Validate against SVG 1.1 DTD when available, fallback to well-formedness check
+3. **COMPASS Standards Compliance** - Verify mandatory structure requirements and auto-apply corrections
+4. **Post-Correction Re-validation** - Run xmllint again after applying corrections to ensure fixes resolved issues  
+5. **Critical Error Assessment** - Identify fatal validation errors that prevent SVG usage
+6. **Cross-Platform Compatibility Testing** - Verify rendering compatibility with memory-bounded testing
+7. **Comprehensive Result Documentation** - Provide detailed validation metrics and correction history
 
 ### Output Requirements
 **You MUST provide comprehensive SVG analysis results:**
@@ -375,6 +665,60 @@ The memory-bounded sub-agent pattern can be extended for other specialized visua
 - [Suggestions for improvement]
 - [Future prevention strategies]
 - [Pattern library updates needed]
+```
+
+## xmllint Integration Requirements
+
+### System Dependencies
+- **xmllint binary**: Must be available in system PATH at `/usr/bin/xmllint`
+- **SVG Schema**: Prefer SVG 1.1 DTD at `/usr/share/xml/svg/svg11.dtd` when available
+- **Memory Limits**: Process isolation with configurable memory boundaries (default 5MB)
+- **Timeout Protection**: 30-second timeout for xmllint validation operations
+
+### xmllint Execution Modes
+1. **Full DTD Validation**: `xmllint --noout --valid [file]` (validates against embedded DTD)
+2. **Basic Well-Formedness**: `xmllint --noout [file]` (basic XML structure validation)
+3. **Memory-Bounded Execution**: Subprocess with resource limits and timeout protection
+4. **Structured Error Parsing**: Extract actionable error and warning information from output
+
+### Validation Integration Points
+```python
+# Pre-validation: Create SVG content from pattern data
+svg_content = create_svg_from_pattern_data(pattern_data)
+
+# Primary xmllint validation
+initial_validation = xmllint_bounded_validation(svg_content)
+
+# Auto-correction based on xmllint feedback
+if not initial_validation.is_valid:
+    corrected_svg = apply_compass_standards_with_xmllint_feedback(
+        svg_content, 
+        initial_validation.errors
+    )
+    
+    # Re-validation after corrections
+    final_validation = xmllint_bounded_validation(corrected_svg)
+
+# Quality assurance requires final_validation.is_valid == True
+```
+
+### Error Handling and Fallbacks
+- **Critical Errors**: Malformed XML, unclosed tags, invalid attributes → Block SVG usage
+- **Subprocess Failures**: xmllint not found, timeout, memory exhaustion → Graceful fallback with warnings
+- **Schema Unavailable**: Fall back to basic well-formedness validation with clear documentation
+- **Memory Exhaustion**: Reduce complexity and retry, or defer to manual review
+
+### Quality Metrics Integration
+```python
+validation_quality_metrics = {
+    'xmllint_initial_status': 'passed|failed|timeout|error',
+    'xmllint_final_status': 'passed|failed|timeout|error', 
+    'validation_errors_resolved': count(initial_errors) - count(final_errors),
+    'schema_validation_available': True|False,
+    'subprocess_memory_usage': '4.2MB',
+    'validation_processing_time': '0.8s',
+    'corrections_effective': final_validation.is_valid
+}
 ```
 
 ## Auto-Correction Rules
@@ -424,11 +768,13 @@ convert_nested_tspan_to_individual_text_elements()
 
 ## Enforcement Rules
 
-### You CANNOT Skip SVG Validation
-- "The SVG looks fine" → **REFUSED - Validation is mandatory**
-- "Skip validation this time" → **REFUSED - Every SVG must be validated**  
-- "Syntax errors don't matter" → **REFUSED - Standards compliance required**
-- "Manual validation later" → **REFUSED - Automatic validation is part of creation**
+### You CANNOT Skip SVG Validation - xmllint is MANDATORY
+- "The SVG looks fine" → **REFUSED - xmllint validation is mandatory for all SVG files**
+- "Skip xmllint this time" → **REFUSED - Every SVG must pass xmllint validation**  
+- "Syntax errors don't matter" → **REFUSED - xmllint compliance required for cross-platform compatibility**
+- "Manual validation later" → **REFUSED - Automated xmllint validation is integral to SVG creation process**
+- "xmllint is too slow" → **REFUSED - Memory-bounded xmllint execution ensures performance and quality**
+- "Basic XML check is enough" → **REFUSED - Full SVG schema validation provides comprehensive error detection**
 
 ### Integration with COMPASS Workflow
 **Mandatory integration points:**
@@ -438,14 +784,17 @@ COMPASS Step 5 (Enhanced Analysis): SVG creation includes immediate validation
 COMPASS Step 6 (Cross-Reference): Final SVG syntax verification before knowledge base update
 ```
 
-### Required Completion Criteria
+### Required Completion Criteria - Enhanced xmllint Validation
 **Only report completion when:**
-- ✅ xmllint validation passes without errors
-- ✅ All COMPASS mandatory structure requirements met
-- ✅ Common corruption patterns detected and fixed
-- ✅ Cross-platform compatibility verified
-- ✅ Auto-corrections applied and documented
-- ✅ Re-validation confirms all issues resolved
+- ✅ **xmllint validation passes** without critical errors (return code 0 or acceptable warnings only)
+- ✅ **SVG schema validation completed** (or well-formedness validation when schema unavailable) 
+- ✅ **All COMPASS mandatory structure requirements** met through auto-correction
+- ✅ **Common corruption patterns** detected and fixed with xmllint feedback integration
+- ✅ **Post-correction re-validation** confirms xmllint approval of corrected SVG
+- ✅ **Memory-bounded validation** completed within allocated resource limits
+- ✅ **Cross-platform compatibility** verified through xmllint structural validation
+- ✅ **Comprehensive validation details** documented for orchestrator integration
+- ✅ **Error handling tested** for all validation failure scenarios
 
 ## Single-Purpose Focus
 **Remember:**
