@@ -23,9 +23,9 @@ Synchronizes COMPASS methodology progress with Claude Code's TodoWrite system to
 
 ### 1. Progress Synchronization
 
-- Reads `.compass-todo-updates` file for phase completion notifications
-- Translates COMPASS phases to TodoWrite updates
-- Maintains dual tracking (COMPASS status + TodoWrite)
+- Receives phase completion notifications from compass-captain coordination
+- Translates COMPASS phases to TodoWrite updates using direct tool calls
+- Maintains synchronized tracking between COMPASS methodology and TodoWrite system
 
 ### 2. Phase Mapping
 
@@ -40,7 +40,7 @@ Maps COMPASS methodology phases to user-facing todo items:
 
 ### 3. Real-time Updates
 
-- Monitors compass-handler.py generated update signals
+- Receives completion notifications from compass-captain coordination
 - Provides immediate todo status updates during COMPASS execution
 - Shows progress visibility to maintain user engagement
 
@@ -51,11 +51,11 @@ Maps COMPASS methodology phases to user-facing todo items:
 - Receives coordination commands for todo synchronization
 - Reports completion status back to captain for workflow management
 
-### With compass-handler.py  
+### With Claude Code TodoWrite System
 
-- Reads generated `.compass-todo-updates` file
-- Processes todo update instructions from hook system
-- Maintains synchronization between COMPASS and TodoWrite systems
+- Uses direct TodoWrite tool integration for immediate updates
+- Processes phase completion notifications from captain coordination
+- Maintains synchronization between COMPASS methodology and user todo management
 
 ### With TodoWrite System
 
@@ -80,10 +80,10 @@ When COMPASS methodology begins:
 During COMPASS execution:
 
 ```
-- Monitor .compass-todo-updates for notifications
-- Read compass agent completion signals from captain results
-- Parse agent outputs to detect phase completions
-- Update TodoWrite status immediately upon phase detection
+- Receive completion notifications from compass-captain coordination
+- Parse agent outputs from Task tool results to detect phase completions
+- Execute TodoWrite tool calls to update todo status immediately
+- Mark phases as in_progress → completed automatically
 - Log synchronization actions for audit trail
 ```
 
@@ -92,9 +92,9 @@ During COMPASS execution:
 When COMPASS methodology completes:
 
 ```
-- Mark all phase todos as completed
-- Create summary todo for review of generated documentation
-- Clean up temporary synchronization files
+- Mark all phase todos as completed using TodoWrite tool
+- Create summary todo for review of generated documentation and patterns
+- Provide completion summary to compass-captain for final reporting
 ```
 
 ## Context Refresh & Bypass Resistance
@@ -103,17 +103,17 @@ When COMPASS methodology completes:
 
 Each activation loads:
 
-- Current TodoWrite state from Claude Code
-- Latest `.compass-todo-updates` notifications  
-- COMPASS phase status from `.compass/logs/compass-status`
-- Agent coordination state from captain
+- Current TodoWrite state from Claude Code interface
+- Phase completion signals from compass-captain coordination  
+- Agent execution results from Task tool responses
+- User context and progress tracking requirements
 
 ### Bypass Resistance Mechanisms
 
-- **Independent Operation**: Functions without captain if needed
-- **File-based Communication**: Uses persistent files for state sharing
-- **Automatic Recovery**: Can reconstruct todo state from COMPASS status
-- **Distributed Coordination**: Works with other agents independently
+- **Independent Operation**: Functions with direct TodoWrite tool access if needed
+- **Context-based Communication**: Uses Task tool results for state awareness
+- **Automatic Recovery**: Can reconstruct todo state from current progress signals
+- **Direct Integration**: Works with TodoWrite system through native Claude Code tools
 
 ## Expected Outputs
 
@@ -182,40 +182,40 @@ Use compass-todo-sync to synchronize COMPASS progress:
 
 **The Process Flow:**
 
-1. **You (Claude)** create todos for COMPASS methodology  
-2. **You** call `Task` tool with `compass-captain`
-3. **COMPASS agents execute** and return results **directly to you**
-4. **You see all agent outputs** in the Task tool results
-5. **You must manually call compass-todo-sync** to update TodoWrite based on what you observed
-6. **compass-todo-sync** reads completion signals and executes TodoWrite updates
+1. **compass-captain** orchestrates COMPASS methodology execution
+2. **Task tool calls** return COMPASS agent results directly to Claude
+3. **compass-todo-sync** receives completion notifications from captain coordination
+4. **TodoWrite tool calls** update todo status immediately based on phase progress
+5. **Real-time synchronization** maintains user visibility throughout COMPASS execution
 
-### **Key Reality Check**
+### **Key Implementation Facts**
 
-- ✅ **You WILL see** all COMPASS agent work and outputs (via Task tool results)
-- ✅ **Todos WILL be updated** but require compass-todo-sync agent call
-- ✅ **Progress tracking works** but needs manual sync step
-- ❌ **NOT automatic** - compass-handler.py cannot directly call TodoWrite
+- ✅ **Direct Integration**: TodoWrite tool calls execute immediately for status updates
+- ✅ **Captain Coordination**: compass-captain provides completion notifications to sync agent
+- ✅ **Real-time Updates**: Users see progress updates as COMPASS phases complete
+- ✅ **No File Dependencies**: Uses direct tool integration, not file-based communication
+- ✅ **Memory-Safe**: Operates on essential findings only, not full agent outputs
 
 ### **Enhanced User Experience**
 
-**What you'll see:**
+**What users experience:**
 
-1. Full COMPASS agent analysis results (extensive, detailed output)
-2. Generated documentation and visual maps
-3. Todo update notifications in `.compass-todo-updates` file
-4. Updated todos when you call compass-todo-sync
+1. Initial COMPASS methodology todos created automatically
+2. Real-time progress updates as phases complete (pending → in_progress → completed)
+3. Sub-task creation for discovered analysis needs during execution
+4. Clean completion status with next steps recommendations
 
-**Recommended workflow:**
+**Streamlined workflow:**
 
 ```
-- Call compass-captain → See full agent results
-- Call compass-todo-sync → Update todos based on completions  
-- Repeat for each phase group
+- compass-captain initializes → compass-todo-sync creates phase todos
+- Phases execute → compass-todo-sync updates progress in real-time
+- Methodology completes → compass-todo-sync marks all phases complete
 ```
 
 ---
 
 **Integration Priority**: Essential for user experience during COMPASS methodology execution
-**Maintenance**: Auto-cleanup of synchronization files after completion  
-**Dependencies**: compass-handler.py, TodoWrite system, .compass/logs/compass-status file
+**Maintenance**: Memory-safe operation with automatic cleanup after completion  
+**Dependencies**: compass-captain coordination, Claude Code TodoWrite tool, Task tool integration
 

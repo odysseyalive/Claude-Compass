@@ -12,47 +12,48 @@ from pathlib import Path
 from datetime import datetime
 import gc
 
+
 # Integrated CompassFileOrganizer class
 class CompassFileOrganizer:
     """
     CRITICAL INFRASTRUCTURE CLASS: Centralized file organization and directory management for COMPASS system
-    
+
     WARNING: This class manages the entire COMPASS directory structure and file organization.
     Modifications can break file path resolution, directory creation, and system organization.
-    
+
     PURPOSE:
     - Provides centralized directory structure management for COMPASS system
     - Ensures consistent file organization across all COMPASS components
     - Implements safety validations to prevent writing to root directory
     - Manages documentation, test, temporary, and map file organization
     - Creates and maintains required directory structure automatically
-    
+
     DIRECTORY STRUCTURE MANAGED:
-    - docs/: Documentation files with subcategories (agents, investigations, validations)
-    - maps/: SVG visualization files and mapping data
-    - .compass/: Internal system files, logs, and temporary data
-    - .compass/tests/: Test files and validation results
-    - .compass/logs/: System logs, token tracking, and session data
-    - .compass/temp/: Temporary files and intermediate processing data
-    
+    - .serena/memories/: Documentation files with subcategories (agents, investigations, validations)
+    - .serena/maps/: SVG visualization files and mapping data
+    - .claude/: Internal system files, logs, and temporary data
+    - .claude/tests/: Test files and validation results
+    - .claude/logs/: System logs, token tracking, and session data
+    - .claude/temp/: Temporary files and intermediate processing data and intermediate processing data
+
     SAFETY FEATURES:
     - Root directory protection: Prevents file creation in system root
     - Path validation: Ensures all paths stay within project boundaries
     - Automatic directory creation: Creates missing directories as needed
     - Consistent path resolution: Standardizes path handling across system
-    
+
     CRITICAL FOR:
     - Documentation organization: Proper categorization of generated docs
     - System logging: Centralized log file management
     - File safety: Prevention of accidental system-wide file creation
     - COMPASS state management: Organized storage of session and status data
-    
+
     INTEGRATION POINTS:
     - Used by all file creation and organization functions
     - Integrated with safety validation functions
     - Essential for proper COMPASS directory structure
     - Required for documentation and logging systems
-    
+
     DO NOT MODIFY WITHOUT:
     1. Understanding complete COMPASS file organization requirements
     2. Testing directory creation and path validation thoroughly
@@ -60,116 +61,116 @@ class CompassFileOrganizer:
     4. Ensuring backward compatibility with existing file paths
     5. Testing automatic directory creation under various conditions
     """
-    
+
     def __init__(self, project_root=None):
         self.project_root = Path(project_root or os.getcwd())
-        self.docs_dir = self.project_root / "docs"
-        self.maps_dir = self.project_root / "maps"
-        self.compass_dir = self.project_root / ".compass"
+        self.docs_dir = self.project_root / ".serena/memories"
+        self.maps_dir = self.project_root / ".serena/maps"
+        self.compass_dir = self.project_root / ".claude"
         self.tests_dir = self.compass_dir / "tests"
         self.logs_dir = self.compass_dir / "logs"
         self.temp_dir = self.compass_dir / "temp"
-        
+
         # Ensure directory structure exists
         self._ensure_directories()
-    
+
     def _ensure_directories(self):
         """Ensure all required directories exist"""
         directories = [
             self.docs_dir,
             self.docs_dir / "agents",
-            self.docs_dir / "investigations", 
+            self.docs_dir / "investigations",
             self.docs_dir / "validations",
             self.maps_dir,
             self.tests_dir,
             self.logs_dir,
-            self.temp_dir
+            self.temp_dir,
         ]
-        
+
         for directory in directories:
             directory.mkdir(parents=True, exist_ok=True)
-    
+
     def get_documentation_path(self, filename, category="general"):
         """Get proper path for documentation files
-        
+
         Args:
             filename: Name of the file (with .md extension)
             category: Type of documentation (agents, investigations, validations, general)
-        
+
         Returns:
             Path object for the documentation file
         """
-        if not filename.endswith('.md'):
-            filename += '.md'
-        
+        if not filename.endswith(".md"):
+            filename += ".md"
+
         category_map = {
             "agents": self.docs_dir / "agents",
-            "investigations": self.docs_dir / "investigations", 
+            "investigations": self.docs_dir / "investigations",
             "validations": self.docs_dir / "validations",
-            "general": self.docs_dir
+            "general": self.docs_dir,
         }
-        
+
         base_dir = category_map.get(category, self.docs_dir)
         return base_dir / filename
-    
+
     def get_test_path(self, filename):
         """Get proper path for test files
-        
+
         Args:
             filename: Name of the test file
-        
+
         Returns:
             Path object for the test file
         """
-        if not filename.endswith('.md'):
-            filename += '.md'
-        
+        if not filename.endswith(".md"):
+            filename += ".md"
+
         return self.tests_dir / filename
-    
+
     def get_temp_path(self, filename):
         """Get proper path for temporary files
-        
+
         Args:
             filename: Name of the temporary file
-        
+
         Returns:
             Path object for the temporary file
         """
         return self.temp_dir / filename
-    
+
     def get_map_path(self, filename):
         """Get proper path for map/SVG files
-        
+
         Args:
             filename: Name of the map file (with .svg extension)
-        
+
         Returns:
             Path object for the map file
         """
-        if not filename.endswith('.svg'):
-            filename += '.svg'
-        
+        if not filename.endswith(".svg"):
+            filename += ".svg"
+
         return self.maps_dir / filename
-    
+
     def validate_path_safety(self, filepath):
         """Validate that a file path doesn't write to project root
-        
+
         Args:
             filepath: Path to validate (string or Path object)
-        
+
         Returns:
             bool: True if path is safe, False if it would write to root
         """
         path = Path(filepath)
-        
+
         # Check if path is absolute and outside project
         if path.is_absolute() and not str(path).startswith(str(self.project_root)):
             return True  # Outside project, assume safe
-        
+
         # Resolve relative paths
         if not path.is_absolute():
             path = self.project_root / path
-        
+
         # Check if resolved path is directly in project root
         try:
             relative_to_root = path.relative_to(self.project_root)
@@ -178,19 +179,19 @@ class CompassFileOrganizer:
         except ValueError:
             # Path is outside project root
             return True
-    
+
     def redirect_root_path(self, filepath, file_type="documentation"):
         """Redirect a root-level path to proper directory
-        
+
         Args:
             filepath: Original file path that would be in root
             file_type: Type of file (documentation, test, temp, map)
-        
+
         Returns:
             Path object for the properly organized location
         """
         filename = Path(filepath).name
-        
+
         if file_type == "documentation":
             return self.get_documentation_path(filename)
         elif file_type == "test":
@@ -202,15 +203,15 @@ class CompassFileOrganizer:
         else:
             # Default to docs for unknown types
             return self.get_documentation_path(filename)
-    
+
     def cleanup_temp_files(self, max_age_hours=24):
         """Clean up temporary files older than specified age
-        
+
         Args:
             max_age_hours: Maximum age in hours before deletion
         """
         cutoff_time = datetime.now().timestamp() - (max_age_hours * 3600)
-        
+
         for temp_file in self.temp_dir.glob("*"):
             if temp_file.is_file() and temp_file.stat().st_mtime < cutoff_time:
                 try:
@@ -218,10 +219,10 @@ class CompassFileOrganizer:
                     print(f"Cleaned up old temp file: {temp_file}")
                 except Exception as e:
                     print(f"Failed to clean up {temp_file}: {e}")
-    
+
     def log_file_operation(self, operation, filepath, redirected_path=None):
         """Log file operations for audit trail
-        
+
         Args:
             operation: Type of operation (create, move, redirect)
             filepath: Original file path
@@ -232,9 +233,9 @@ class CompassFileOrganizer:
             "operation": operation,
             "original_path": str(filepath),
             "redirected_path": str(redirected_path) if redirected_path else None,
-            "utility": "compass_file_organizer"
+            "utility": "compass_file_organizer",
         }
-        
+
         log_file = self.logs_dir / "file_organization.log"
         try:
             with open(log_file, "a") as f:
@@ -246,17 +247,17 @@ class CompassFileOrganizer:
 
 def get_safe_file_path(filename, file_type="documentation", category="general"):
     """Convenience function to get properly organized file path
-    
+
     Args:
         filename: Name of the file
         file_type: Type of file (documentation, test, temp, map)
         category: Category for documentation files
-    
+
     Returns:
         String path for the properly organized file location
     """
     organizer = CompassFileOrganizer()
-    
+
     if file_type == "documentation":
         return str(organizer.get_documentation_path(filename, category))
     elif file_type == "test":
@@ -271,18 +272,20 @@ def get_safe_file_path(filename, file_type="documentation", category="general"):
 
 def validate_file_path_safety(filepath):
     """Convenience function to validate file path safety
-    
+
     Args:
         filepath: Path to validate
-    
+
     Returns:
         bool: True if path is safe, False if it writes to root
     """
     organizer = CompassFileOrganizer()
     return organizer.validate_path_safety(filepath)
 
+
 try:
     from filelock import FileLock as _FileLock
+
     # Use type alias to ensure consistent typing
     FileLock = _FileLock
 except ImportError:
@@ -303,37 +306,37 @@ except ImportError:
 def load_json_memory_safe(file_path, max_size=None):
     """
     CRITICAL MEMORY FUNCTION: Memory-safe JSON loading with comprehensive size validation
-    
+
     WARNING: This function prevents memory exhaustion from large JSON files.
     Modifications could allow unbounded memory usage and system crashes.
-    
+
     PURPOSE:
     - Prevents memory exhaustion from oversized JSON files
     - Validates file size before loading to avoid MemoryError
     - Implements double validation: file size + loaded data size
     - Provides graceful degradation for memory-constrained environments
     - Essential for token tracking and session data management
-    
+
     MEMORY SAFETY MECHANISMS:
     1. File size pre-check: Validates file size against MAX_TOKEN_FILE_SIZE
     2. Load size validation: Checks JSON string length after parsing
     3. Error handling: Catches JSON decode, OS, and memory errors
     4. Graceful degradation: Returns None instead of crashing
-    
+
     ARGS:
         file_path (str): Path to JSON file to load
         max_size (int, optional): Maximum file size in bytes (defaults to MAX_TOKEN_FILE_SIZE)
-    
+
     RETURNS:
         dict/list: Parsed JSON data if successful and within size limits
         None: If file too large, invalid JSON, or loading fails
-    
+
     CRITICAL FOR:
     - Token tracking data: compass-tokens.json session management
     - Status files: compass-status and session tracking
     - Configuration: Agent settings and COMPASS state
     - Memory stability: Prevents system crashes from large files
-    
+
     DO NOT MODIFY WITHOUT:
     1. Understanding memory constraints in production environments
     2. Testing with large JSON files (>100MB)
@@ -342,27 +345,31 @@ def load_json_memory_safe(file_path, max_size=None):
     """
     if max_size is None:
         max_size = MAX_TOKEN_FILE_SIZE
-    
+
     try:
         file_size = Path(file_path).stat().st_size
-        
+
         # MEMORY SAFETY: Check file size before loading
         if file_size > max_size:
-            log_handler_activity("json_file_too_large", f"File {file_path} too large: {file_size} bytes")
+            log_handler_activity(
+                "json_file_too_large", f"File {file_path} too large: {file_size} bytes"
+            )
             return None
-        
+
         # MEMORY OPTIMIZATION: Load with size check
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        
+
         # MEMORY VALIDATION: Check loaded data size
         data_str = json.dumps(data)
         if len(data_str) > max_size:
-            log_handler_activity("json_data_too_large", f"JSON data too large: {len(data_str)} chars")
+            log_handler_activity(
+                "json_data_too_large", f"JSON data too large: {len(data_str)} chars"
+            )
             return None
-            
+
         return data
-        
+
     except (json.JSONDecodeError, OSError, MemoryError) as e:
         log_handler_activity("json_load_error", f"Failed to load {file_path}: {e}")
         return None
@@ -371,41 +378,41 @@ def load_json_memory_safe(file_path, max_size=None):
 def cleanup_memory():
     """
     CRITICAL MEMORY FUNCTION: Emergency memory cleanup and system recovery
-    
+
     WARNING: This function is called during memory emergencies to prevent system crashes.
     Modifications could prevent recovery from memory exhaustion conditions.
-    
+
     PURPOSE:
     - Emergency memory recovery when system approaches memory limits
     - Aggressive garbage collection to free up memory immediately
     - Token file cleanup when they become oversized
     - Temporary file cleanup to reclaim disk space
     - System stability preservation during high-load scenarios
-    
+
     CLEANUP OPERATIONS:
     1. Triple garbage collection: Forces immediate memory reclamation
     2. Oversized token file reduction: Keeps only essential session data
     3. Old status file removal: Cleans up stale tracking files
-    4. Directory structure validation: Ensures .compass/logs exists
-    
+    4. Directory structure validation: Ensures .claude/logs exists
+
     EMERGENCY PROTOCOL:
     - Called automatically on MemoryError in main()
     - Can be called proactively by token tracking functions
     - Never throws exceptions (emergency functions must be stable)
     - Logs all cleanup operations for audit trail
-    
+
     TOKEN FILE RECOVERY:
     - Checks compass-tokens.json size against MAX_TOKEN_FILE_SIZE
     - Preserves essential data: total, session_start, last_update
     - Removes historical data to reduce memory footprint
     - Falls back to file deletion if JSON parsing fails
-    
+
     CRITICAL FOR:
     - System stability: Prevents memory-related crashes
     - Long-running sessions: Manages memory growth over time
     - Large analysis tasks: Handles memory spikes during processing
     - Production reliability: Ensures graceful degradation under load
-    
+
     DO NOT MODIFY WITHOUT:
     1. Understanding memory recovery requirements
     2. Testing under actual memory pressure conditions
@@ -417,8 +424,8 @@ def cleanup_memory():
         for _ in range(3):
             gc.collect()
 
-        # Ensure .compass/logs directory exists
-        logs_dir = Path(".compass/logs")
+        # Ensure .claude/logs directory exists
+        logs_dir = Path(".claude/logs")
         logs_dir.mkdir(parents=True, exist_ok=True)
 
         # OPTIMIZED: Clean up token tracking files if they're too large
@@ -446,7 +453,7 @@ def cleanup_memory():
                 token_file.unlink(missing_ok=True)
 
         # Clean up old status files
-        for cleanup_file in [".compass-complete", ".compass-todo-updates"]:
+        for cleanup_file in [".claude-complete", ".claude-todo-updates"]:
             Path(cleanup_file).unlink(missing_ok=True)
 
     except Exception:
@@ -457,25 +464,25 @@ def cleanup_memory():
 def cleanup_compass_status_if_stale():
     """
     COMPASS STATUS STALE SESSION CLEANUP: Automatically clean up compass status when session is stale
-    
+
     PURPOSE:
     - Check if COMPASS session is stale (>10 minutes of inactivity)
     - Automatically remove compass-status file when staleness detected
     - Prevent stale status information from persisting
     - Add redundancy prevention to avoid multiple cleanup calls
-    
+
     FEATURES:
     - Staleness detection based on 10-minute inactivity timeout
     - Automatic cleanup when session is determined stale
     - Redundancy prevention to avoid multiple cleanup attempts
     - Comprehensive logging for audit trail and debugging
     - Safe execution with exception handling
-    
+
     TRIGGERED BY:
     - Session validation checks during hook processing
     - Any function that needs to verify session freshness
     - PreToolUse hooks that check for active COMPASS sessions
-    
+
     INTEGRATION POINTS:
     - check_compass_session_active() - detects when session is NOT active (stale)
     - Session validation flows - ensures cleanup happens automatically
@@ -483,63 +490,68 @@ def cleanup_compass_status_if_stale():
     """
     try:
         # Define compass status file path
-        logs_dir = Path(".compass/logs")
+        logs_dir = Path(".claude/logs")
         status_file = logs_dir / "compass-status"
-        
+
         # Only proceed if status file exists (no point cleaning if already clean)
         if not status_file.exists():
             return False  # No cleanup needed
-        
+
         # Check if session is stale (NOT active means stale)
         if not check_compass_session_active():
             # Session is stale - perform cleanup
             status_file.unlink()
-            log_handler_activity("stale_session_cleanup", "Removed compass-status file due to stale session (>10 min inactivity)")
+            log_handler_activity(
+                "stale_session_cleanup",
+                "Removed compass-status file due to stale session (>10 min inactivity)",
+            )
             return True  # Cleanup performed
         else:
             # Session is still active - no cleanup needed
             return False  # No cleanup needed
-            
+
     except Exception as e:
         # Cleanup should never crash the handler
-        log_handler_activity("stale_session_cleanup_error", f"Error during stale session cleanup: {e}")
+        log_handler_activity(
+            "stale_session_cleanup_error", f"Error during stale session cleanup: {e}"
+        )
         return False
 
 
 def cleanup_compass_status():
     """
     COMPASS STATUS CLEANUP: Remove compass status file on session end/stop
-    
+
     PURPOSE:
     - Clean up compass-status file when session ends or stops
     - Prevent stale COMPASS state from persisting between sessions
     - Ensure clean state for next Claude Code session
     - Remove compass status tracking when hooks indicate session termination
-    
+
     SAFETY FEATURES:
     - Silent failure on missing file (already cleaned)
     - Exception handling to prevent handler crashes
     - Proper logging of cleanup operations
     - Path validation to ensure correct file removal
     - Redundancy prevention with stale session cleanup
-    
+
     TRIGGERED BY:
     - Stop hook: When user stops current session
     - SessionEnd hook: When session terminates normally
     - Cleanup operations: During memory or state cleanup
-    
+
     CLEANUP OPERATIONS:
     1. Check if compass-status file exists
     2. Remove file safely with error handling
     3. Log cleanup operation for audit trail
     4. Never throw exceptions (cleanup must be stable)
-    
+
     CRITICAL FOR:
     - Session hygiene: Clean state between sessions
     - Status accuracy: Prevent stale status information
     - System reliability: Proper cleanup on termination
     - User experience: Clear session boundaries
-    
+
     DO NOT MODIFY WITHOUT:
     1. Understanding session lifecycle requirements
     2. Testing with actual Stop/SessionEnd hook triggers
@@ -548,19 +560,27 @@ def cleanup_compass_status():
     """
     try:
         # Define compass status file path
-        logs_dir = Path(".compass/logs")
+        logs_dir = Path(".claude/logs")
         status_file = logs_dir / "compass-status"
-        
+
         # Check if status file exists and remove it
         if status_file.exists():
             status_file.unlink()
-            log_handler_activity("compass_status_cleanup", "Removed compass-status file on session end/stop")
+            log_handler_activity(
+                "compass_status_cleanup",
+                "Removed compass-status file on session end/stop",
+            )
         else:
-            log_handler_activity("compass_status_cleanup", "No compass-status file to clean (already clean)")
-            
+            log_handler_activity(
+                "compass_status_cleanup",
+                "No compass-status file to clean (already clean)",
+            )
+
     except Exception as e:
         # Cleanup should never crash the handler
-        log_handler_activity("compass_status_cleanup_error", f"Error cleaning compass-status: {e}")
+        log_handler_activity(
+            "compass_status_cleanup_error", f"Error cleaning compass-status: {e}"
+        )
         pass
 
 
@@ -615,13 +635,13 @@ def rotate_log_file(log_file):
 # ==================================================================================
 # CRITICAL MEMORY MANAGEMENT CONSTANTS - NEVER MODIFY WITHOUT EXTENSIVE TESTING
 # ==================================================================================
-# 
+#
 # ⚠️  DANGER: THESE CONSTANTS PREVENT SYSTEM CRASHES AND MEMORY EXHAUSTION
-# 
+#
 # These values were carefully calibrated after extensive memory crash analysis.
 # Increasing any of these limits can cause:
 # - JavaScript heap exhaustion crashes
-# - System memory overload and lockups  
+# - System memory overload and lockups
 # - Process termination during large analysis tasks
 # - Unrecoverable memory errors requiring restart
 #
@@ -633,48 +653,65 @@ def rotate_log_file(log_file):
 #
 # TESTING REQUIREMENTS BEFORE ANY CHANGES:
 # 1. Test with 50+ sequential COMPASS agent calls
-# 2. Verify behavior with 500KB+ user prompts  
+# 2. Verify behavior with 500KB+ user prompts
 # 3. Run 100+ session token tracking cycles
 # 4. Monitor memory usage under sustained load
 # 5. Test recovery from MemoryError conditions
 #
 # ⚠️  MODIFICATION CHECKLIST:
 # □ Memory pressure testing completed for 30+ minutes
-# □ JavaScript heap monitoring shows no growth trends  
+# □ JavaScript heap monitoring shows no growth trends
 # □ Emergency cleanup functions still work correctly
 # □ Large file processing doesn't trigger crashes
 # □ Token tracking remains bounded under load
 #
-MAX_INPUT_SIZE = 512 * 1024  # 512KB max input (reduced from 1MB) - PREVENTS HEAP EXHAUSTION
-MAX_TOKEN_SESSIONS = 25  # Max stored token sessions (reduced from 100) - PREVENTS MEMORY LEAKS
-MAX_TOKEN_FILE_SIZE = 256 * 1024  # 256KB max token file (new limit) - PREVENTS LOAD CRASHES
-MAX_AGENT_TRACKING = 50  # Max agents tracked simultaneously (new limit) - BOUNDS MEMORY GROWTH
-MAX_PHASE_TRACKING = 8  # Max phases tracked simultaneously (new limit) - PREVENTS TRACKING OVERFLOW
-MAX_LOG_SIZE = 2 * 1024 * 1024  # 2MB max log file (reduced from 5MB) - PREVENTS LOG FILE CRASHES
-MAX_AGENT_ACTIVITY = 100  # Max agent activity entries (reduced from 500) - BOUNDS ACTIVITY TRACKING
+MAX_INPUT_SIZE = (
+    512 * 1024
+)  # 512KB max input (reduced from 1MB) - PREVENTS HEAP EXHAUSTION
+MAX_TOKEN_SESSIONS = (
+    25  # Max stored token sessions (reduced from 100) - PREVENTS MEMORY LEAKS
+)
+MAX_TOKEN_FILE_SIZE = (
+    256 * 1024
+)  # 256KB max token file (new limit) - PREVENTS LOAD CRASHES
+MAX_AGENT_TRACKING = (
+    50  # Max agents tracked simultaneously (new limit) - BOUNDS MEMORY GROWTH
+)
+MAX_PHASE_TRACKING = (
+    8  # Max phases tracked simultaneously (new limit) - PREVENTS TRACKING OVERFLOW
+)
+MAX_LOG_SIZE = (
+    2 * 1024 * 1024
+)  # 2MB max log file (reduced from 5MB) - PREVENTS LOG FILE CRASHES
+MAX_AGENT_ACTIVITY = (
+    100  # Max agent activity entries (reduced from 500) - BOUNDS ACTIVITY TRACKING
+)
 
 
 def validate_file_operation_safety(tool_name, tool_input):
     """Validate file operations to prevent root directory cluttering
-    
+
     Args:
         tool_name: Name of the tool being called
         tool_input: Input parameters for the tool
-    
+
     Returns:
         dict: {"safe": bool, "reason": str, "suggested_path": str}
     """
     try:
         organizer = CompassFileOrganizer()
-        
+
         # Check tools that create files
         file_creating_tools = [
-            "Write", "mcp__serena__create_text_file", "Edit", "MultiEdit"
+            "Write",
+            "mcp__serena__create_text_file",
+            "Edit",
+            "MultiEdit",
         ]
-        
+
         if tool_name not in file_creating_tools:
             return {"safe": True, "reason": "Tool does not create files"}
-        
+
         # Extract file path from tool input
         file_path = None
         if tool_name == "Write":
@@ -683,27 +720,36 @@ def validate_file_operation_safety(tool_name, tool_input):
             file_path = tool_input.get("relative_path")
         elif tool_name in ["Edit", "MultiEdit"]:
             file_path = tool_input.get("file_path")
-        
+
         if not file_path:
             return {"safe": True, "reason": "No file path specified"}
-        
+
         # Validate path safety
         if not organizer.validate_path_safety(file_path):
             # Check if it's a markdown file that should be redirected
-            if file_path.endswith('.md'):
+            if file_path.endswith(".md"):
                 # Determine file type based on content patterns
                 content = tool_input.get("content", "")
-                
-                if any(keyword in file_path.lower() for keyword in ["test", "jung", "integration"]):
+
+                if any(
+                    keyword in file_path.lower()
+                    for keyword in ["test", "jung", "integration"]
+                ):
                     suggested_path = organizer.get_test_path(Path(file_path).name)
                     file_type = "test"
-                elif any(keyword in content.lower() for keyword in ["validation", "test"]):
-                    suggested_path = organizer.get_documentation_path(Path(file_path).name, "validations")
+                elif any(
+                    keyword in content.lower() for keyword in ["validation", "test"]
+                ):
+                    suggested_path = organizer.get_documentation_path(
+                        Path(file_path).name, "validations"
+                    )
                     file_type = "validation"
                 else:
-                    suggested_path = organizer.get_documentation_path(Path(file_path).name)
+                    suggested_path = organizer.get_documentation_path(
+                        Path(file_path).name
+                    )
                     file_type = "documentation"
-                
+
                 reason = f"""🚫 COMPASS File Organization Violation
 
 The file '{file_path}' would be created in the project root directory.
@@ -714,23 +760,25 @@ Use proper path: {suggested_path}
 
 FILE ORGANIZATION RULES:
 • Documentation files → docs/ directory (or docs/validations/ for validation reports)
-• Test files → .compass/tests/ directory  
-• Temporary files → .compass/temp/ directory
+• Test files → .claude/tests/ directory  
+• Temporary files → .claude/temp/ directory
 • Maps/SVG files → maps/ directory
 
 To fix: Update the file path in your tool call to use the suggested path above."""
-                
-                organizer.log_file_operation("blocked_root_write", file_path, suggested_path)
-                
+
+                organizer.log_file_operation(
+                    "blocked_root_write", file_path, suggested_path
+                )
+
                 return {
-                    "safe": False, 
+                    "safe": False,
                     "reason": reason,
                     "suggested_path": str(suggested_path),
-                    "file_type": file_type
+                    "file_type": file_type,
                 }
-        
+
         return {"safe": True, "reason": "Path validation passed"}
-        
+
     except Exception as e:
         # If validation fails, err on side of caution but don't block
         log_handler_activity("file_validation_error", f"File validation error: {e}")
@@ -742,51 +790,51 @@ def main():
     ████████████████████████████████████████████████████████████████████████████
     🚨 CRITICAL SYSTEM ENTRY POINT - MODIFICATIONS BREAK EVERYTHING 🚨
     ████████████████████████████████████████████████████████████████████████████
-    
+
     CRITICAL SYSTEM FUNCTION: Main COMPASS handler entry point for Claude Code hooks
-    
+
     ⚠️  EXTREME DANGER: This function is the SINGLE POINT OF INTEGRATION between
     Claude Code and the entire COMPASS methodology system. ANY modifications to
     input handling, event routing, memory management, or error handling can:
-    
+
     🚨 CATASTROPHIC FAILURE MODES FROM MODIFICATIONS:
     - Complete loss of COMPASS methodology enforcement
-    - Bypassed institutional knowledge requirements  
+    - Bypassed institutional knowledge requirements
     - Memory crashes from unhandled input sizes
     - Broken hook event routing causing silent failures
     - Loss of agent coordination and methodology compliance
     - Session corruption and tracking system breakdown
-    
+
     CRITICAL INTEGRATION POINTS:
     - Serves as the primary hook handler for Claude Code's hook system
     - Routes UserPromptSubmit events to compass-captain for methodology enforcement
     - Handles PreToolUse events for tool validation and COMPASS requirement checking
     - Implements memory optimization and garbage collection for large-scale analysis
     - Provides error handling and graceful degradation for system stability
-    
+
     SYSTEM DEPENDENCIES (ALL MUST REMAIN INTACT):
     - Claude Code hook system (UserPromptSubmit, PreToolUse events)
-    - .compass directory structure for logging and session tracking
+    - .claude directory structure for logging and session tracking
     - JSON input/output format for hook communication
     - Memory management through garbage collection
     - COMPASS agent ecosystem for methodology execution
-    
+
     MEMORY MANAGEMENT (PREVENTS SYSTEM CRASHES):
     - Implements MAX_INPUT_SIZE limits to prevent memory exhaustion
     - Forces garbage collection before and after processing
     - Includes emergency memory cleanup on MemoryError
-    
+
     CRITICAL ERROR HANDLING (PREVENTS SILENT FAILURES):
     - JSONDecodeError: Invalid input format from Claude Code
     - MemoryError: Triggers emergency cleanup and graceful exit
     - General exceptions: Logged with full context for debugging
-    
+
     HOOK EVENT ROUTING (CORE COMPASS ENFORCEMENT):
     - UserPromptSubmit → handle_user_prompt_submit() → compass-captain injection
     - PreToolUse → handle_pre_tool_use_with_token_tracking() → tool validation
     - Stop → cleanup_compass_status() → compass-status file removal
     - SessionEnd → cleanup_compass_status() → compass-status file removal
-    
+
     ⚠️  MODIFICATION CHECKLIST (ABSOLUTELY REQUIRED):
     □ Full understanding of Claude Code hook integration contracts
     □ Testing with complete COMPASS methodology workflows (all 6 phases)
@@ -798,13 +846,13 @@ def main():
     □ JSON parsing tested with malformed input
     □ Directory creation and logging tested
     □ Integration testing with compass-captain agent
-    
+
     🚨 BREAKING THIS FUNCTION MEANS BREAKING THE ENTIRE COMPASS SYSTEM 🚨
     """
     try:
         # MEMORY OPTIMIZATION: Initial garbage collection and memory check
         gc.collect()
-        
+
         # Validate stdin input
         if sys.stdin.isatty():
             print("COMPASS Handler: No input provided via stdin", file=sys.stderr)
@@ -832,7 +880,13 @@ def main():
         hook_event = input_data.get("hook_event_name", "")
 
         # Validate hook event
-        valid_events = ["UserPromptSubmit", "PreToolUse", "Stop", "SessionEnd", "SubagentStop"]
+        valid_events = [
+            "UserPromptSubmit",
+            "PreToolUse",
+            "Stop",
+            "SessionEnd",
+            "SubagentStop",
+        ]
         if hook_event and hook_event not in valid_events:
             log_handler_activity("unknown_hook", f"Unknown hook event: {hook_event}")
 
@@ -853,7 +907,9 @@ def main():
         elif hook_event == "Stop" or hook_event == "SessionEnd":
             # Clean up compass status file on session termination
             cleanup_compass_status()
-            log_handler_activity(hook_event, "compass-status cleaned up on session termination")
+            log_handler_activity(
+                hook_event, "compass-status cleaned up on session termination"
+            )
 
         # STALE SESSION CLEANUP: Automatically clean up compass-status if session is stale
         # This runs during all hook processing to ensure timely cleanup when sessions exceed 10-minute timeout
@@ -864,7 +920,7 @@ def main():
 
         # Log handler activity
         log_handler_activity(hook_event or "unknown", "processed")
-        
+
         # MEMORY OPTIMIZATION: Force garbage collection after each hook execution
         gc.collect()
 
@@ -890,43 +946,43 @@ def main():
 def handle_user_prompt_submit(input_data):
     """
     CRITICAL ROUTING FUNCTION: Enforce COMPASS methodology for all user prompts
-    
+
     WARNING: This function implements the core COMPASS enforcement mechanism.
     Any modifications could bypass the methodology requirement and break institutional knowledge integration.
-    
+
     PURPOSE:
     - Routes ALL user prompts to compass-captain agent for methodology coordination
-    - Ensures no ad-hoc analysis can bypass COMPASS 6-phase approach
+    - Ensures no ad-hoc analysis can bypass COMPASS 7-phase approach
     - Provides consistent entry point for strategic vs. full methodology decisions
     - Maintains institutional knowledge integration through compass-captain coordination
-    
+
     ENFORCEMENT STRATEGY:
     - Universal routing: No exceptions for any user prompt type
     - Strategic delegation: compass-captain uses methodology-selector for planning
     - Institutional foundation: All analysis starts with knowledge consultation
     - Methodology coordination: Ensures proper agent sequencing and parallel execution
-    
+
     SYSTEM INTEGRATION:
     - Input: Claude Code UserPromptSubmit hook event with user prompt
     - Processing: Uses unified compass_handler_core for consistent processing
     - Output: inject_compass_context() result for compass-captain activation
     - Coordination: compass-captain determines appropriate methodology approach
-    
+
     ARGS:
         input_data (dict): Hook event data from Claude Code containing:
             - prompt (str): User's input prompt requiring analysis
             - Additional hook metadata and context
-    
+
     RETURNS:
         dict: inject_compass_context() result for compass-captain injection
         None: If no prompt provided (graceful degradation)
-    
+
     CRITICAL DEPENDENCIES:
     - compass_handler_core(): Unified handler function (NEW ARCHITECTURE)
     - inject_compass_context(): COMPASS context injection mechanism
     - compass-captain agent: Methodology coordination and enforcement
-    - .compass/logs/: Activity logging for audit and debugging
-    
+    - .claude/logs/: Activity logging for audit and debugging
+
     DO NOT MODIFY WITHOUT:
     1. Understanding COMPASS methodology enforcement requirements
     2. Testing bypass prevention mechanisms
@@ -936,7 +992,7 @@ def handle_user_prompt_submit(input_data):
     """
 
     # Delegate to unified core function with UserPromptSubmit hook type
-    # This ensures identical context injection behavior as before, 
+    # This ensures identical context injection behavior as before,
     # but now uses the unified architecture for consistency with PreToolUse
     return compass_handler_core(input_data, "UserPromptSubmit")
 
@@ -951,25 +1007,30 @@ def detect_compass_agent_in_prompt(prompt):
     # Check for specific agent mentions
     compass_agents = [
         "compass-captain",
+        "compass-complexity-analyzer",
+        "compass-strategy-builder",
+        "compass-validation-coordinator",
         "compass-knowledge-discovery",
         "compass-pattern-apply",
+        "compass-data-flow",
         "compass-gap-analysis",
         "compass-doc-planning",
         "compass-enhanced-analysis",
         "compass-cross-reference",
         "compass-coder",
+        "compass-writing-analyst",
+        "compass-academic-analyst",
+        "compass-memory-enhanced-writer",
         "compass-second-opinion",
-        "compass-breakthrough-doc",
         "compass-auth-performance-analyst",
         "compass-auth-security-validator",
         "compass-auth-optimization-specialist",
         "compass-upstream-validator",
         "compass-dependency-tracker",
-        "compass-writing-analyst",
-        "compass-academic-analyst",
-        "compass-memory-enhanced-writer",
-        "compass-data-flow",
+        "compass-breakthrough-doc",
         "compass-todo-sync",
+        "compass-svg-analyst",
+        "compass-memory-integrator",
     ]
 
     for agent in compass_agents:
@@ -979,7 +1040,7 @@ def detect_compass_agent_in_prompt(prompt):
     # Check for COMPASS methodology phrases that indicate captain
     captain_phrases = [
         "compass methodology",
-        "6-phase",
+        "7-phase",
         "institutional knowledge integration",
         "compass captain",
         "coordinate compass",
@@ -1039,69 +1100,70 @@ def load_agent_instructions(agent_name):
 def compass_handler_core(input_data, hook_type):
     """
     UNIFIED FUNCTION: Core handler for both PreToolUse and UserPromptSubmit hooks
-    
+
     This function implements the unified architecture that:
     1. Detects hook-specific parameters and validates input
     2. Applies recursion checks ONLY for tool use scenarios
     3. Uses EXACTLY THE SAME context injection path for both hook types
     4. Formats return values appropriately for each hook type
-    
+
     DESIGN GOALS:
     - Single source of truth for compass context injection
-    - Recursion prevention only applies to tool use scenarios  
+    - Recursion prevention only applies to tool use scenarios
     - Maintain compatibility with both hook event types
     - Clean separation between recursion logic and context injection
-    
+
     ARGS:
         input_data (dict): Hook event data with hook-specific fields:
             - UserPromptSubmit: {"prompt": str, ...other_fields}
             - PreToolUse: {"tool_name": str, "tool_input": dict, ...other_fields}
         hook_type (str): "UserPromptSubmit" or "PreToolUse"
-    
+
     RETURNS:
         dict: Hook-appropriate response:
             - UserPromptSubmit: inject_compass_context() result
             - PreToolUse: permission decision with compass context
         None: If validation fails (graceful degradation)
-    
+
     CRITICAL: This function maintains the exact same context injection behavior
     for both hook types, only differing in recursion checks and return formatting.
     """
-    
+
     # STEP 1: Parameter Detection and Initial Validation
     if hook_type == "UserPromptSubmit":
         user_prompt = input_data.get("prompt", "")
         if not user_prompt:
             return None
-        
+
         log_handler_activity(
             "prompt_routing", f"Routing to compass-captain: {user_prompt[:100]}..."
         )
-        
+
         # UserPromptSubmit: No recursion checks needed, go directly to context injection
         compass_context = inject_compass_context()
         return compass_context
-        
+
     elif hook_type == "PreToolUse":
         tool_name = input_data.get("tool_name", "")
         tool_input = input_data.get("tool_input", {})
-        
+
         if not tool_name:
             return create_permission_decision_with_compass_context(
                 "deny", "No tool name provided"
             )
-            
+
         log_handler_activity("tool_intercept", f"Intercepted: {tool_name}")
-        
+
         # STEP 2: Tool Use Recursion Checks (ONLY for PreToolUse)
-        
+
         # FILE PATH VALIDATION: Prevent root directory file creation
         file_safety_result = validate_file_operation_safety(tool_name, tool_input)
         if not file_safety_result["safe"]:
-            log_handler_activity("file_path_violation", f"Blocked unsafe file operation: {tool_name}")
+            log_handler_activity(
+                "file_path_violation", f"Blocked unsafe file operation: {tool_name}"
+            )
             return create_permission_decision_with_compass_context(
-                "deny", 
-                file_safety_result["reason"]
+                "deny", file_safety_result["reason"]
             )
 
         # RECURSION PREVENTION: Skip validation for compass-upstream-validator to prevent infinite loops
@@ -1110,34 +1172,34 @@ def compass_handler_core(input_data, hook_type):
             and tool_input.get("subagent_type") == "compass-upstream-validator"
         ):
             log_handler_activity(
-                "recursion_prevention", "Enhanced upstream validator recursion prevention"
+                "recursion_prevention",
+                "Enhanced upstream validator recursion prevention",
             )
             enhanced_message = create_enhanced_recursion_message(
                 "upstream_validator",
                 tool_name=tool_name,
                 subagent_type=tool_input.get("subagent_type"),
-                validation_depth=int(os.environ.get("COMPASS_VALIDATION_DEPTH", "0"))
+                validation_depth=int(os.environ.get("COMPASS_VALIDATION_DEPTH", "0")),
             )
             return create_permission_decision_with_compass_context(
-                "allow", 
-                enhanced_message
+                "allow", enhanced_message
             )
 
         # DEPTH LIMITING: Prevent deep validation chains
         validation_depth = int(os.environ.get("COMPASS_VALIDATION_DEPTH", "0"))
         if validation_depth >= 3:
             log_handler_activity(
-                "depth_limit", f"Enhanced depth limit messaging - max depth reached ({validation_depth})"
+                "depth_limit",
+                f"Enhanced depth limit messaging - max depth reached ({validation_depth})",
             )
             enhanced_message = create_enhanced_recursion_message(
                 "depth_limit",
                 tool_name=tool_name,
                 subagent_type=tool_input.get("subagent_type"),
-                validation_depth=validation_depth
+                validation_depth=validation_depth,
             )
             return create_permission_decision_with_compass_context(
-                "allow", 
-                enhanced_message
+                "allow", enhanced_message
             )
 
         # Check for double_check parameter and trigger upstream validation
@@ -1160,7 +1222,7 @@ def compass_handler_core(input_data, hook_type):
             if validation_result and not validation_result.get("valid", True):
                 return create_permission_decision_with_compass_context(
                     "deny",
-                    f"⚠️ Upstream validation failed: {validation_result.get('reason', 'Unknown error')}\n\nSuggestions: {validation_result.get('suggestions', [])}"
+                    f"⚠️ Upstream validation failed: {validation_result.get('reason', 'Unknown error')}\n\nSuggestions: {validation_result.get('suggestions', [])}",
                 )
 
         # Check if this tool usage requires COMPASS methodology
@@ -1169,9 +1231,9 @@ def compass_handler_core(input_data, hook_type):
             log_handler_activity(
                 "compass_required", f"Blocking {tool_name} - COMPASS required"
             )
-            
+
             session_context = get_compass_session_context()
-            
+
             if not compass_context_active():
                 compass_message = f"""🧭 COMPASS METHODOLOGY REQUIRED
 
@@ -1180,7 +1242,7 @@ def compass_handler_core(input_data, hook_type):
 🧠 **WHY COMPASS IS REQUIRED**:
 • Complex analytical tasks require systematic approach
 • Prevents ad-hoc analysis that misses institutional knowledge
-• Ensures quality control through 6-phase methodology
+• Ensures quality control through 7-phase methodology
 • Integrates with existing patterns and documentation
 
 📊 **PREPARATION FOR COMPASS**:
@@ -1190,12 +1252,12 @@ def compass_handler_core(input_data, hook_type):
 
 ✅ **REQUIRED ACTIONS**:
 1. **Initialize COMPASS**: Use Task tool with subagent_type='compass-captain'
-2. **Methodology Coordination**: compass-captain will coordinate full 6-phase COMPASS approach
-3. **Progress Tracking**: Check .compass/logs/compass-status for methodology progress
+2. **Methodology Coordination**: compass-captain will coordinate full 7-phase COMPASS approach
+3. **Progress Tracking**: Check .claude/logs/compass-status for methodology progress
 4. **Quality Assurance**: Systematic approach ensures comprehensive analysis
 
 🎯 **NEXT STEP**: Use Task tool with subagent_type='compass-captain' to begin systematic analysis"""
-                
+
             else:
                 compass_message = f"""🧭 COMPASS ENFORCEMENT ACTIVE
 
@@ -1208,10 +1270,10 @@ def compass_handler_core(input_data, hook_type):
 • Prevents fragmented approach during systematic analysis
 
 📊 **CURRENT SESSION CONTEXT**:
-• Session Duration: {session_context['session_duration']}
-• Current Phase: {session_context['current_phase']}
-• Total Tokens Used: {session_context['total_tokens']:,}
-• Agents Run: {', '.join(session_context['agents_run'][:3]) if session_context['agents_run'] else 'None yet'}
+• Session Duration: {session_context["session_duration"]}
+• Current Phase: {session_context["current_phase"]}
+• Total Tokens Used: {session_context["total_tokens"]:,}
+• Agents Run: {", ".join(session_context["agents_run"][:3]) if session_context["agents_run"] else "None yet"}
 
 ✅ **REQUIRED ACTION**:
 Use Task tool with subagent_type='compass-captain' for proper tool coordination
@@ -1219,19 +1281,17 @@ Use Task tool with subagent_type='compass-captain' for proper tool coordination
 ❌ **BLOCKED**: Direct {tool_name} tool usage during active COMPASS session
 
 🎯 **NEXT STEP**: compass-captain will coordinate {tool_name} usage through appropriate methodology phase"""
-            
+
             return create_permission_decision_with_compass_context(
-                "deny", 
-                compass_message
+                "deny", compass_message
             )
 
         # STEP 3: Allow the tool and inject compass context (SAME PATH as UserPromptSubmit)
         log_handler_activity("tool_allowed", f"Allowing {tool_name}")
         return create_permission_decision_with_compass_context(
-            "allow", 
-            "COMPASS validation passed"
+            "allow", "COMPASS validation passed"
         )
-    
+
     else:
         # Invalid hook type
         log_handler_activity("invalid_hook_type", f"Unknown hook type: {hook_type}")
@@ -1265,7 +1325,7 @@ The compass-captain will:
 4. Provide comprehensive token usage reporting
 
 📊 TOKEN TRACKING: Real-time visibility with strategic budget optimization.
-📄 STATUS: Check .compass/logs/compass-status for methodology progress when active."""
+📄 STATUS: Check .claude/logs/compass-status for methodology progress when active."""
 
     return {
         "hookSpecificOutput": {
@@ -1279,17 +1339,17 @@ def create_permission_decision_with_compass_context(decision, reason):
     """
     Create permission decision that includes compass context injection
     Combines PreToolUse permission decisions with compass context like UserPromptSubmit
-    
+
     ARGS:
         decision (str): "allow" or "deny" permission decision
         reason (str): Human-readable explanation for the decision
-    
+
     RETURNS:
         dict: Combined permission decision and compass context injection
     """
     # Get compass context from inject_compass_context
     compass_injection = inject_compass_context()
-    
+
     # Combine permission decision with compass context injection
     # Change hookEventName from UserPromptSubmit to PreToolUse for proper event handling
     result = {
@@ -1297,69 +1357,71 @@ def create_permission_decision_with_compass_context(decision, reason):
         "permissionDecisionReason": reason,
         "hookSpecificOutput": {
             "hookEventName": "PreToolUse",
-            "additionalContext": compass_injection["hookSpecificOutput"]["additionalContext"],
-        }
+            "additionalContext": compass_injection["hookSpecificOutput"][
+                "additionalContext"
+            ],
+        },
     }
-    
+
     return result
 
 
 def handle_pre_tool_use(input_data):
     """
     CRITICAL VALIDATION FUNCTION: Tool usage validation and COMPASS requirement enforcement
-    
+
     WARNING: This function controls all tool access in Claude Code through the hook system.
     Modifications can compromise security, break COMPASS enforcement, or create infinite validation loops.
-    
+
     PURPOSE:
     - Validates file operation safety to prevent writing to root directory
     - Enforces COMPASS methodology requirements for analysis tools
     - Implements upstream repository validation when double_check=true
     - Prevents infinite recursion in validation chains
     - Provides tool-level access control for system security
-    
+
     SECURITY VALIDATIONS:
     - File path safety: Prevents root directory file creation
     - Tool safety: Validates tool input parameters for malicious content
     - Recursion prevention: Blocks infinite validation loops
     - Depth limiting: Prevents runaway validation chains (max depth 3)
-    
+
     COMPASS ENFORCEMENT:
     - Analysis tool detection: Identifies tools requiring methodology
     - Context verification: Checks if COMPASS context is active
     - Methodology blocking: Denies tools when COMPASS required but not active
     - Guidance provision: Explains COMPASS requirement to users
-    
+
     UPSTREAM VALIDATION:
     - Triggered by double_check parameter in tool input
     - Delegates to compass-upstream-validator agent
     - Validates against upstream repositories for accuracy
     - Provides validation failure feedback with suggestions
-    
+
     ARGS:
         input_data (dict): PreToolUse hook event data containing:
             - tool_name (str): Name of tool being executed
             - tool_input (dict): Parameters for tool execution
             - Additional hook metadata
-    
+
     RETURNS:
         dict: Permission decision with structure:
             - permissionDecision (str): "allow" or "deny"
             - permissionDecisionReason (str): Human-readable explanation
         None: No intervention required (implicit allow)
-    
+
     CRITICAL DEPENDENCIES:
     - compass_handler_core(): Unified handler function (NEW ARCHITECTURE)
     - validate_file_operation_safety(): File system security validation
     - requires_compass_methodology(): Analysis tool detection
     - compass_context_active(): COMPASS state verification
     - trigger_upstream_validation(): Repository validation when requested
-    
+
     RECURSION PREVENTION:
     - Skips validation for compass-upstream-validator to prevent loops
     - Uses COMPASS_VALIDATION_DEPTH environment variable for depth tracking
     - Automatically resets depth counters after validation completion
-    
+
     DO NOT MODIFY WITHOUT:
     1. Understanding Claude Code PreToolUse hook contract
     2. Testing all validation paths and edge cases
@@ -1520,35 +1582,35 @@ def update_session_token_count(agent_type, token_count):
     ██████████████████████████████████████████████████████████████████████████
     🚨 CRITICAL TOKEN MANAGEMENT - MEMORY BOUNDED IMPLEMENTATION 🚨
     ██████████████████████████████████████████████████████████████████████████
-    
+
     Update persistent token count with memory management and atomic file operations
     Implements file-based state management pattern with bounded memory usage
-    
+
     ⚠️  WARNING: This function implements memory-bounded token tracking that prevents
     token file growth from causing memory exhaustion. Any modifications to file size
     limits, cleanup mechanisms, or atomic operations can cause:
-    
+
     🚨 MEMORY EXHAUSTION RISKS FROM MODIFICATIONS:
     - Unbounded token file growth leading to memory crashes
-    - JSON parsing failures on oversized files  
+    - JSON parsing failures on oversized files
     - Concurrent write corruption without file locking
     - Memory leaks from unlimited agent/phase tracking
     - Session data corruption under memory pressure
-    
+
     MEMORY SAFETY MECHANISMS:
     - MAX_TOKEN_FILE_SIZE (256KB) prevents large file loading
     - MAX_AGENT_TRACKING (50) bounds agent data collection
     - MAX_PHASE_TRACKING (8) limits phase data growth
     - Atomic file operations with locking prevent corruption
     - Emergency cleanup on file size/corruption detection
-    
+
     CRITICAL IMPLEMENTATION DETAILS:
     - File size pre-check before loading JSON
     - Memory-safe JSON loading with load_json_memory_safe()
     - LRU eviction of old agents when limit exceeded
     - Compact JSON formatting to minimize file size
     - Error recovery that continues workflow without blocking
-    
+
     ⚠️  MODIFICATION CHECKLIST:
     □ Memory testing with 500+ agent token updates
     □ Verification that file size limits prevent crashes
@@ -1557,8 +1619,8 @@ def update_session_token_count(agent_type, token_count):
     □ Confirmation that error handling doesn't block user workflow
     □ Testing with corrupted token files and recovery paths
     """
-    # Ensure .compass/logs directory exists
-    logs_dir = Path(".compass/logs")
+    # Ensure .claude/logs directory exists
+    logs_dir = Path(".claude/logs")
     try:
         logs_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
@@ -1570,7 +1632,8 @@ def update_session_token_count(agent_type, token_count):
         # OPTIMIZED: Check file size before loading to prevent memory issues
         if token_file.exists() and token_file.stat().st_size > MAX_TOKEN_FILE_SIZE:
             log_handler_activity(
-                "token_file_too_large", f"Token file too large ({token_file.stat().st_size} bytes), performing cleanup"
+                "token_file_too_large",
+                f"Token file too large ({token_file.stat().st_size} bytes), performing cleanup",
             )
             cleanup_token_file(token_file)
 
@@ -1580,10 +1643,13 @@ def update_session_token_count(agent_type, token_count):
                 try:
                     # OPTIMIZED: Use memory-safe JSON loading
                     session_tokens = load_json_memory_safe(token_file)
-                    
+
                     if session_tokens is None:
                         # File too large or corrupted, create new
-                        log_handler_activity("token_file_reset", "Token file reset due to size/corruption")
+                        log_handler_activity(
+                            "token_file_reset",
+                            "Token file reset due to size/corruption",
+                        )
                         session_tokens = create_empty_token_data()
                     else:
                         # Validate and clean data structure
@@ -1616,7 +1682,7 @@ def update_session_token_count(agent_type, token_count):
                 # OPTIMIZED: Limit number of agents tracked to prevent unbounded growth
                 if len(session_tokens["by_agent"]) > MAX_AGENT_TRACKING:
                     cleanup_old_agents_optimized(session_tokens)
-                    
+
                 # OPTIMIZED: Limit number of phases tracked
                 if len(session_tokens["by_phase"]) > MAX_PHASE_TRACKING:
                     cleanup_old_phases(session_tokens)
@@ -1698,10 +1764,13 @@ def cleanup_old_agents_optimized(session_tokens):
         # Keep only the top MAX_AGENT_TRACKING agents by token count
         sorted_agents = sorted(by_agent.items(), key=lambda x: x[1], reverse=True)
         session_tokens["by_agent"] = dict(sorted_agents[:MAX_AGENT_TRACKING])
-        
+
         # Force garbage collection after cleanup
         gc.collect()
-        log_handler_activity("agent_cleanup", f"Cleaned up {len(by_agent) - MAX_AGENT_TRACKING} old agents")
+        log_handler_activity(
+            "agent_cleanup",
+            f"Cleaned up {len(by_agent) - MAX_AGENT_TRACKING} old agents",
+        )
 
 
 def cleanup_old_phases(session_tokens):
@@ -1711,10 +1780,13 @@ def cleanup_old_phases(session_tokens):
         # Keep only the top MAX_PHASE_TRACKING phases by token count
         sorted_phases = sorted(by_phase.items(), key=lambda x: x[1], reverse=True)
         session_tokens["by_phase"] = dict(sorted_phases[:MAX_PHASE_TRACKING])
-        
+
         # Force garbage collection after cleanup
         gc.collect()
-        log_handler_activity("phase_cleanup", f"Cleaned up {len(by_phase) - MAX_PHASE_TRACKING} old phases")
+        log_handler_activity(
+            "phase_cleanup",
+            f"Cleaned up {len(by_phase) - MAX_PHASE_TRACKING} old phases",
+        )
 
 
 def cleanup_token_file(token_file):
@@ -1722,13 +1794,13 @@ def cleanup_token_file(token_file):
     try:
         # Check file size before attempting to load
         file_size = token_file.stat().st_size
-        
+
         # CRITICAL FIX: More aggressive size limits
         if file_size > MAX_TOKEN_FILE_SIZE:
             # File too large - perform emergency cleanup
             perform_emergency_token_cleanup(token_file)
             return
-        
+
         # Try to load and compress the data with memory checks
         with open(token_file, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -1780,14 +1852,16 @@ def perform_emergency_token_cleanup(token_file):
             "by_agent": {},
             "by_phase": {},
             "emergency_cleanup": True,
-            "cleanup_timestamp": datetime.now().isoformat()
+            "cleanup_timestamp": datetime.now().isoformat(),
         }
 
         # Write minimal file
         with open(token_file, "w", encoding="utf-8") as f:
             json.dump(emergency_data, f, separators=(",", ":"))
 
-        log_handler_activity("emergency_cleanup", f"Emergency token file cleanup performed")
+        log_handler_activity(
+            "emergency_cleanup", f"Emergency token file cleanup performed"
+        )
         gc.collect()
 
     except Exception as e:
@@ -1799,7 +1873,7 @@ def perform_emergency_token_cleanup(token_file):
 def map_agent_to_phase(agent_type):
     """
     Map agent types to COMPASS methodology phases
-    Based on 6-phase COMPASS workflow documentation
+    Based on 7-phase COMPASS workflow documentation
     """
     phase_mapping = {
         "compass-captain": "coordination",
@@ -1809,8 +1883,10 @@ def map_agent_to_phase(agent_type):
         "compass-data-flow": "phase2_data_flow_analysis",
         "compass-gap-analysis": "phase3_gap_analysis",
         "compass-enhanced-analysis": "phase4_enhanced_analysis",
-        "compass-cross-reference": "phase5_cross_reference",
+        "compass-cross-reference": "phase5_parallel_finalization",
+        "compass-svg-analyst": "phase5_parallel_finalization",
         "compass-coder": "phase6_execution_bridge",
+        "compass-memory-integrator": "phase7_memory_integration",
     }
     return phase_mapping.get(agent_type)
 
@@ -1820,8 +1896,8 @@ def get_current_session_tokens():
     Get current session token totals for reporting with enhanced error handling
     Graceful degradation with memory-safe reading
     """
-    # Use .compass/logs directory for token file
-    logs_dir = Path(".compass/logs")
+    # Use .claude/logs directory for token file
+    logs_dir = Path(".claude/logs")
     token_file = logs_dir / "compass-tokens.json"
     if not token_file.exists():
         return {"total": 0, "by_agent": {}, "by_phase": {}}
@@ -1870,7 +1946,7 @@ def handle_pre_tool_use_with_token_tracking(input_data):
     """
     tool_name = input_data.get("tool_name", "")
     tool_input = input_data.get("tool_input", {})
-    
+
     # CRITICAL: COMPASS ENFORCEMENT - Block ALL tools unless compass-captain is called
     if compass_context_active():
         # Only allow compass-captain and memory-safe agents during COMPASS sessions
@@ -1879,23 +1955,22 @@ def handle_pre_tool_use_with_token_tracking(input_data):
             if subagent_type == "compass-captain":
                 # COMPASS CAPTAIN RECURSION PREVENTION: Check if compass-captain is calling itself
                 log_handler_activity(
-                    "compass_captain_recursion_check", 
-                    f"Checking compass-captain recursion during active COMPASS session"
+                    "compass_captain_recursion_check",
+                    f"Checking compass-captain recursion during active COMPASS session",
                 )
                 enhanced_message = create_enhanced_recursion_message(
-                    "compass_captain",
-                    tool_name=tool_name,
-                    subagent_type=subagent_type
+                    "compass_captain", tool_name=tool_name, subagent_type=subagent_type
                 )
                 return create_permission_decision_with_compass_context(
-                    "deny", 
-                    enhanced_message
-                )  
+                    "deny", enhanced_message
+                )
             elif subagent_type in [
-                "compass-knowledge-discovery", "compass-enhanced-analysis", 
-                "compass-cross-reference", "compass-data-flow", "compass-dependency-tracker"
+                "compass-knowledge-discovery",
+                "compass-enhanced-analysis",
+                "compass-cross-reference",
+                "compass-data-flow",
+                "compass-dependency-tracker",
             ]:
-
                 pass
             else:
                 # Block all other Task tool usage - force compass-captain
@@ -1907,14 +1982,14 @@ def handle_pre_tool_use_with_token_tracking(input_data):
 🧠 **WHY THIS IS BLOCKED**:
 • COMPASS session requires coordination through compass-captain
 • Prevents bypass of systematic methodology enforcement
-• Ensures all analysis follows proper 6-phase COMPASS approach
+• Ensures all analysis follows proper 7-phase COMPASS approach
 • Maintains institutional knowledge integration and quality standards
 
 📊 **CURRENT SESSION CONTEXT**:
-• Session Duration: {session_context['session_duration']}
-• Current Phase: {session_context['current_phase']}
-• Total Tokens Used: {session_context['total_tokens']:,}
-• Agents Already Run: {', '.join(session_context['agents_run'][:3]) if session_context['agents_run'] else 'None yet'}
+• Session Duration: {session_context["session_duration"]}
+• Current Phase: {session_context["current_phase"]}
+• Total Tokens Used: {session_context["total_tokens"]:,}
+• Agents Already Run: {", ".join(session_context["agents_run"][:3]) if session_context["agents_run"] else "None yet"}
 
 ✅ **REQUIRED ACTION**: 
 Use Task tool with subagent_type='compass-captain' for proper methodology coordination
@@ -1922,17 +1997,18 @@ Use Task tool with subagent_type='compass-captain' for proper methodology coordi
 ❌ **BLOCKED**: Task tool with subagent_type='{subagent_type}' during COMPASS session
 
 🎯 **NEXT STEP**: compass-captain will coordinate the appropriate methodology approach for your request."""
-                
+
                 return create_permission_decision_with_compass_context(
-                    "deny",
-                    enhanced_enforcement_message
+                    "deny", enhanced_enforcement_message
                 )
         elif tool_name in ["TodoWrite"]:
             # Allow TodoWrite for progress tracking
             pass
         elif tool_name in ["Read", "LS", "Grep", "Glob", "Bash"]:
             # Allow basic read-only tools but with warning
-            log_handler_activity("compass_tool_bypass", f"Allowing {tool_name} during COMPASS session")
+            log_handler_activity(
+                "compass_tool_bypass", f"Allowing {tool_name} during COMPASS session"
+            )
         else:
             # Block all other tools - force compass-captain usage
             session_context = get_compass_session_context()
@@ -1947,10 +2023,10 @@ Use Task tool with subagent_type='compass-captain' for proper methodology coordi
 • Maintains institutional knowledge integration standards
 
 📊 **CURRENT SESSION CONTEXT**:
-• Session Duration: {session_context['session_duration']}
-• Current Phase: {session_context['current_phase']}
-• Total Tokens Used: {session_context['total_tokens']:,}
-• Recent Activity: {session_context['recent_activity']}
+• Session Duration: {session_context["session_duration"]}
+• Current Phase: {session_context["current_phase"]}
+• Total Tokens Used: {session_context["total_tokens"]:,}
+• Recent Activity: {session_context["recent_activity"]}
 
 ✅ **REQUIRED ACTION**: 
 Use Task tool with subagent_type='compass-captain' for proper coordination
@@ -1958,10 +2034,9 @@ Use Task tool with subagent_type='compass-captain' for proper coordination
 ❌ **BLOCKED**: {tool_name} tool during active COMPASS session
 
 🎯 **NEXT STEP**: compass-captain will coordinate appropriate tool usage within methodology context."""
-            
+
             return create_permission_decision_with_compass_context(
-                "deny", 
-                enhanced_tool_block_message
+                "deny", enhanced_tool_block_message
             )
 
     # Detect COMPASS agent usage and track tokens
@@ -1995,25 +2070,22 @@ Use Task tool with subagent_type='compass-captain' for proper coordination
                 f"{compass_agent}: {estimated_tokens} tokens estimated",
             )
 
-
-
-
     # Continue with existing hook processing
     return handle_pre_tool_use(input_data)
 
 
 def update_compass_status_with_tokens(agent_type, token_count):
     """
-    Update .compass/logs/compass-status with real-time token information
+    Update .claude/logs/compass-status with real-time token information
     Integrates token visibility with throttled I/O to prevent excessive writes
     """
-    # Ensure .compass/logs directory exists
-    logs_dir = Path(".compass/logs")
+    # Ensure .claude/logs directory exists
+    logs_dir = Path(".claude/logs")
     try:
         logs_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
         logs_dir = Path(".")
-    
+
     status_file = logs_dir / "compass-status"
     if not status_file.exists():
         return
@@ -2116,8 +2188,8 @@ def log_agent_token_usage(agent_type, token_count, execution_type):
         "version": "2.1",
     }
 
-    # Use .compass/logs directory
-    logs_dir = Path(".compass/logs")
+    # Use .claude/logs directory
+    logs_dir = Path(".claude/logs")
     try:
         logs_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
@@ -2147,8 +2219,8 @@ def log_parallel_efficiency(agent_count, total_tokens, duration):
         "version": "2.1",
     }
 
-    # Use .compass/logs directory
-    logs_dir = Path(".compass/logs")
+    # Use .claude/logs directory
+    logs_dir = Path(".claude/logs")
     try:
         logs_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
@@ -2178,8 +2250,8 @@ def log_delegation_step(primary_agent, specialist_type, specialist_tokens):
         "version": "2.1",
     }
 
-    # Use .compass/logs directory
-    logs_dir = Path(".compass/logs")
+    # Use .claude/logs directory
+    logs_dir = Path(".claude/logs")
     try:
         logs_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
@@ -2240,7 +2312,7 @@ def generate_final_token_report():
    • Optimization Opportunities: {identify_optimization_opportunities(session_tokens)}
 
 ════════════════════════════════════════════════════════════════
-📄 Detailed breakdown available in: .compass-tokens.json
+📄 Detailed breakdown available in: .claude-tokens.json
 🔄 This data contributes to institutional learning for future optimizations
 """
 
@@ -2399,46 +2471,46 @@ def identify_optimization_opportunities(session_tokens):
 def requires_compass_methodology(tool_name, tool_input):
     """
     CRITICAL ENFORCEMENT FUNCTION: Determines when COMPASS methodology is required for tool usage
-    
+
     WARNING: This function is the core logic for COMPASS methodology enforcement.
     Modifications can allow ad-hoc analysis to bypass systematic approach requirements.
-    
+
     PURPOSE:
     - Analyzes tool usage patterns to detect complex analytical tasks
     - Enforces institutional knowledge integration requirements
     - Prevents ad-hoc analysis that bypasses documented approaches
     - Ensures systematic methodology for complex operations
     - Maintains quality and consistency standards across analysis work
-    
+
     ENFORCEMENT CRITERIA:
     - Complex analysis tools: MCP Serena search and symbol tools
     - Multi-file operations: Tools working across multiple files
     - Investigation patterns: grep, find, pattern searches
     - Documentation tasks: When creating systematic documentation
     - Pattern recognition: Tools indicating methodical work required
-    
+
     DETECTION LOGIC:
     - Tool complexity: Identifies tools requiring systematic approach
     - Input analysis: Examines parameters for complexity indicators
     - Usage context: Considers broader operational context
     - Systematic indicators: Detects when methodology would add value
-    
+
     ARGS:
         tool_name (str): Name of the tool being executed
         tool_input (dict): Parameters and input for the tool
-    
+
     RETURNS:
         bool: True if COMPASS methodology required, False if tool can proceed independently
-    
+
     CRITICAL FOR:
     - Quality control: Ensures complex tasks use systematic approaches
     - Institutional knowledge: Forces consultation of existing patterns
     - Consistency: Maintains standard approaches across similar work
     - Bypass prevention: Stops circumvention of methodology requirements
-    
+
     DO NOT MODIFY WITHOUT:
     1. Understanding COMPASS methodology value and purpose
-    2. Testing detection accuracy with various tool usage patterns  
+    2. Testing detection accuracy with various tool usage patterns
     3. Verifying enforcement doesn't block legitimate simple operations
     4. Ensuring systematic approach is truly beneficial for detected cases
     """
@@ -2486,8 +2558,8 @@ def requires_compass_methodology(tool_name, tool_input):
 def compass_context_active():
     """Check if COMPASS methodology context is currently active"""
 
-    # Primary check: .compass/logs/compass-status file existence (most reliable indicator)
-    logs_dir = Path(".compass/logs")
+    # Primary check: .claude/logs/compass-status file existence (most reliable indicator)
+    logs_dir = Path(".claude/logs")
     status_file = logs_dir / "compass-status"
     if status_file.exists():
         return True
@@ -2497,7 +2569,7 @@ def compass_context_active():
         return True
 
     # Check for COMPASS agent activity in recent logs (expanded detection)
-    logs_dir = Path(".compass/logs")
+    logs_dir = Path(".claude/logs")
     log_file = logs_dir / "compass-handler.log"
     if log_file.exists():
         try:
@@ -2578,7 +2650,7 @@ def is_recent_timestamp_extended(timestamp_str):
 
 def check_compass_session_active():
     """Check if COMPASS session is active based on persistent session tracking"""
-    logs_dir = Path(".compass/logs")
+    logs_dir = Path(".claude/logs")
     session_file = logs_dir / "compass-session.json"
     if not session_file.exists():
         return False
@@ -2615,7 +2687,7 @@ def is_session_timestamp_valid(timestamp_str, seconds_threshold):
 
 def check_recent_compass_tokens():
     """Check token tracking file for recent COMPASS agent activity"""
-    logs_dir = Path(".compass/logs")
+    logs_dir = Path(".claude/logs")
     token_file = logs_dir / "compass-tokens.json"
     if not token_file.exists():
         return False
@@ -2643,8 +2715,8 @@ def check_recent_compass_tokens():
 
 def create_compass_session_tracking():
     """Create or update COMPASS session tracking file"""
-    # Ensure .compass/logs directory exists
-    logs_dir = Path(".compass/logs")
+    # Ensure .claude/logs directory exists
+    logs_dir = Path(".claude/logs")
     try:
         logs_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
@@ -2700,7 +2772,7 @@ def create_compass_session_tracking():
 
 def update_compass_session_activity():
     """Update last activity timestamp in session tracking"""
-    logs_dir = Path(".compass/logs")
+    logs_dir = Path(".claude/logs")
     session_file = logs_dir / "compass-session.json"
 
     if session_file.exists():
@@ -2759,23 +2831,25 @@ REQUIRED: Systematic 6-Phase Analysis Coordination
 🔄 This file updates automatically as phases complete
 """
 
-    # Ensure .compass/logs directory exists
-    logs_dir = Path(".compass/logs")
+    # Ensure .claude/logs directory exists
+    logs_dir = Path(".claude/logs")
     try:
         logs_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
         logs_dir = Path(".")
-    
+
     status_file = logs_dir / "compass-status"
     with open(status_file, "w") as f:
         f.write(status_content)
 
-    log_handler_activity("status_file", "Created .compass/logs/compass-status for user visibility")
+    log_handler_activity(
+        "status_file", "Created .claude/logs/compass-status for user visibility"
+    )
 
 
 def update_compass_phase(phase_name, status="in_progress"):
     """Update COMPASS status file with phase progress"""
-    logs_dir = Path(".compass/logs")
+    logs_dir = Path(".claude/logs")
     status_file = logs_dir / "compass-status"
     if not status_file.exists():
         return
@@ -2825,7 +2899,7 @@ def update_compass_phase(phase_name, status="in_progress"):
 
 def complete_compass_analysis():
     """Mark COMPASS analysis as complete and clean up status"""
-    logs_dir = Path(".compass/logs")
+    logs_dir = Path(".claude/logs")
     status_file = logs_dir / "compass-status"
     if status_file.exists():
         # Create completion summary
@@ -2852,7 +2926,7 @@ ANALYSIS COMPLETED: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 Analysis tools are now available for ad-hoc use.
 """
 
-        with open(".compass-complete", "w") as f:
+        with open(".claude-complete", "w") as f:
             f.write(completion_content)
 
         # Remove active status file
@@ -2871,7 +2945,7 @@ def complete_compass_analysis_with_token_report():
     # Generate final token report
     token_report = generate_final_token_report()
 
-    logs_dir = Path(".compass/logs")
+    logs_dir = Path(".claude/logs")
     status_file = logs_dir / "compass-status"
     if status_file.exists():
         # Create completion summary with token analysis
@@ -2891,7 +2965,7 @@ ANALYSIS COMPLETED: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 📁 RESULTS AVAILABLE IN:
    docs/  - Updated investigation frameworks
    maps/  - New visual pattern diagrams
-   .compass-tokens.json - Detailed token usage data
+   .claude-tokens.json - Detailed token usage data
    
 🎯 NEXT STEPS:
    • Review generated documentation
@@ -2904,7 +2978,7 @@ Analysis tools are now available for ad-hoc use.
 Token tracking system is operational for future sessions.
 """
 
-        with open(".compass-complete", "w") as f:
+        with open(".claude-complete", "w") as f:
             f.write(completion_content)
 
         # Remove active status file
@@ -2968,25 +3042,26 @@ REQUIRED: Systematic 6-Phase Analysis Coordination
 💰 Token usage information appears as agents execute
 """
 
-    # Ensure .compass/logs directory exists
-    logs_dir = Path(".compass/logs")
+    # Ensure .claude/logs directory exists
+    logs_dir = Path(".claude/logs")
     try:
         logs_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
         logs_dir = Path(".")
-    
+
     status_file = logs_dir / "compass-status"
     with open(status_file, "w") as f:
         f.write(status_content)
 
     log_handler_activity(
-        "status_file", "Created .compass/logs/compass-status with token tracking capabilities"
+        "status_file",
+        "Created .claude/logs/compass-status with token tracking capabilities",
     )
 
 
 def check_compass_agent_activity(input_data):
     """Check if COMPASS agents are being used and update status"""
-    logs_dir = Path(".compass/logs")
+    logs_dir = Path(".claude/logs")
     status_file = logs_dir / "compass-status"
     if not status_file.exists():
         return
@@ -3027,16 +3102,16 @@ def check_compass_agent_activity(input_data):
 
 def get_compass_status_for_claude():
     """Get current COMPASS status for Claude to announce"""
-    logs_dir = Path(".compass/logs")
+    logs_dir = Path(".claude/logs")
     status_file = logs_dir / "compass-status"
     if status_file.exists():
         with open(status_file, "r") as f:
             return f.read()
-    elif Path(".compass-complete").exists():
-        with open(".compass-complete", "r") as f:
+    elif Path(".claude-complete").exists():
+        with open(".claude-complete", "r") as f:
             content = f.read()
         # Clean up completion file after reading
-        Path(".compass-complete").unlink()
+        Path(".claude-complete").unlink()
         return content
     return None
 
@@ -3128,9 +3203,9 @@ def generate_todo_update_context(subagent_type, phase):
         "phase_description": get_phase_description(phase),
     }
 
-    # Write to compass-todo-updates in root (since Claude needs to detect it)
+    # Write to claude-todo-updates in root (since Claude needs to detect it)
     try:
-        with open(".compass-todo-updates", "a", encoding="utf-8") as f:
+        with open(".claude-todo-updates", "a", encoding="utf-8") as f:
             f.write(json.dumps(todo_update, separators=(",", ":")) + "\n")
     except OSError:
         pass  # Fail silently if file write fails
@@ -3149,6 +3224,7 @@ def get_phase_description(phase):
         "doc-planning": "Plan documentation for new discoveries",
         "enhanced-analysis": "Execute enhanced analysis with institutional context",
         "cross-reference": "Cross-reference findings with existing patterns",
+        "memory-integration": "Memory Integration - Update institutional knowledge with new insights",
     }
     return descriptions.get(phase, f"Execute {phase} phase")
 
@@ -3168,9 +3244,9 @@ def mark_compass_phase_complete(phase, subagent_type):
         "phase_description": get_phase_description(phase),
     }
 
-    # Write to compass-todo-updates in root (since Claude needs to detect it)
+    # Write to claude-todo-updates in root (since Claude needs to detect it)
     try:
-        with open(".compass-todo-updates", "a", encoding="utf-8") as f:
+        with open(".claude-todo-updates", "a", encoding="utf-8") as f:
             f.write(json.dumps(todo_update, separators=(",", ":")) + "\n")
     except OSError:
         pass  # Fail silently if file write fails
@@ -3229,7 +3305,7 @@ This is a double_check=true validation request requiring complete upstream verif
 def get_compass_session_context():
     """
     Get comprehensive COMPASS session context for enhanced messaging
-    
+
     RETURNS:
         dict: Session context including current state, active agents, token usage, etc.
     """
@@ -3240,60 +3316,64 @@ def get_compass_session_context():
         "current_phase": "Unknown",
         "total_tokens": 0,
         "validation_depth": int(os.environ.get("COMPASS_VALIDATION_DEPTH", "0")),
-        "recent_activity": "None detected"
+        "recent_activity": "None detected",
     }
-    
+
     try:
         # Get session token data for context
         session_tokens = get_current_session_tokens()
         if session_tokens:
             context["total_tokens"] = session_tokens.get("total", 0)
             context["session_duration"] = calculate_session_duration(session_tokens)
-            
+
             # Get agents that have been run
             by_agent = session_tokens.get("by_agent", {})
             context["agents_run"] = list(by_agent.keys())
-            
+
             # Identify current phase based on most recent agent
             if by_agent:
                 # Fix: by_agent values are integers (token counts), not dictionaries
                 # Use the agent with the highest token count as the most recent
                 last_agent = max(by_agent.keys(), key=lambda x: by_agent[x])
                 context["current_phase"] = map_agent_to_phase(last_agent) or "Unknown"
-        
+
         # Check session tracking file for recent activity
-        logs_dir = Path(".compass/logs")
+        logs_dir = Path(".claude/logs")
         session_file = logs_dir / "compass-session.json"
         if session_file.exists():
             try:
                 with open(session_file, "r") as f:
                     session_data = json.load(f)
-                context["recent_activity"] = session_data.get("last_activity", "None detected")
+                context["recent_activity"] = session_data.get(
+                    "last_activity", "None detected"
+                )
             except (json.JSONDecodeError, FileNotFoundError):
                 pass
-                
+
     except Exception as e:
         # Graceful degradation - don't let context gathering break the handler
         log_handler_activity("context_error", f"Failed to gather session context: {e}")
-        
+
     return context
 
 
-def create_enhanced_recursion_message(recursion_type, tool_name=None, subagent_type=None, validation_depth=0):
+def create_enhanced_recursion_message(
+    recursion_type, tool_name=None, subagent_type=None, validation_depth=0
+):
     """
     Create comprehensive, educational recursion prevention message
-    
+
     ARGS:
         recursion_type (str): Type of recursion detected ('compass_captain', 'upstream_validator', 'depth_limit')
         tool_name (str): Name of tool that triggered recursion check
         subagent_type (str): Subagent type if applicable
         validation_depth (int): Current validation depth level
-        
+
     RETURNS:
         str: Enhanced educational message with context and actionable alternatives
     """
     session_context = get_compass_session_context()
-    
+
     if recursion_type == "compass_captain":
         return f"""🛑 COMPASS CAPTAIN RECURSION PREVENTED
 
@@ -3306,11 +3386,11 @@ def create_enhanced_recursion_message(recursion_type, tool_name=None, subagent_t
 • Ensures single point of methodology control and coordination
 
 📊 **CURRENT SESSION CONTEXT**:
-• Session Duration: {session_context['session_duration']}
-• Agents Already Run: {', '.join(session_context['agents_run'][:5]) if session_context['agents_run'] else 'None yet'}
-• Current Phase: {session_context['current_phase']}
-• Total Tokens Used: {session_context['total_tokens']:,}
-• Validation Depth: {session_context['validation_depth']}
+• Session Duration: {session_context["session_duration"]}
+• Agents Already Run: {", ".join(session_context["agents_run"][:5]) if session_context["agents_run"] else "None yet"}
+• Current Phase: {session_context["current_phase"]}
+• Total Tokens Used: {session_context["total_tokens"]:,}
+• Validation Depth: {session_context["validation_depth"]}
 
 ✅ **CORRECTIVE ACTIONS**:
 1. **Direct Agent Coordination**: Use specific COMPASS agents directly:
@@ -3320,11 +3400,11 @@ def create_enhanced_recursion_message(recursion_type, tool_name=None, subagent_t
    - Phase 4: compass-enhanced-analysis
    - Phase 5: compass-cross-reference
    
-2. **Check Session Status**: Review .compass/logs/compass-status for current methodology progress
+2. **Check Session Status**: Review .claude/logs/compass-status for current methodology progress
 
 3. **Alternative Coordination**: If methodology reset needed, wait for session timeout or use direct agent calls
 
-4. **Phase-Specific Action**: Based on current phase '{session_context['current_phase']}', consider appropriate next agent
+4. **Phase-Specific Action**: Based on current phase '{session_context["current_phase"]}', consider appropriate next agent
 
 🎯 **RECOMMENDED NEXT STEP**: Use Task tool with specific compass agent based on current methodology phase."""
 
@@ -3340,11 +3420,11 @@ def create_enhanced_recursion_message(recursion_type, tool_name=None, subagent_t
 • Ensures bounded validation depth for system stability
 
 📊 **CURRENT SESSION CONTEXT**:
-• Session Duration: {session_context['session_duration']}
+• Session Duration: {session_context["session_duration"]}
 • Current Validation Depth: {validation_depth}
-• COMPASS Session Active: {'Yes' if session_context['session_active'] else 'No'}
-• Total Tokens Used: {session_context['total_tokens']:,}
-• Recent Activity: {session_context['recent_activity']}
+• COMPASS Session Active: {"Yes" if session_context["session_active"] else "No"}
+• Total Tokens Used: {session_context["total_tokens"]:,}
+• Recent Activity: {session_context["recent_activity"]}
 
 ✅ **CORRECTIVE ACTIONS**:
 1. **Manual Validation**: If upstream validation needed, use direct repository commands:
@@ -3372,11 +3452,11 @@ def create_enhanced_recursion_message(recursion_type, tool_name=None, subagent_t
 • Ensures bounded computational complexity for validation operations
 
 📊 **CURRENT SESSION CONTEXT**:
-• Session Duration: {session_context['session_duration']}
+• Session Duration: {session_context["session_duration"]}
 • Maximum Depth Reached: {validation_depth}/3
-• COMPASS Session Active: {'Yes' if session_context['session_active'] else 'No'}
-• Agents Run: {', '.join(session_context['agents_run'][:3]) if session_context['agents_run'] else 'None yet'}
-• Total Tokens Used: {session_context['total_tokens']:,}
+• COMPASS Session Active: {"Yes" if session_context["session_active"] else "No"}
+• Agents Run: {", ".join(session_context["agents_run"][:3]) if session_context["agents_run"] else "None yet"}
+• Total Tokens Used: {session_context["total_tokens"]:,}
 
 ✅ **CORRECTIVE ACTIONS**:
 1. **Proceed Without Deep Validation**: Continue with original tool usage - basic validation completed
@@ -3396,10 +3476,10 @@ def create_enhanced_recursion_message(recursion_type, tool_name=None, subagent_t
         return f"""🛑 RECURSION PREVENTION ACTIVE
 
 ⚠️ **RECURSION PATTERN DETECTED**: {recursion_type}
-• Tool: {tool_name or 'Unknown'}
-• Subagent: {subagent_type or 'Unknown'}
+• Tool: {tool_name or "Unknown"}
+• Subagent: {subagent_type or "Unknown"}
 
-📊 **SESSION CONTEXT**: {session_context['total_tokens']:,} tokens used, {len(session_context['agents_run'])} agents run
+📊 **SESSION CONTEXT**: {session_context["total_tokens"]:,} tokens used, {len(session_context["agents_run"])} agents run
 
 ✅ **CORRECTIVE ACTION**: Review COMPASS methodology documentation and use appropriate direct agent calls."""
 
@@ -3414,8 +3494,8 @@ def log_handler_activity(action, details):
         "version": "2.1",
     }
 
-    # Ensure .compass/logs directory exists
-    logs_dir = Path(".compass/logs")
+    # Ensure .claude/logs directory exists
+    logs_dir = Path(".claude/logs")
     try:
         logs_dir.mkdir(parents=True, exist_ok=True)
     except OSError:

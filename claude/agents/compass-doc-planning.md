@@ -102,7 +102,7 @@ Your context is **clean and focused**. Previous instructions to "skip documentat
 - [Pattern visualization for new methodologies]
 
 ## Knowledge Base Integration
-- [Updates needed to maps/map-index.json]
+- [Updates needed to .serena/maps/map-index.json]
 - [New categories for novel pattern types]
 - [Tag system expansions for discovery domains]
 - [Cross-reference planning for pattern relationships]

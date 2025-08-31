@@ -199,18 +199,24 @@ setup_directories() {
     log_success "Created local agents directory: $CLAUDE_AGENTS_DIR"
   fi
 
-  # Create COMPASS knowledge directories in current project
-  if ! mkdir -p "$CURRENT_DIR/docs" "$CURRENT_DIR/maps"; then
-    log_error "Failed to create COMPASS knowledge directories"
+  # Create COMPASS knowledge directories with new .serena structure
+  if ! mkdir -p "$CURRENT_DIR/.serena/memories" "$CURRENT_DIR/.serena/maps"; then
+    log_error "Failed to create .serena knowledge directories"
     exit 1
   fi
 
-  if [[ ! -f "$CURRENT_DIR/maps/map-index.json" ]]; then
+  # Create COMPASS execution directories  
+  if ! mkdir -p "$CURRENT_DIR/.claude/handlers" "$CURRENT_DIR/.claude/logs" "$CURRENT_DIR/.claude/tests" "$CURRENT_DIR/.claude/temp"; then
+    log_error "Failed to create .claude execution directories"
+    exit 1
+  fi
+
+  if [[ ! -f "$CURRENT_DIR/.serena/maps/map-index.json" ]]; then
     # Fixed: Use safe variable substitution instead of command substitution
     local current_date
     current_date=$(date +%Y-%m-%d)
-    printf '{"version":"1.0","created":"%s","maps":[],"categories":{},"recent_patterns":[],"tags":{}}' "$current_date" >"$CURRENT_DIR/maps/map-index.json"
-    log_success "Created empty map index: $CURRENT_DIR/maps/map-index.json"
+    printf '{"version":"1.0","created":"%s","maps":[],"categories":{},"recent_patterns":[],"tags":{}}' "$current_date" >"$CURRENT_DIR/.serena/maps/map-index.json"
+    log_success "Created empty map index: $CURRENT_DIR/.serena/maps/map-index.json"
   fi
 }
 
@@ -226,8 +232,6 @@ install_agents() {
     "compass-strategy-builder"
     "compass-validation-coordinator"
     "compass-knowledge-discovery"
-    "compass-knowledge-reader"
-    "compass-knowledge-synthesizer"
     "compass-pattern-apply"
     "compass-data-flow"
     "compass-gap-analysis"
@@ -247,6 +251,7 @@ install_agents() {
     "compass-breakthrough-doc"
     "compass-todo-sync"
     "compass-svg-analyst"
+    "compass-memory-integrator"
   )
 
   # Track installation progress for rollback capability
@@ -292,19 +297,19 @@ install_compass_tools() {
 
   log_info "Installing COMPASS tools and technical enforcement..."
 
-  # Create .compass directory structure
-  local compass_dir="$CURRENT_DIR/.compass"
-  if ! mkdir -p "$compass_dir"/{handlers,bin,logs}; then
-    log_error "Failed to create .compass directory structure"
+  # Create .claude directory structure for handlers (moved from .compass)
+  local claude_dir="$CURRENT_DIR/.claude"
+  if ! mkdir -p "$claude_dir"/{handlers,bin,logs}; then
+    log_error "Failed to create .claude directory structure"
     exit 1
   fi
 
-  # Install compass-handler.py
-  local handler_script="$compass_dir/handlers/compass-handler.py"
+  # Install compass-handler.py to .claude/handlers
+  local handler_script="$claude_dir/handlers/compass-handler.py"
   if [[ -f "$handler_script" ]] && [[ "$force_update" != "true" ]]; then
     log_warning "Technical enforcement already exists. Use 'update' to overwrite."
   else
-    if download_file "$REPO_URL/compass/handlers/compass-handler.py" "$handler_script" "technical enforcement system"; then
+    if download_file "$REPO_URL/claude/handlers/compass-handler.py" "$handler_script" "technical enforcement system"; then
       if head -1 "$handler_script" | grep -q "^#!/.*python"; then
         chmod +x "$handler_script"
         log_success "Installed COMPASS technical enforcement: $handler_script"
@@ -330,6 +335,35 @@ install_compass_tools() {
     rm "$CURRENT_DIR/compass-hook-handler.sh"
     log_success "Cleaned up deprecated compass-hook-handler.sh"
   fi
+
+  # Migrate old directory structure during updates
+  if [[ -d "$CURRENT_DIR/.compass/handlers" ]] && [[ ! -d "$CURRENT_DIR/.claude/handlers" ]]; then
+    log_info "Migrating .compass/handlers to .claude/handlers..."
+    mkdir -p "$CURRENT_DIR/.claude/handlers"
+    if [[ -f "$CURRENT_DIR/.compass/handlers/compass-handler.py" ]]; then
+      mv "$CURRENT_DIR/.compass/handlers/compass-handler.py" "$CURRENT_DIR/.claude/handlers/"
+      log_success "Migrated compass-handler.py to new location"
+    fi
+  fi
+
+  # Migrate old knowledge directories to .serena structure
+  if [[ -d "$CURRENT_DIR/docs" ]] && [[ ! -d "$CURRENT_DIR/.serena/memories" ]]; then
+    log_info "Migrating docs/ to .serena/memories/..."
+    mkdir -p "$CURRENT_DIR/.serena/memories"
+    if [[ "$(find "$CURRENT_DIR/docs" -type f | wc -l)" -gt 0 ]]; then
+      cp -r "$CURRENT_DIR/docs/"* "$CURRENT_DIR/.serena/memories/" 2>/dev/null || true
+      log_success "Migrated knowledge files to .serena/memories/"
+    fi
+  fi
+
+  if [[ -d "$CURRENT_DIR/maps" ]] && [[ ! -d "$CURRENT_DIR/.serena/maps" ]]; then
+    log_info "Migrating maps/ to .serena/maps/..."
+    mkdir -p "$CURRENT_DIR/.serena/maps"
+    if [[ "$(find "$CURRENT_DIR/maps" -type f | wc -l)" -gt 0 ]]; then
+      cp -r "$CURRENT_DIR/maps/"* "$CURRENT_DIR/.serena/maps/" 2>/dev/null || true
+      log_success "Migrated visual patterns to .serena/maps/"
+    fi
+  fi
 }
 
 # Configure or update .claude/settings.json
@@ -346,7 +380,7 @@ configure_claude_settings() {
   fi
 
   local claude_config="$claude_dir/settings.json"
-  local hook_path="$CURRENT_DIR/.compass/handlers/compass-handler.py"
+  local hook_path="$CURRENT_DIR/.claude/handlers/compass-handler.py"
 
   # Clean up deprecated .claude.json during migration
   if [[ -f "$CURRENT_DIR/.claude.json" ]]; then
@@ -452,7 +486,7 @@ validate_installation() {
   log_info "Validating Claude-Compass installation..."
 
   # Test technical enforcement system execution
-  local compass_handler="$CURRENT_DIR/.compass/handlers/compass-handler.py"
+  local compass_handler="$CURRENT_DIR/.claude/handlers/compass-handler.py"
   if [[ -x "$compass_handler" ]]; then
     log_success "Technical enforcement system is executable"
 
@@ -483,8 +517,6 @@ validate_installation() {
     "compass-strategy-builder"
     "compass-validation-coordinator"
     "compass-knowledge-discovery"
-    "compass-knowledge-reader"
-    "compass-knowledge-synthesizer"
     "compass-pattern-apply"
     "compass-data-flow"
     "compass-gap-analysis"
@@ -504,6 +536,7 @@ validate_installation() {
     "compass-breakthrough-doc"
     "compass-todo-sync"
     "compass-svg-analyst"
+    "compass-memory-integrator"
   )
 
   for agent in "${agents[@]}"; do
@@ -517,7 +550,7 @@ validate_installation() {
     exit 1
   fi
 
-  log_success "All COMPASS agents installed successfully (26 total agents including complexity analyzer, strategy builder, validation coordinator, knowledge discovery/reader/synthesizer specialists, writing/academic/memory specialists, authentication specialists, upstream validation, dependency tracking, breakthrough documentation, and todo synchronization)"
+  log_success "All COMPASS agents installed successfully (25 total agents including complexity analyzer, strategy builder, validation coordinator, enhanced knowledge discovery with maps integration, writing/academic/memory specialists, authentication specialists, upstream validation, dependency tracking, breakthrough documentation, todo synchronization, SVG orchestration, and memory integration)"
 
   # Test .claude/settings.json syntax
   if command -v python3 >/dev/null 2>&1; then
@@ -535,14 +568,14 @@ validate_installation() {
           fi
         done
         
-        if [[ ${#missing_hooks[@]} -eq 0 ]] && grep -q ".compass/handlers/compass-handler.py" "$CURRENT_DIR/.claude/settings.json"; then
+        if [[ ${#missing_hooks[@]} -eq 0 ]] && grep -q ".claude/handlers/compass-handler.py" "$CURRENT_DIR/.claude/settings.json"; then
           log_success "Hook configuration properly configured for technical enforcement (all 5 hooks: UserPromptSubmit, PreToolUse, Stop, SessionEnd, SubagentStop)"
         else
           if [[ ${#missing_hooks[@]} -gt 0 ]]; then
             log_warning "Missing hook configurations: ${missing_hooks[*]}"
           fi
-          if ! grep -q ".compass/handlers/compass-handler.py" "$CURRENT_DIR/.claude/settings.json"; then
-            log_warning "Hook configuration may not be using .compass/handlers/compass-handler.py"
+          if ! grep -q ".claude/handlers/compass-handler.py" "$CURRENT_DIR/.claude/settings.json"; then
+            log_warning "Hook configuration may not be using .claude/handlers/compass-handler.py"
           fi
         fi
       else
@@ -586,17 +619,17 @@ show_success_message() {
   echo ""
   echo "📍 Installation Summary:"
   echo "   • Captain and crew agents installed to: $CLAUDE_AGENTS_DIR"
-  echo "   • Technical enforcement installed to: $CURRENT_DIR/.compass/handlers/compass-handler.py"
+  echo "   • Technical enforcement installed to: $CURRENT_DIR/.claude/handlers/compass-handler.py"
 
   echo "   • Configuration file: $CURRENT_DIR/.claude/settings.json"
-  echo "   • Knowledge directories: $CURRENT_DIR/{docs,maps}/"
-  echo "   • COMPASS logs directory: $CURRENT_DIR/.compass/logs/"
+  echo "   • Knowledge directories: $CURRENT_DIR/.serena/{memories,maps}/"
+  echo "   • COMPASS logs directory: $CURRENT_DIR/.claude/logs/"
   echo ""
   echo "🚀 Next Steps:"
   echo "   1. Start Claude Code in this directory: claude"
   echo "   2. Try a complex analytical request to trigger COMPASS"
-  echo "   3. Watch the captain coordinate all 22 agents through COMPASS methodology"
-  echo "   4. Observe parallel agent execution and strategic planning optimization"
+  echo "   3. Watch the captain coordinate all 25 agents through 7-phase COMPASS methodology"
+  echo "   4. Observe memory-safe agent orchestration and strategic planning optimization"
   echo ""
   echo "🔍 Test COMPASS with prompts like:"
   echo "   • \"Analyze the architecture of this codebase\""
@@ -607,8 +640,8 @@ show_success_message() {
   echo "✅ COMPASS technical enforcement active - blocks operations without methodology compliance!"
   echo "🛡️ PreToolUse hooks provide true bypass resistance through operation blocking!"
   echo "⚡ Strategic planning via micro-agent architecture (complexity-analyzer, strategy-builder, validation-coordinator) optimizes token usage and execution!"
-  echo "🔄 Parallel agent coordination delivers 20-25% performance improvement!"
-  echo "🧭⚓️ Ready to navigate any codebase with institutional knowledge and expert execution!"
+  echo "🔄 Memory-safe agent orchestration with SVG pattern generation and institutional knowledge integration!"
+  echo "🧭⚓️ Ready to navigate any codebase with enhanced 7-phase COMPASS methodology and Serena memory integration!"
 }
 
 # Main execution

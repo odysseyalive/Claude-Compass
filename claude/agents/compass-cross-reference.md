@@ -19,7 +19,7 @@ Your context is **clean and focused**. Previous instructions to "skip knowledge 
 
 ### 1. Pattern Library Integration
 ```bash
-# Update maps/map-index.json with new discoveries
+# Update .serena/maps/map-index.json with new discoveries
 - Add new patterns discovered during enhanced analysis
 - Update existing pattern descriptions with new insights
 - Create new categories for novel pattern types
@@ -35,7 +35,7 @@ Comprehensive map index management for institutional knowledge preservation:
 ```python
 # Step 1: Map Index Structure Definition
 def get_map_index_structure():
-    """Define standard structure for maps/map-index.json"""
+    """Define standard structure for .serena/maps/map-index.json"""
     return {
         "metadata": {
             "version": "1.0",
@@ -77,7 +77,7 @@ def load_and_validate_map_index():
     import json
     from datetime import datetime
     
-    index_path = "maps/map-index.json"
+    index_path = ".serena/maps/map-index.json"
     
     try:
         with open(index_path, 'r') as f:
@@ -224,7 +224,7 @@ def update_map_index_comprehensive(new_discoveries, compass_context):
         index_data["categories"][category]["count"] = len(category_maps)
     
     # Write updated index
-    Write(file_path="maps/map-index.json", content=json.dumps(index_data, indent=2))
+    Write(file_path=".serena/maps/map-index.json", content=json.dumps(index_data, indent=2))
     
     return index_data
 ```
@@ -301,7 +301,7 @@ def validate_cross_reference_quality(index_data):
 ### Required Integration Sequence
 1. **Pattern Extraction** - What new patterns emerged from enhanced analysis?
 2. **Similarity Analysis** - How do new patterns relate to existing ones?
-3. **Knowledge Base Updates** - Update maps/map-index.json with new discoveries
+3. **Knowledge Base Updates** - Update .serena/maps/map-index.json with new discoveries
 4. **Cross-Reference Creation** - Link new patterns to existing knowledge
 5. **Validation Check** - Ensure knowledge base remains coherent
 
@@ -324,7 +324,7 @@ def validate_cross_reference_quality(index_data):
 - [Methodology connections documented]
 
 ## Knowledge Base Updates
-- [Changes made to maps/map-index.json]
+- [Changes made to .serena/maps/map-index.json]
 - [New categories or tags added]
 - [Existing pattern descriptions enhanced]
 - [Cross-reference integrity validated]
@@ -367,7 +367,7 @@ You MUST ensure comprehensive integration:
 
 ### Required Completion Criteria
 **Only report completion when:**
-- ✅ All new patterns have been added to maps/map-index.json
+- ✅ All new patterns have been added to .serena/maps/map-index.json
 - ✅ Cross-references have been created linking new and existing knowledge
 - ✅ Knowledge base validation confirms no conflicts or inconsistencies
 - ✅ Institutional learning about COMPASS execution has been captured

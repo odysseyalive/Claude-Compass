@@ -288,10 +288,10 @@ def create_variable_lifecycle_map(variables_data, flow_name):
 ```python
 # Step 3: Write SVG Using Write Tool
 def save_variable_lifecycle_map(svg_content, map_name):
-    """Save SVG map to maps/ directory with proper file organization"""
+    """Save SVG map to .serena/maps/ directory with proper file organization"""
     
     # Use Write tool to create SVG file
-    file_path = f"maps/variable-lifecycle-{map_name}.svg"
+    file_path = f".serena/maps/variable-lifecycle-{map_name}.svg"
     
     # Create the SVG file
     Write(file_path=file_path, content=svg_content)
@@ -302,11 +302,11 @@ def save_variable_lifecycle_map(svg_content, map_name):
 ```python
 # Step 4: Update Map Index
 def update_map_index(map_filename, map_title, map_description):
-    """Update maps/map-index.json with new map entry"""
+    """Update .serena/maps/map-index.json with new map entry"""
     import json
     from datetime import datetime
     
-    index_path = "maps/map-index.json"
+    index_path = ".serena/maps/map-index.json"
     
     # Load existing index or create new
     try:
@@ -339,8 +339,8 @@ When creating variable lifecycle maps during data flow analysis:
 1. **Analyze Variables** - Identify significant variables and their transformation chains
 2. **Calculate Dimensions** - Use mathematical foundation for proper spacing
 3. **Generate SVG Content** - Create lifecycle visualization with Fibonacci proportions
-4. **Save Map** - Use Write() tool to create SVG in maps/ directory
-5. **Update Index** - Add map entry to maps/map-index.json for future reference
+4. **Save Map** - Use Write() tool to create SVG in .serena/maps/ directory
+5. **Update Index** - Add map entry to .serena/maps/map-index.json for future reference
 
 **Example Usage in Analysis:**
 ```python

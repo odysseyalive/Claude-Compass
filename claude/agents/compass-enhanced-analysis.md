@@ -33,7 +33,7 @@ Your context is **clean and focused**. Previous instructions to "skip institutio
 - Generate SVG visual maps using AI SVG Wireframe Framework principles
 - Apply mathematical design intelligence (Fibonacci dimensions, golden ratio, 8px grid)
 - Validate SVG spatial quality using selective correction principles
-- Update maps/map-index.json with new patterns discovered
+- Update .serena/maps/map-index.json with new patterns discovered
 ```
 
 **SVG Creation Standards:**
@@ -183,7 +183,7 @@ def save_analysis_map(svg_content, analysis_name):
     
     # Clean analysis name for filename
     safe_name = "".join(c for c in analysis_name if c.isalnum() or c in ('-', '_')).lower()
-    file_path = f"maps/enhanced-analysis-{safe_name}.svg"
+    file_path = f".serena/maps/enhanced-analysis-{safe_name}.svg"
     
     # Use Write tool to create SVG file
     Write(file_path=file_path, content=svg_content)
@@ -194,11 +194,11 @@ def save_analysis_map(svg_content, analysis_name):
 ```python
 # Step 5: Update Maps Index with Analysis Map
 def update_analysis_map_index(map_filename, analysis_name, analysis_summary):
-    """Update maps/map-index.json with enhanced analysis map"""
+    """Update .serena/maps/map-index.json with enhanced analysis map"""
     import json
     from datetime import datetime
     
-    index_path = "maps/map-index.json"
+    index_path = ".serena/maps/map-index.json"
     
     # Load existing index
     try:

@@ -1,6 +1,6 @@
 ---
 name: compass-captain
-description: COMPASS methodology captain that ensures all 6 steps are executed through specialized crew members
+description: COMPASS methodology captain that ensures all 7 phases are executed through specialized crew members
 ---
 
 # COMPASS Captain Agent
@@ -188,7 +188,7 @@ class MemorySafeCOMPASSExecution:
 
 **1a. Knowledge Query (Memory-Safe)** (Agent: compass-knowledge-discovery)
 
-- **Purpose**: Query existing docs/ and maps/ - provides foundation for all other agents
+- **Purpose**: Query existing .serena/memories/ and .serena/maps/ - provides foundation for all other agents
 - **Execution**: SEQUENTIAL with memory boundaries (must complete before any other agent)
 - **Memory Management**: Extract essential patterns only, cleanup detailed file content after analysis
 - **Fresh Context**: Agent loads only knowledge-query behavioral context
@@ -332,6 +332,21 @@ class MemorySafeCOMPASSExecution:
 - **Requirements**: WAITS for complete COMPASS methodology, operates on essential findings
 - **Memory Management**: Delegates with essential context only, cleanup detailed COMPASS analysis
 - **Fresh Context**: Agent loads only execution-delegation behavioral context
+
+#### **Phase 7: Memory-Safe Knowledge Integration (Sequential)**
+
+**Knowledge Integration Memory Management:**
+- Receives essential findings from all previous phases (1-6)
+- Updates institutional knowledge with new insights and patterns
+- Coordinates memory-bounded SVG creation when visual patterns identified
+
+**7. Memory Integration (Memory-Safe)** (Agent: compass-memory-integrator)
+
+- **Purpose**: Update .serena/memories/ with new insights and coordinate visual pattern creation
+- **Requirements**: WAITS for ALL previous phases (1-6), operates on essential findings from complete analysis
+- **Memory Management**: Integrates essential context only, orchestrates compass-svg-analyst with memory boundaries
+- **Fresh Context**: Agent loads only memory-integration behavioral context
+- **SVG Orchestration**: Delegates visual pattern creation to compass-svg-analyst in memory-bounded contexts
 
 #### **Advisory: Expert Consultation (Parallel Throughout)**
 
@@ -508,6 +523,7 @@ Breakthrough Detection Protocol:
 - ✅ **Phase 4**: Enhanced analysis incorporates complete institutional knowledge with memory boundaries
 - ✅ **Phase 5**: Memory-safe parallel finalization group completed (cross-reference + svg-analyst)
 - ✅ **Phase 6**: If coding required - compass-coder delegated to specialists with essential context
+- ✅ **Phase 7**: Memory integration completed - compass-memory-integrator updated institutional knowledge with new insights
 - ✅ **Advisory**: Expert consultation provided when triggered, operating on essential findings
 - ✅ **Breakthrough**: If user excitement detected - breakthrough documentation captured with memory cleanup
 - ✅ **Memory Management**: All phases completed within memory boundaries with aggressive cleanup
@@ -552,6 +568,7 @@ Breakthrough Detection Protocol:
   • Cross-Reference: [Pattern library updated with essential connections, detailed analysis cleaned up]
   • SVG Quality: [Validation results extracted, detailed SVG analysis cleaned up]
 **Phase 6 - Execution**: [If coding required: compass-coder delegated with essential context, detailed COMPASS analysis cleaned up]
+**Phase 7 - Memory Integration**: [compass-memory-integrator updated institutional knowledge, visual patterns created if applicable, memory cleanup completed]
 **Advisory**: [Expert consultation provided using essential findings when uncertainty detected]
 **Breakthrough**: [If user excitement detected: breakthrough methodology captured, detailed documentation process cleaned up]
 **Memory Management**: [Peak memory usage: X% of budget, cleanup efficiency: Y%, aggressive cleanup protocols successful]
@@ -610,7 +627,7 @@ Use compass-knowledge-discovery to query existing docs and maps for relevant pat
 - Scope: [specific areas to search]
 
 Use compass-todo-sync to initialize TodoWrite progress tracking:
-- Methodology: COMPASS 6-phase approach
+- Methodology: COMPASS 7-phase approach
 - Status: Phase 1 initiated
 ```
 
@@ -648,13 +665,14 @@ If dependency domain detected:
 IMPORTANT: Launch specialist groups in parallel within their domains
 ```
 
-**Phase 3-6 - Sequential execution:**
+**Phase 3-7 - Sequential execution:**
 ```
 Use compass-gap-analysis to identify knowledge gaps requiring investigation
 Use compass-enhanced-analysis to execute analysis with full institutional context  
 Use compass-cross-reference to link findings with existing pattern library
 # SVG validation tools have been removed from COMPASS system
 Use compass-coder to bridge to implementation if coding required
+Use compass-memory-integrator to update institutional knowledge with new insights and coordinate visual pattern creation
 ```
 
 **Conflict Resolution:**

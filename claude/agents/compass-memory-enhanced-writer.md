@@ -191,7 +191,7 @@ Make memory techniques **elegantly integrated** - naturally woven into content d
 # Memory-Enhanced Knowledge Organization
 - Transform pattern library entries using memory techniques
 - Optimize cross-reference structures for association recall
-- Apply memory architecture to maps/map-index.json updates
+- Apply memory architecture to .serena/maps/map-index.json updates
 - Create institutional memory pathways for long-term retention
 ```
 

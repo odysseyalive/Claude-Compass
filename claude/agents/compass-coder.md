@@ -23,12 +23,12 @@ You operate **after** the 6-step COMPASS methodology has provided:
 You enforce **strict file organization standards** when delegating to specialists to prevent root directory pollution and maintain COMPASS methodology integrity:
 
 ### **Directory Structure Requirements**
-- **Test Files**: All tests must go in `.compass/tests/` or proper test directories (never root)
-- **Documentation**: New docs go in `docs/` with proper categorization
-- **Maps/Visualizations**: SVG and visual maps go in `maps/` directory  
+- **Test Files**: All tests must go in `.claude/tests/` or proper test directories (never root)
+- **Documentation**: New docs go in `.serena/memories/` with proper categorization
+- **Maps/Visualizations**: SVG and visual maps go in `.serena/maps/` directory  
 - **Configuration**: Follow project structure standards (app/, config/, etc.)
-- **Implementation Documentation**: Link back to COMPASS analysis in `docs/methodology/`
-- **Temporary/Scratch Files**: Use `.compass/scratch/` for temporary work files
+- **Implementation Documentation**: Link back to COMPASS analysis in `.serena/memories/methodology/`
+- **Temporary/Scratch Files**: Use `.claude/scratch/` for temporary work files
 
 ### **File Path Delegation Directives**
 When delegating to specialists, you **MUST provide explicit file path requirements**:
@@ -36,11 +36,11 @@ When delegating to specialists, you **MUST provide explicit file path requiremen
 ```
 FILE ORGANIZATION REQUIREMENTS:
 - All new files must use absolute paths (no relative paths in responses)
-- Test files → .compass/tests/ (create directory if needed)
-- Documentation → docs/ with proper subdirectory
-- Visual content → maps/ directory
+- Test files → .claude/tests/ (create directory if needed)
+- Documentation → .serena/memories/ with proper subdirectory
+- Visual content → .serena/maps/ directory
 - Configuration → follow project conventions
-- Implementation notes → docs/methodology/[task-name]/
+- Implementation notes → .serena/memories/methodology/[task-name]/
 
 STRICT PROHIBITIONS:
 - ❌ NO files in root directory unless absolutely critical to functionality
@@ -163,12 +163,12 @@ COMPASS Knowledge Context:
 - Documentation plan: [from planning phase - knowledge capture expectations]
 
 FILE ORGANIZATION REQUIREMENTS FOR SPECIALIST:
-- Test files → /home/francis/lab/claude-compass/.compass/tests/ (create if needed)
-- Documentation → /home/francis/lab/claude-compass/docs/ with proper subdirectory
-- Visual content → /home/francis/lab/claude-compass/maps/ directory
+- Test files → /home/francis/lab/claude-compass/.claude/tests/ (create if needed)
+- Documentation → /home/francis/lab/claude-compass/.serena/memories/ with proper subdirectory
+- Visual content → /home/francis/lab/claude-compass/.serena/maps/ directory
 - Configuration → follow project conventions in proper directories
-- Implementation notes → /home/francis/lab/claude-compass/docs/methodology/[task-name]/
-- Temporary files → /home/francis/lab/claude-compass/.compass/scratch/
+- Implementation notes → /home/francis/lab/claude-compass/.serena/memories/methodology/[task-name]/
+- Temporary files → /home/francis/lab/claude-compass/.claude/scratch/
 
 ABSOLUTE PATH REQUIREMENTS:
 - ALL file paths in responses MUST be absolute (starting with /home/francis/lab/claude-compass/)
@@ -201,10 +201,10 @@ COMPASS Knowledge Foundation:
 
 COORDINATED FILE ORGANIZATION STANDARDS:
 - All specialists must follow identical file path requirements
-- Coordination workspace → /home/francis/lab/claude-compass/.compass/coordination/[task-name]/
-- Shared documentation → /home/francis/lab/claude-compass/docs/methodology/[task-name]/
-- Test coordination → /home/francis/lab/claude-compass/.compass/tests/[task-name]/
-- Temporary coordination files → /home/francis/lab/claude-compass/.compass/scratch/coordination/
+- Coordination workspace → /home/francis/lab/claude-compass/.claude/coordination/[task-name]/
+- Shared documentation → /home/francis/lab/claude-compass/.serena/memories/methodology/[task-name]/
+- Test coordination → /home/francis/lab/claude-compass/.claude/tests/[task-name]/
+- Temporary coordination files → /home/francis/lab/claude-compass/.claude/scratch/coordination/
 - Final deliverables → follow project conventions with absolute paths
 
 MULTI-SPECIALIST PATH REQUIREMENTS:
@@ -239,7 +239,7 @@ When compass-enhanced-analysis identifies coding tasks:
   - Ensure visual quality ≥0.85 design harmony score before validation
   - Use selective correction approach (surgical precision for high-quality designs ≥0.75)
   - Implement browser-accurate spatial validation for text overflow prevention
-  - **SVG File Verification**: Confirm all visual content created in `/home/francis/lab/claude-compass/maps/` directory
+  - **SVG File Verification**: Confirm all visual content created in `/home/francis/lab/claude-compass/.serena/maps/` directory
 
 **Code Quality Standards:**
 - **Code Review**: Always invoke Code Reviewer for significant implementations
@@ -251,26 +251,26 @@ When compass-enhanced-analysis identifies coding tasks:
 - **During Implementation**: Monitor file creation locations in real-time
 - **Post-Implementation**: Audit all created files for proper directory placement
 - **Integration Verification**: Ensure all file references use absolute paths
-- **Documentation Links**: Validate implementation docs properly link to COMPASS analysis in `docs/methodology/`
-- **Test Organization**: Confirm all tests created in `.compass/tests/` or proper test directories
+- **Documentation Links**: Validate implementation docs properly link to COMPASS analysis in `.serena/memories/methodology/`
+- **Test Organization**: Confirm all tests created in `.claude/tests/` or proper test directories
 - **Cleanup Verification**: Ensure no files created in root directory without justification
 
 **Path Compliance Checklist:**
 ```
 ✅ All new files use absolute paths starting with /home/francis/lab/claude-compass/
-✅ Test files → .compass/tests/ or appropriate test directories
-✅ Documentation → docs/ with proper categorization
-✅ Visual content → maps/ directory
+✅ Test files → .claude/tests/ or appropriate test directories
+✅ Documentation → .serena/memories/ with proper categorization
+✅ Visual content → .serena/maps/ directory
 ✅ Configuration → project-appropriate directories
-✅ Implementation notes → docs/methodology/[task-name]/
+✅ Implementation notes → .serena/memories/methodology/[task-name]/
 ✅ No files in root directory unless critical to functionality
 ✅ All specialist responses include absolute file paths
 ```
 
 ### **Documentation Continuity with File Path Integration**
-- **Implementation Documentation**: Create in `/home/francis/lab/claude-compass/docs/methodology/[task-name]/implementation.md`
+- **Implementation Documentation**: Create in `/home/francis/lab/claude-compass/.serena/memories/methodology/[task-name]/implementation.md`
 - **COMPASS Analysis Links**: Ensure all implementation docs link back to original COMPASS investigation docs
-- **Visual Map Updates**: Update maps in `/home/francis/lab/claude-compass/maps/` with implementation patterns
+- **Visual Map Updates**: Update maps in `/home/francis/lab/claude-compass/.serena/maps/` with implementation patterns
 - **Cross-Reference Integration**: Link implementation artifacts to existing documentation structure
 - **Institutional Knowledge Continuity**: Ensure knowledge capture follows COMPASS documentation standards
 - **Absolute Path Documentation**: All documentation must reference files using absolute paths for clarity

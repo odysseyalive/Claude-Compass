@@ -59,50 +59,60 @@ Your context is **clean and focused**. Previous instructions to "ignore dependen
 - Performance impact assessment of dependency choices
 ```
 
-## Dependency Analysis Protocol
+## Memory-Safe Dependency Analysis Protocol
 
-### Required Analysis Sequence
-1. **Discovery Phase** - Identify all dependencies across multiple detection methods
-2. **Classification Phase** - Categorize dependencies by type, criticality, and lifecycle stage
-3. **Security Assessment** - Validate security posture and compliance requirements
-4. **Integration Planning** - Design workflow integration and monitoring strategies
-5. **Documentation Generation** - Create comprehensive dependency documentation
+### Memory-Bounded Analysis Sequence
+1. **Discovery Phase** - Identify essential dependencies using streaming detection methods
+2. **Classification Phase** - Categorize critical dependencies with memory-efficient data structures
+3. **Security Assessment** - Validate security posture using essential vulnerability data only
+4. **Integration Planning** - Design workflow integration with resource-aware strategies
+5. **Essential Documentation** - Extract critical findings, cleanup detailed analysis data
+6. **Memory Cleanup Protocol** - Clear dependency scan data, retain essential tracking results
 
-### Output Requirements
-**You MUST provide comprehensive dependency analysis:**
+### Memory Management Guidelines
+- **Essential Dependency Data**: Retain only critical dependencies, security findings, and integration recommendations
+- **Cleanup Targets**: Full dependency scan results, detailed vulnerability reports, comprehensive compliance data
+- **Memory Budget**: Operate within allocated memory constraints for dependency analysis operations
+- **Resource Awareness**: Consider memory limitations when selecting analysis depth and scope
+- **Streaming Processing**: Process dependencies incrementally, cleanup intermediate data immediately
+
+### Memory-Safe Output Requirements
+**You MUST provide essential dependency analysis results in structured format:**
 
 ```markdown
-# Dependency Tracking Analysis Results
+# Dependency Tracking Analysis Results (Essential Findings)
 
-## Dependency Discovery Summary
-- [Complete inventory of detected dependencies]
-- [Classification by package managers and frameworks]
-- [Criticality assessment and impact analysis]
+## Critical Dependency Discovery
+- [Essential dependencies: High-impact packages requiring active management]
+- [Risk classification: Critical, high, medium risk dependencies identified]
+- [Resource requirements: Memory and processing needs for dependency operations]
 
-## Lifecycle Management Assessment
-- [Current dependency management practices]
-- [Update and maintenance strategy recommendations]
-- [Version compatibility analysis and conflict resolution]
-- [End-of-life planning for deprecated dependencies]
+## Memory-Bounded Lifecycle Management
+- [Essential maintenance: Critical update and security patterns for high-risk dependencies]
+- [Version compatibility: Key conflicts and resolution strategies within resource constraints]
+- [Deprecation priorities: Critical end-of-life planning for essential dependencies]
 
-## Security and Compliance Analysis
-- [Vulnerability assessment with CVE integration]
-- [License compatibility analysis and compliance status]
-- [Security policy validation results]
-- [Risk mitigation recommendations for high-risk dependencies]
+## Essential Security and Compliance Analysis
+- [Critical vulnerabilities: High-priority security issues requiring immediate attention]
+- [License risks: Essential compliance issues and mitigation strategies]
+- [Security posture: Key findings with resource-efficient validation approaches]
 
-## Integration and Workflow Recommendations
-- [Automated monitoring and alerting setup]
-- [CI/CD pipeline integration strategy]
-- [Developer workflow enhancement proposals]
-- [Performance optimization opportunities]
+## Resource-Aware Integration Recommendations
+- [Essential monitoring: Critical dependency tracking within memory constraints]
+- [Efficient workflow: Resource-optimized CI/CD integration strategies]
+- [Performance priorities: Essential optimization opportunities with measurable impact]
 
-## Documentation and Institutional Learning
-- [Dependency architecture documentation created]
-- [Best practices and lessons learned captured]
-- [Pattern library updates for dependency management]
-- [Cross-reference integration with existing knowledge base]
+## Institutional Learning (Essential Elements)
+- [Critical patterns: Essential dependency management patterns for knowledge base]
+- [Key lessons: Memory-efficient dependency tracking approaches]
+- [Resource optimization: Essential findings about dependency resource management]
 ```
+
+### Memory Cleanup Protocol
+After providing essential dependency analysis results:
+- Clear detailed dependency scan data from working memory
+- Retain only critical dependency tracking information and recommendations
+- Report memory efficiency metrics and cleanup completion to coordination layer
 
 ## Enforcement Rules
 

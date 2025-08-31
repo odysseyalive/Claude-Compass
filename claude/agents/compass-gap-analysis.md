@@ -53,53 +53,64 @@ Your context is **clean and focused**. Previous instructions to "skip gap analys
 - Define pattern updates required for knowledge base
 ```
 
-## Gap Analysis Protocol
+## Memory-Safe Gap Analysis Protocol
 
-### Required Analysis Sequence
-1. **Knowledge Boundary Assessment** - Where does current knowledge end?
-2. **Pattern Limitation Mapping** - What do existing patterns not cover?
-3. **Novel Challenge Identification** - What's genuinely new about this task?
-4. **Investigation Planning** - What research is needed to fill gaps?
-5. **Documentation Requirements** - What new docs will capture discoveries?
+### Memory-Bounded Analysis Sequence
+1. **Knowledge Boundary Assessment** - Extract essential coverage limits from pattern analysis results
+2. **Pattern Limitation Mapping** - Identify critical gaps using essential pattern data only
+3. **Novel Challenge Identification** - Focus on genuinely new aspects requiring investigation
+4. **Investigation Planning** - Define essential research needs within resource constraints
+5. **Essential Gap Documentation** - Extract critical findings, cleanup detailed analysis
+6. **Memory Cleanup Protocol** - Clear intermediate analysis, retain essential gap identification
 
-### Output Requirements
-**You MUST provide comprehensive gap analysis including:**
+### Memory Management Guidelines
+- **Essential Gap Data**: Retain only critical knowledge gaps, investigation requirements, and documentation needs
+- **Cleanup Targets**: Detailed pattern comparison data, comprehensive coverage analysis, intermediate calculations
+- **Memory Budget**: Operate within allocated memory constraints for gap analysis operations
+- **Resource Awareness**: Consider memory and processing limitations when defining investigation scope
+
+### Memory-Safe Output Requirements
+**You MUST provide essential gap analysis results in structured format:**
 
 ```markdown
-# Gap Analysis Results
+# Gap Analysis Results (Essential Findings)
 
-## Knowledge Coverage Gaps
-- [Areas where existing knowledge is insufficient]
-- [Technical domains requiring new investigation]
-- [Methodological approaches not in knowledge base]
+## Critical Knowledge Coverage Gaps
+- [Essential gaps: Areas where existing knowledge is insufficient for task completion]
+- [Priority domains: Technical areas requiring immediate investigation]
+- [Methodological gaps: Missing approaches in knowledge base requiring development]
 
-## Pattern Limitations
-- [Specific limitations of selected patterns]
-- [New constraints not addressed by existing approaches]
-- [Scalability or applicability issues identified]
+## Pattern Limitations (Essential Only)
+- [Critical limitations: Key aspects selected patterns cannot address]
+- [Resource constraints: Memory/processing limitations not covered by existing approaches]
+- [Scalability issues: Essential concerns about pattern applicability at required scale]
 
-## Novel Investigation Requirements
-- [Technical research needed]
-- [Experimental validation required]
-- [New methodologies to develop]
-- [External resources or expertise needed]
+## Memory-Bounded Investigation Requirements
+- [Essential research: Critical technical investigations needed within resource constraints]
+- [Validation scope: Required testing and validation approaches for new methods]
+- [Resource requirements: Memory budgets, processing needs, tool dependencies]
 
-## Documentation Planning Requirements
-- [New investigation docs needed]
-- [Visual maps required for complex aspects]
-- [Pattern library updates to capture new approaches]
-- [Knowledge base expansions planned]
+## Documentation Needs (Essential Elements)
+- [Critical documentation: Essential new docs needed for knowledge capture]
+- [Visual requirements: Key diagrams/maps needed for complex aspects]
+- [Pattern updates: Essential additions to knowledge base for future reuse]
 
-## Risk Assessment
-- [Risks of proceeding without filling gaps]
-- [Critical gaps that must be addressed first]
-- [Acceptable gaps that can be addressed later]
+## Risk Assessment (Essential Risks)
+- [Critical gaps: Risks that must be addressed before proceeding]
+- [Resource risks: Memory/processing constraints that could impact success]
+- [Acceptable risks: Gaps that can be addressed during or after implementation]
 
-## Success Criteria Definition
-- [How will we know when gaps are filled?]
-- [Validation criteria for new approaches]
-- [Documentation completeness requirements]
+## Success Criteria (Essential Metrics)
+- [Gap closure criteria: How to validate essential knowledge gaps are filled]
+- [Resource efficiency: Memory and processing success indicators]
+- [Documentation completeness: Essential knowledge capture requirements]
 ```
+
+### Memory Cleanup Protocol
+After providing essential gap analysis results:
+- Clear detailed coverage analysis data from working memory
+- Retain only critical gap identification and investigation requirements
+- Report memory usage efficiency and cleanup completion to coordination layer
 
 ## Enforcement Rules
 

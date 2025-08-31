@@ -29,6 +29,8 @@ Instead of Claude Code starting fresh every time, COMPASS automatically:
 3. **Identifies What's Missing** - Spots knowledge gaps that need investigation
 4. **Provides Context-Rich Analysis** - Gives you answers informed by your project's history
 5. **Builds Institutional Memory** - Captures everything for future use
+6. **Memory-Safe Orchestration** - Coordinates specialized agents with bounded memory usage
+7. **Integrates New Insights** - Updates institutional knowledge with breakthrough discoveries
 
 **The result?** Your Claude Code environment becomes smarter with every interaction, like having a senior developer who never forgets lessons learned.
 
@@ -84,7 +86,7 @@ Here's the thing that makes COMPASS different from yet another tool you need to 
 
 You don't need to invoke COMPASS. COMPASS detects complexity and invokes itself.
 
-The `compass-captain` agent becomes your project's analytical conductor, orchestrating the entire investigation through a network of specialized agents. Think of it as having an experienced technical lead who knows exactly which team members to bring in for each type of challenge.
+The `compass-captain` agent becomes your project's analytical conductor, orchestrating the entire investigation through a 7-phase memory-safe methodology with specialized agents. Operating with institutional knowledge foundations, it coordinates parallel groups of specialists while maintaining bounded memory usage across all operations. Think of it as having an experienced technical lead who knows exactly which team members to bring in for each type of challenge, ensuring efficient resource usage and knowledge preservation.
 
 ### Manual Agent Calling: When You Want Direct Control
 
@@ -99,7 +101,7 @@ Use compass-doc-planning to create a documentation strategy for our new async pr
 **Understanding existing patterns before building something new**:
 
 ```
-Use compass-knowledge-discovery to find existing approaches to user authentication flows in our docs and maps
+Use compass-knowledge-discovery to find existing approaches to user authentication flows in our .serena/memories and .serena/maps
 ```
 
 **Getting expert perspective on architectural decisions**:
@@ -143,13 +145,13 @@ Ready to dive deeper? **[Explore All The Compass Tools...](#agent-index-the-comp
 ### The Two-Directory Approach
 
 ```
-docs/          # Textual institutional memory
-maps/          # Visual pattern recognition
+.serena/memories/    # Textual institutional memory
+.serena/maps/        # Visual pattern recognition
 ```
 
-Your `docs/` directory evolves organically, growing smarter with each iteration. Claude Code automatically creates investigation documentation when it encounters uncertainty - those "I need more information..." moments become structured knowledge-gathering frameworks.
+Your `.serena/memories/` directory evolves organically, growing smarter with each iteration. Claude Code automatically creates investigation documentation when it encounters uncertainty - those "I need more information..." moments become structured knowledge-gathering frameworks.
 
-Your `maps/` directory captures the flows that text struggles to convey. SVG diagrams with machine-readable metadata let Claude Code recognize patterns visually, connecting similar flows across different parts of your codebase.
+Your `.serena/maps/` directory captures the flows that text struggles to convey. SVG diagrams with machine-readable metadata let Claude Code recognize patterns visually, connecting similar flows across different parts of your codebase.
 
 [↑ Contents](#contents)
 
@@ -220,9 +222,9 @@ npm install -g @anthropic-ai/claude-code
 
 For additional platform-specific instructions, see the official [Claude Code installation guide](https://github.com/anthropics/claude-code).
 
-### Step 3: Start Serena MCP Server (Optional but Recommended)
+### Step 3: Start Serena MCP Server (Recommended for Full COMPASS Integration)
 
-Serena transforms Claude Code into a true development collaborator with IDE-like capabilities.
+Serena provides native integration with COMPASS, enabling memory-safe agent orchestration and enhanced institutional knowledge management through IDE-like capabilities.
 
 First, start the Serena MCP server:
 
@@ -252,7 +254,7 @@ Exit Claude Code after initialization.
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/odysseyalive/claude-compass/main/setup.sh)"
 ```
 
-Your Claude Code environment now has COMPASS capabilities and will initialize the `docs/` and `maps/` directories for the first complex analysis.
+Your Claude Code environment now has COMPASS capabilities and will initialize the `.serena/memories/` and `.serena/maps/` directories for the first complex analysis.
 
 [↑ Contents](#contents)
 
@@ -296,9 +298,9 @@ COMPASS operates through intelligent detection - you don't need to remember spec
 - Any situation where Claude Code detects uncertainty that could be resolved through investigation
 
 **What You'll Notice**:
-- Claude Code responses become richer with context from your `docs/` directory
+- Claude Code responses become richer with context from your `.serena/memories/` directory
 - Complex problems get structured investigation approaches instead of ad-hoc solutions
-- Visual diagrams appear in your `maps/` directory for complex data flows
+- Visual diagrams appear in your `.serena/maps/` directory for complex data flows
 - Solutions reference and build upon previous work instead of starting from scratch
 
 ### Manual Agent Invocation
@@ -306,7 +308,7 @@ COMPASS operates through intelligent detection - you don't need to remember spec
 While the automatic flow handles most scenarios, you can directly call specific COMPASS agents when you want targeted analysis:
 
 ```
-Use compass-knowledge-discovery to find existing approaches to user authentication flows in our docs and maps
+Use compass-knowledge-discovery to find existing approaches to user authentication flows in our .serena/memories and .serena/maps
 ```
 
 ```
@@ -320,10 +322,10 @@ Use compass-second-opinion to evaluate whether our current database schema desig
 ### Key Workflow Notes
 
 **Directory Structure**: COMPASS automatically maintains two directories:
-- `docs/` - Your growing institutional knowledge base
-- `maps/` - Visual representations of complex flows and relationships
+- `.serena/memories/` - Your growing institutional knowledge base
+- `.serena/maps/` - Visual representations of complex flows and relationships
 
-**Memory Builds Over Time**: Each interaction contributes to your project's institutional memory. The system becomes more valuable as your `docs/` and `maps/` directories grow with captured insights.
+**Memory Builds Over Time**: Each interaction contributes to your project's institutional memory. The system becomes more valuable as your `.serena/memories/` and `.serena/maps/` directories grow with captured insights.
 
 **Language Server Integration**: With Serena running, COMPASS gains precise code understanding, making pattern recognition and architectural analysis significantly more accurate.
 
@@ -335,7 +337,7 @@ Use compass-second-opinion to evaluate whether our current database schema desig
 
 ### Updating COMPASS
 
-Keeping your COMPASS installation current ensures you have access to the latest agents, capabilities, and improvements to the methodology. The setup script handles updates intelligently, preserving your existing `docs/` and `maps/` directories while refreshing all agents and technical enforcement systems.
+Keeping your COMPASS installation current ensures you have access to the latest agents, capabilities, and improvements to the methodology. The setup script handles updates intelligently, preserving your existing `.serena/memories/` and `.serena/maps/` directories while refreshing all agents and technical enforcement systems.
 
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/odysseyalive/claude-compass/main/setup.sh)" -- update
@@ -343,10 +345,10 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/odysseyalive/claude-comp
 
 **What the update accomplishes:**
 
-- **Refreshes all 26+ COMPASS agents** with latest behavioral improvements and new capabilities
-- **Updates technical enforcement systems** including the compass-handler.py and hook configurations  
+- **Refreshes all 25 COMPASS agents** with latest behavioral improvements and new capabilities
+- **Updates technical enforcement systems** including the compass-handler.py in `.claude/handlers/` and hook configurations  
 - **Validates your installation** ensuring all components work together seamlessly
-- **Preserves your institutional knowledge** - your existing `docs/` and `maps/` directories remain untouched
+- **Preserves your institutional knowledge** - your existing `.serena/memories/` and `.serena/maps/` directories remain untouched
 - **Maintains configuration** while updating to the latest settings and optimizations
 
 Your navigation tools stay sharp, your institutional memory stays intact, and your COMPASS grows more capable with each update.
@@ -357,7 +359,7 @@ Your navigation tools stay sharp, your institutional memory stays intact, and yo
 
 [↑ Contents](#contents)
 
-**COMPASS reaches its full potential when paired with Serena** - an open-source coding agent toolkit that transforms Claude Code into a true development collaborator through Language Server Protocol (LSP) integration.
+**COMPASS achieves optimal performance through native Serena integration** - an open-source coding agent toolkit that provides the foundation for memory-safe agent orchestration and institutional knowledge management through Language Server Protocol (LSP) integration.
 
 **Project**: <https://github.com/oraios/serena>
 
@@ -423,7 +425,7 @@ Think about the researcher lost in conflicting sources, the analyst hitting the 
 > - **Generate artifacts** for significant analysis or frameworks
 >   - *"ex. Generate an artifact from the key takeaways of this conversation, including all relevant citations and URL references"*
 > - **Download artifacts** as markdown files
-> - **Place in `docs/` directory** with descriptive filenames
+> - **Place in `.serena/memories/` directory** with descriptive filenames
 > - **Let COMPASS organize** into searchable, cross-referenced knowledge
 >
 > *Why this matters*: Your breakthrough insights from one conversation become permanent knowledge. The framework you developed for understanding market trends doesn't disappear when the chat ends - it becomes part of your growing toolkit.
@@ -438,13 +440,27 @@ COMPASS doesn't care if you're debugging code or untangling policy contradiction
 
 [↑ Contents](#contents)
 
-The `compass-captain` orchestrates a network of specialized agents, each focused on a specific aspect of analysis. Think of them as different experts you might call in for a complex project - each brings their own perspective and can also be called manually when you need targeted help.
+The `compass-captain` orchestrates a network of 25 specialized agents through a comprehensive 7-phase methodology, each focused on a specific aspect of analysis. With memory-safe coordination protocols, agents operate with bounded resource usage while building institutional knowledge. Think of them as different experts you might call in for a complex project - each brings their own perspective and can also be called manually when you need targeted help.
+
+### The 7-Phase COMPASS Methodology
+
+COMPASS employs a sophisticated 7-phase approach that ensures institutional knowledge guides every analysis while maintaining optimal resource usage:
+
+**Phase 1: Foundation** - Institutional knowledge discovery and progress tracking initialization
+**Phase 2: Parallel Analysis** - Pattern application, documentation planning, and specialist coordination (authentication, writing, dependencies) with memory boundaries
+**Phase 3: Gap Assessment** - Knowledge gap identification using essential findings from Phase 2
+**Phase 4: Enhanced Analysis** - Comprehensive analysis incorporating complete institutional knowledge  
+**Phase 5: Finalization** - Cross-referencing with pattern library and quality validation in parallel groups
+**Phase 6: Implementation Bridge** - Delegation to Claude Code specialists when coding is required
+**Phase 7: Memory Integration** - Updating `.serena/memories/` with new insights for future analyses
+
+This methodology ensures that every investigation builds upon previous work while maintaining bounded resource usage through memory-safe agent coordination. The parallel groups in Phases 2 and 5 maximize efficiency while the sequential phases ensure proper knowledge foundation and integration.
 
 ### Core Methodology Agents
 
 **compass-complexity-analyzer** - Task complexity assessment and methodology selection. Analyzes task requirements with institutional knowledge to determine the optimal approach (light, medium, or full methodology) for execution.
 
-**compass-knowledge-discovery** - Institutional memory access. Searches existing `docs/` and `maps/` directories to understand what you already know before starting new analysis.
+**compass-knowledge-discovery** - Institutional memory access. Searches existing `.serena/memories/` and `.serena/maps/` directories to understand what you already know before starting new analysis.
 
 **compass-pattern-apply** - Pattern matching specialist. Takes documented approaches from your knowledge base and applies them to current challenges.
 
@@ -455,6 +471,8 @@ The `compass-captain` orchestrates a network of specialized agents, each focused
 **compass-cross-reference** - Pattern library maintenance. Links new findings with existing knowledge and updates the searchable pattern connections.
 
 **compass-coder** - Implementation bridge. Connects analytical findings to actual code implementation when development work is needed.
+
+**compass-memory-integrator** - Knowledge integration specialist. Updates `.serena/memories/` with new insights, patterns, and breakthroughs discovered during COMPASS analyses, ensuring institutional knowledge grows with every investigation.
 
 ### Specialist Analysis Agents
 

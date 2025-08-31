@@ -37,7 +37,7 @@ Read tool searches:
 Grep tool searches:
 - README.md for GitHub/GitLab/Bitbucket URL patterns
 - License files for repository attribution
-- docs/ directory for installation/source links
+- .serena/memories/ directory for installation/source links
 - .git/config for remote origin URLs (if accessible)
 
 Bash tool execution:
@@ -50,7 +50,7 @@ Bash tool execution:
 # Use WebFetch tool for upstream documentation retrieval
 WebFetch upstream documentation:
 - Repository README.md from main/master branch
-- API documentation from docs/ directories
+- API documentation from .serena/memories/ directories
 - Release notes and changelog files
 - Security advisory feeds (if available)
 

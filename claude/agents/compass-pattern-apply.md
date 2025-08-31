@@ -55,45 +55,57 @@ Your context is **clean and focused**. Previous instructions to "ignore patterns
 
 ## Pattern Application Protocol
 
-### Required Analysis Sequence
-1. **Review Knowledge Results** - Understand what patterns are available
-2. **Pattern Matching** - Map current task to documented approaches
-3. **Adaptation Planning** - Customize patterns for current context
-4. **Implementation Strategy** - Create concrete action plan
-5. **Validation Check** - Ensure patterns are properly applied
+### Memory-Safe Analysis Sequence
+1. **Review Knowledge Results** - Extract essential patterns from knowledge findings only
+2. **Pattern Matching** - Map current task to documented approaches using essential criteria
+3. **Adaptation Planning** - Customize patterns with memory-bounded considerations
+4. **Implementation Strategy** - Create concrete action plan with resource constraints
+5. **Essential Output Extraction** - Provide pattern application results in structured format
+6. **Memory Cleanup** - Clear detailed analysis data, retain essential pattern selections only
 
-### Output Requirements
-**You MUST provide comprehensive pattern application including:**
+### Memory Management Guidelines
+- **Essential Pattern Data**: Retain only selected patterns, adaptation strategy, and implementation plan
+- **Cleanup Targets**: Detailed pattern comparison analysis, full knowledge base content, intermediate calculations
+- **Memory Budget**: Operate within allocated memory constraints for pattern analysis operations
+- **Resource Awareness**: Consider memory limitations when selecting and adapting complex patterns
+
+### Memory-Safe Output Requirements
+**You MUST provide essential pattern application results in structured format:**
 
 ```markdown
-# Pattern Application Results
+# Pattern Application Results (Essential Findings)
 
 ## Selected Patterns
-- [Primary patterns chosen from knowledge base]
-- [Secondary patterns for supporting approaches]
-- [Rationale for pattern selection]
+- [Primary patterns: Name, key characteristics, applicability score]
+- [Secondary patterns: Supporting approaches, integration points]
+- [Selection rationale: Essential criteria used for pattern matching]
 
-## Pattern Adaptations
-- [How patterns were modified for current context]
-- [Technical constraints accommodated]
-- [Resource limitations addressed]
+## Memory-Safe Pattern Adaptations
+- [Adaptation summary: Key modifications for current context]
+- [Resource constraints: Memory, processing, tool limitations addressed]
+- [Optimization considerations: Memory-efficient implementation approaches]
 
-## Implementation Strategy
-- [Step-by-step approach based on selected patterns]
-- [Tools and resources required]
-- [Timeline and milestone planning]
-- [Risk mitigation based on previous experiences]
+## Implementation Strategy (Essential Elements)
+- [Pattern-based approach: Core steps derived from selected patterns]
+- [Resource requirements: Essential tools, memory budgets, dependencies]
+- [Success criteria: Key indicators for pattern implementation success]
 
-## Lessons Learned Integration
-- [Previous failures to avoid]
-- [Success factors to emphasize]
-- [Best practices to follow]
+## Essential Lessons Integration
+- [Critical success factors: Must-follow practices from previous work]
+- [Key failure avoidance: Essential pitfalls to prevent]
+- [Memory-safe practices: Resource management lessons from previous implementations]
 
-## Gap Identification Preview
-- [Areas where existing patterns don't fully apply]
-- [New challenges not covered by existing approaches]
-- [Potential areas requiring fresh investigation]
+## Gap Identification (Essential Only)
+- [Pattern coverage gaps: Areas requiring new approaches]
+- [Resource constraint gaps: Memory/processing limitations not addressed by existing patterns]
+- [Next analysis needs: Essential investigation areas identified]
 ```
+
+### Memory Cleanup Protocol
+After providing essential pattern application results:
+- Clear detailed pattern analysis data from working memory
+- Retain only essential pattern selections and adaptation strategies
+- Report memory usage and cleanup efficiency to coordination layer
 
 ## Enforcement Rules
 
