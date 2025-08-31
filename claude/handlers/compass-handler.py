@@ -760,7 +760,7 @@ Use proper path: {suggested_path}
 
 FILE ORGANIZATION RULES:
 • Documentation files → docs/ directory (or docs/validations/ for validation reports)
-• Test files → .claude/tests/ directory  
+• Test files → .claude/tests/ directory
 • Temporary files → .claude/temp/ directory
 • Maps/SVG files → maps/ directory
 
@@ -1028,6 +1028,7 @@ def detect_compass_agent_in_prompt(prompt):
         "compass-upstream-validator",
         "compass-dependency-tracker",
         "compass-breakthrough-doc",
+        "compass-cleanup-coordinator",
         "compass-todo-sync",
         "compass-svg-analyst",
         "compass-memory-integrator",
@@ -1320,7 +1321,7 @@ MANDATORY: Use the Task tool with subagent_type "compass-captain" to:
 
 The compass-captain will:
 1. Consult compass-methodology-selector for strategic planning
-2. Execute the optimized plan with parallel agent coordination  
+2. Execute the optimized plan with parallel agent coordination
 3. Use second opinion validation for complex tasks
 4. Provide comprehensive token usage reporting
 
@@ -1877,16 +1878,31 @@ def map_agent_to_phase(agent_type):
     """
     phase_mapping = {
         "compass-captain": "coordination",
+        "compass-cleanup-coordinator": "coordination",
+        "compass-complexity-analyzer": "strategic_planning",
+        "compass-strategy-builder": "strategic_planning",
+        "compass-validation-coordinator": "strategic_planning",
         "compass-knowledge-discovery": "phase1_knowledge_query",
+        "compass-todo-sync": "phase1_foundation",
         "compass-pattern-apply": "phase2_pattern_application",
         "compass-doc-planning": "phase2_documentation_planning",
         "compass-data-flow": "phase2_data_flow_analysis",
+        "compass-auth-performance-analyst": "phase2_auth_specialists",
+        "compass-auth-security-validator": "phase2_auth_specialists",
+        "compass-auth-optimization-specialist": "phase2_auth_specialists",
+        "compass-writing-analyst": "phase2_writing_specialists",
+        "compass-academic-analyst": "phase2_writing_specialists",
+        "compass-memory-enhanced-writer": "phase2_writing_specialists",
+        "compass-dependency-tracker": "phase2_dependency_specialists",
         "compass-gap-analysis": "phase3_gap_analysis",
         "compass-enhanced-analysis": "phase4_enhanced_analysis",
         "compass-cross-reference": "phase5_parallel_finalization",
         "compass-svg-analyst": "phase5_parallel_finalization",
+        "compass-upstream-validator": "phase5_quality_validation",
         "compass-coder": "phase6_execution_bridge",
         "compass-memory-integrator": "phase7_memory_integration",
+        "compass-second-opinion": "advisory_expert_consultation",
+        "compass-breakthrough-doc": "breakthrough_documentation",
     }
     return phase_mapping.get(agent_type)
 
@@ -1991,7 +2007,7 @@ def handle_pre_tool_use_with_token_tracking(input_data):
 • Total Tokens Used: {session_context["total_tokens"]:,}
 • Agents Already Run: {", ".join(session_context["agents_run"][:3]) if session_context["agents_run"] else "None yet"}
 
-✅ **REQUIRED ACTION**: 
+✅ **REQUIRED ACTION**:
 Use Task tool with subagent_type='compass-captain' for proper methodology coordination
 
 ❌ **BLOCKED**: Task tool with subagent_type='{subagent_type}' during COMPASS session
@@ -2018,7 +2034,7 @@ Use Task tool with subagent_type='compass-captain' for proper methodology coordi
 
 🧠 **WHY THIS IS BLOCKED**:
 • COMPASS session requires all tools to go through compass-captain coordination
-• Prevents bypass of systematic methodology enforcement  
+• Prevents bypass of systematic methodology enforcement
 • Ensures proper tool usage context within COMPASS phases
 • Maintains institutional knowledge integration standards
 
@@ -2028,7 +2044,7 @@ Use Task tool with subagent_type='compass-captain' for proper methodology coordi
 • Total Tokens Used: {session_context["total_tokens"]:,}
 • Recent Activity: {session_context["recent_activity"]}
 
-✅ **REQUIRED ACTION**: 
+✅ **REQUIRED ACTION**:
 Use Task tool with subagent_type='compass-captain' for proper coordination
 
 ❌ **BLOCKED**: {tool_name} tool during active COMPASS session
@@ -2801,7 +2817,7 @@ REQUIRED: Systematic 6-Phase Analysis Coordination
 
 ┌─ PHASE CHECKLIST ─────────────────────────────────────────────┐
 │ □ Phase 1: Knowledge Query     (compass-knowledge-discovery)      │
-│ □ Phase 2: Pattern Application (compass-pattern-apply)        │  
+│ □ Phase 2: Pattern Application (compass-pattern-apply)        │
 │ □ Phase 3: Gap Analysis       (compass-gap-analysis)         │
 │ □ Phase 4: Documentation Plan (compass-doc-planning)         │
 │ □ Phase 5: Enhanced Analysis  (compass-enhanced-analysis)    │
@@ -2813,18 +2829,18 @@ REQUIRED: Systematic 6-Phase Analysis Coordination
 
 📊 BENEFITS:
    • Institutional knowledge integration
-   • Pattern recognition from existing work  
+   • Pattern recognition from existing work
    • Systematic quality assurance
    • Expert consultation capability
    • Proper documentation of discoveries
 
-⚠️  WARNING: 
+⚠️  WARNING:
    Complex analysis tools are BLOCKED until COMPASS coordination begins.
    This prevents ad-hoc analysis and ensures systematic methodology.
 
 📁 DIRECTORIES:
    docs/  - Institutional memory and investigation frameworks
-   maps/  - Visual pattern recognition and architectural diagrams  
+   maps/  - Visual pattern recognition and architectural diagrams
    agents/ - Specialized COMPASS methodology coordinators
 
 ═══════════════════════════════════════════════════════════════
@@ -2909,14 +2925,14 @@ def complete_compass_analysis():
 ANALYSIS COMPLETED: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 
 ✓ All 6 phases executed successfully
-✓ Institutional knowledge integrated  
+✓ Institutional knowledge integrated
 ✓ Systematic analysis methodology applied
 ✓ Quality assurance completed
 
 📁 RESULTS AVAILABLE IN:
    docs/  - Updated investigation frameworks
    maps/  - New visual pattern diagrams
-   
+
 🎯 NEXT STEPS:
    • Review generated documentation
    • Check updated visual maps
@@ -2955,7 +2971,7 @@ def complete_compass_analysis_with_token_report():
 ANALYSIS COMPLETED: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 
 ✅ All 6 phases executed successfully
-✅ Institutional knowledge integrated  
+✅ Institutional knowledge integrated
 ✅ Systematic analysis methodology applied
 ✅ Quality assurance completed
 ✅ Token tracking and optimization analysis complete
@@ -2966,7 +2982,7 @@ ANALYSIS COMPLETED: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
    docs/  - Updated investigation frameworks
    maps/  - New visual pattern diagrams
    .claude-tokens.json - Detailed token usage data
-   
+
 🎯 NEXT STEPS:
    • Review generated documentation
    • Check updated visual maps
@@ -3004,7 +3020,7 @@ REQUIRED: Systematic 6-Phase Analysis Coordination
 
 ┌─ PHASE CHECKLIST ─────────────────────────────────────────────┐
 │ □ Phase 1: Knowledge Query     (compass-knowledge-discovery)      │
-│ □ Phase 2: Pattern Application (compass-pattern-apply)        │  
+│ □ Phase 2: Pattern Application (compass-pattern-apply)        │
 │ □ Phase 3: Gap Analysis       (compass-gap-analysis)         │
 │ □ Phase 4: Documentation Plan (compass-doc-planning)         │
 │ □ Phase 5: Enhanced Analysis  (compass-enhanced-analysis)    │
@@ -3022,19 +3038,19 @@ REQUIRED: Systematic 6-Phase Analysis Coordination
 
 📊 BENEFITS:
    • Institutional knowledge integration
-   • Pattern recognition from existing work  
+   • Pattern recognition from existing work
    • Systematic quality assurance
    • Expert consultation capability
    • Complete token usage visibility
    • Proper documentation of discoveries
 
-⚠️  WARNING: 
+⚠️  WARNING:
    Complex analysis tools are BLOCKED until COMPASS coordination begins.
    This prevents ad-hoc analysis and ensures systematic methodology.
 
 📁 DIRECTORIES:
    docs/  - Institutional memory and investigation frameworks
-   maps/  - Visual pattern recognition and architectural diagrams  
+   maps/  - Visual pattern recognition and architectural diagrams
    agents/ - Specialized COMPASS methodology coordinators
 
 ═══════════════════════════════════════════════════════════════
@@ -3076,12 +3092,31 @@ def check_compass_agent_activity(input_data):
         # Map agents to phases
         agent_phase_map = {
             "compass-captain": "coordination",
+            "compass-cleanup-coordinator": "coordination",
+            "compass-complexity-analyzer": "strategic-planning",
+            "compass-strategy-builder": "strategic-planning",
+            "compass-validation-coordinator": "strategic-planning",
             "compass-knowledge-discovery": "knowledge-query",
+            "compass-todo-sync": "foundation",
             "compass-pattern-apply": "pattern-apply",
-            "compass-gap-analysis": "gap-analysis",
             "compass-doc-planning": "doc-planning",
+            "compass-data-flow": "data-flow-analysis",
+            "compass-auth-performance-analyst": "auth-specialists",
+            "compass-auth-security-validator": "auth-specialists",
+            "compass-auth-optimization-specialist": "auth-specialists",
+            "compass-writing-analyst": "writing-specialists",
+            "compass-academic-analyst": "writing-specialists",
+            "compass-memory-enhanced-writer": "writing-specialists",
+            "compass-dependency-tracker": "dependency-specialists",
+            "compass-gap-analysis": "gap-analysis",
             "compass-enhanced-analysis": "enhanced-analysis",
             "compass-cross-reference": "cross-reference",
+            "compass-svg-analyst": "svg-quality",
+            "compass-upstream-validator": "upstream-validation",
+            "compass-coder": "execution-bridge",
+            "compass-memory-integrator": "memory-integration",
+            "compass-second-opinion": "expert-consultation",
+            "compass-breakthrough-doc": "breakthrough-documentation",
         }
 
         if subagent_type in agent_phase_map:
@@ -3399,7 +3434,7 @@ def create_enhanced_recursion_message(
    - Phase 3: compass-gap-analysis
    - Phase 4: compass-enhanced-analysis
    - Phase 5: compass-cross-reference
-   
+
 2. **Check Session Status**: Review .claude/logs/compass-status for current methodology progress
 
 3. **Alternative Coordination**: If methodology reset needed, wait for session timeout or use direct agent calls
@@ -3428,7 +3463,7 @@ def create_enhanced_recursion_message(
 
 ✅ **CORRECTIVE ACTIONS**:
 1. **Manual Validation**: If upstream validation needed, use direct repository commands:
-   - git fetch upstream  
+   - git fetch upstream
    - git diff upstream/main..HEAD
    - Manual review of changes
 
