@@ -67,7 +67,9 @@ class CompassFileOrganizer:
     """
 
     def __init__(self, project_root=None):
-        self.project_root = Path(project_root or os.getcwd())
+        if project_root is None:
+            project_root = self._find_project_root()
+        self.project_root = Path(project_root)
         self.docs_dir = self.project_root / ".serena/memories"
         self.maps_dir = self.project_root / ".serena/maps"
         self.compass_dir = self.project_root / ".claude"
@@ -77,6 +79,35 @@ class CompassFileOrganizer:
 
         # Ensure directory structure exists
         self._ensure_directories()
+
+    def _find_project_root(self):
+        """Find the actual project root, avoiding working directory dependency bugs"""
+        cwd = Path.cwd()
+        
+        # First, try to find git root
+        git_root = self._find_git_root(cwd)
+        if git_root:
+            return git_root
+            
+        # If we're in a .claude subdirectory, find the parent containing .claude
+        if '.claude' in str(cwd):
+            potential_root = cwd
+            while potential_root != potential_root.parent:
+                if (potential_root / '.claude').exists() and potential_root != cwd:
+                    return potential_root
+                potential_root = potential_root.parent
+        
+        # Fallback to current working directory
+        return cwd
+    
+    def _find_git_root(self, path):
+        """Find git repository root by looking for .git directory"""
+        current = Path(path).resolve()
+        while current != current.parent:
+            if (current / '.git').exists():
+                return current
+            current = current.parent
+        return None
 
     def _ensure_directories(self):
         """Ensure all required directories exist"""
