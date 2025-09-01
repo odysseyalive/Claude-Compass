@@ -2573,41 +2573,29 @@ def compass_handler_core(input_data, hook_type):
                     f"⚠️ Upstream validation failed: {validation_result.get('reason', 'Unknown error')}\n\nSuggestions: {validation_result.get('suggestions', [])}",
                 )
 
-        # Check if this tool usage requires COMPASS methodology
-        if requires_compass_methodology(tool_name, tool_input):
-            # Block the tool usage and provide guidance (regardless of COMPASS context status)
+        # STEP 3: NEW LOGIC - Check if compass-captain is already active
+        # If NOT active, inject compass-captain context for ALL PreToolUse events
+        if not compass_context_active():
             log_handler_activity(
-                "compass_required", f"Blocking {tool_name} - COMPASS required"
+                "compass_injection", f"Injecting compass-captain context for {tool_name} - no active session"
+            )
+            
+            # CRITICAL: DO NOT REMOVE - Use inject_compass_context() like UserPromptSubmit
+            # This ensures consistent compass context injection behavior between hook types
+            # Keeps getting removed but MUST match UserPromptSubmit implementation for consistency
+            # Previous code used create_permission_decision_with_compass_context() which created
+            # different behavior than UserPromptSubmit - this fix ensures both hooks behave identically
+            return inject_compass_context()
+        
+        # If compass context is active, check if complex tools need special handling
+        if requires_compass_methodology(tool_name, tool_input):
+            # Block the tool usage and provide guidance for complex tools during active session
+            log_handler_activity(
+                "compass_required", f"Blocking {tool_name} - COMPASS required during active session"
             )
 
             session_context = get_compass_session_context()
-
-            if not compass_context_active():
-                compass_message = f"""🧭 COMPASS METHODOLOGY REQUIRED
-
-⚠️ **SYSTEMATIC ANALYSIS REQUIRED**: Tool '{tool_name}' detected as requiring COMPASS methodology
-
-🧠 **WHY COMPASS IS REQUIRED**:
-• Complex analytical tasks require systematic approach
-• Prevents ad-hoc analysis that misses institutional knowledge
-• Ensures quality control through 7-phase methodology
-• Integrates with existing patterns and documentation
-
-📊 **PREPARATION FOR COMPASS**:
-• No active COMPASS session detected
-• Ready to initialize systematic methodology
-• Tool will be coordinated through proper phases
-
-✅ **REQUIRED ACTIONS**:
-1. **Initialize COMPASS**: Use Task tool with subagent_type='compass-captain'
-2. **Methodology Coordination**: compass-captain will coordinate full 7-phase COMPASS approach
-3. **Progress Tracking**: Check .claude/logs/compass-status for methodology progress
-4. **Quality Assurance**: Systematic approach ensures comprehensive analysis
-
-🎯 **NEXT STEP**: Use Task tool with subagent_type='compass-captain' to begin systematic analysis"""
-
-            else:
-                compass_message = f"""🧭 COMPASS ENFORCEMENT ACTIVE
+            compass_message = f"""🧭 COMPASS ENFORCEMENT ACTIVE
 
 ⚠️ **TOOL COORDINATION REQUIRED**: Tool '{tool_name}' requires COMPASS coordination during active session
 
@@ -2634,10 +2622,10 @@ Use Task tool with subagent_type='compass-captain' for proper tool coordination
                 "deny", compass_message
             )
 
-        # STEP 3: Allow the tool and inject compass context (SAME PATH as UserPromptSubmit)
-        log_handler_activity("tool_allowed", f"Allowing {tool_name}")
+        # STEP 4: Allow the tool during active COMPASS session (non-complex tools)
+        log_handler_activity("tool_allowed", f"Allowing {tool_name} during active COMPASS session")
         return create_permission_decision_with_compass_context(
-            "allow", "COMPASS validation passed"
+            "allow", "COMPASS validation passed - tool allowed during active session"
         )
 
     else:
@@ -3305,13 +3293,48 @@ def get_current_session_tokens():
 
 def handle_pre_tool_use_with_token_tracking(input_data):
     """
-    Enhanced PreToolUse handler with comprehensive token tracking
-    Preserves existing hook functionality while adding token visibility
+    Enhanced PreToolUse handler with comprehensive token tracking and compass-captain injection
+    MODIFIED: Always injects compass-captain context unless compass-captain is already active
     """
     tool_name = input_data.get("tool_name", "")
     tool_input = input_data.get("tool_input", {})
 
-    # CRITICAL: COMPASS ENFORCEMENT - Block ALL tools unless compass-captain is called
+    # NEW LOGIC: Check if compass-captain is already active
+    # If NOT active, inject compass-captain context for ALL PreToolUse events
+    if not compass_context_active():
+        log_handler_activity(
+            "compass_injection", f"Injecting compass-captain context for {tool_name} - no active session"
+        )
+        
+        compass_message = f"""🧭 COMPASS CAPTAIN ROUTING
+
+⚠️ **AUTOMATIC COMPASS COORDINATION**: All tool usage now routes through compass-captain methodology
+
+🧠 **WHY COMPASS-CAPTAIN IS REQUIRED**:
+• Ensures systematic approach to all tool usage
+• Integrates institutional knowledge into every operation
+• Provides methodology coordination for optimal results
+• Maintains quality standards across all activities
+
+📊 **COMPASS-CAPTAIN COORDINATION**:
+• No active COMPASS session detected
+• All tools coordinated through compass-captain
+• Automatic methodology selection based on task complexity
+• Real-time token tracking and progress visibility
+
+✅ **AUTOMATIC ROUTING ACTIVE**:
+1. **Tool Coordination**: compass-captain will coordinate {tool_name} usage
+2. **Methodology Selection**: Optimal approach chosen automatically
+3. **Progress Tracking**: Check .claude/logs/compass-status for progress
+4. **Quality Assurance**: Systematic coordination ensures best results
+
+🎯 **NEXT STEP**: compass-captain will coordinate {tool_name} through appropriate methodology approach"""
+
+        return create_permission_decision_with_compass_context(
+            "deny", compass_message
+        )
+
+    # COMPASS SESSION IS ACTIVE - Handle tool coordination during active session
     if compass_context_active():
         # Only allow compass-captain and memory-safe agents during COMPASS sessions
         if tool_name == "Task":
@@ -3676,7 +3699,7 @@ def generate_final_token_report():
    • Optimization Opportunities: {identify_optimization_opportunities(session_tokens)}
 
 ════════════════════════════════════════════════════════════════
-📄 Detailed breakdown available in: .claude-tokens.json
+📄 Detailed breakdown available in: .claude/logs/compass-tokens.json
 🔄 This data contributes to institutional learning for future optimizations
 """
 
@@ -4329,7 +4352,7 @@ ANALYSIS COMPLETED: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 📁 RESULTS AVAILABLE IN:
    docs/  - Updated investigation frameworks
    maps/  - New visual pattern diagrams
-   .claude-tokens.json - Detailed token usage data
+   .claude/logs/compass-tokens.json - Detailed token usage data
 
 🎯 NEXT STEPS:
    • Review generated documentation
