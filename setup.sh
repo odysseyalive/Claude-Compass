@@ -252,6 +252,8 @@ install_agents() {
     "compass-todo-sync"
     "compass-svg-analyst"
     "compass-memory-integrator"
+    "compass-syntax-validator"
+    "compass-cleanup-coordinator"
   )
 
   # Track installation progress for rollback capability
@@ -599,6 +601,8 @@ validate_installation() {
     "compass-todo-sync"
     "compass-svg-analyst"
     "compass-memory-integrator"
+    "compass-syntax-validator"
+    "compass-cleanup-coordinator"
   )
 
   for agent in "${agents[@]}"; do
@@ -612,7 +616,7 @@ validate_installation() {
     exit 1
   fi
 
-  log_success "All COMPASS agents installed successfully (25 total agents including complexity analyzer, strategy builder, validation coordinator, enhanced knowledge discovery with maps integration, writing/academic/memory specialists, authentication specialists, upstream validation, dependency tracking, breakthrough documentation, todo synchronization, SVG orchestration, and memory integration)"
+  log_success "All COMPASS agents installed successfully (27 total agents including complexity analyzer, strategy builder, validation coordinator, enhanced knowledge discovery with maps integration, writing/academic/memory specialists, authentication specialists, upstream validation, dependency tracking, breakthrough documentation, todo synchronization, SVG orchestration, memory integration, syntax validation, and cleanup coordination)"
 
   # Test .claude/settings.json syntax
   if command -v python3 >/dev/null 2>&1; then
@@ -693,7 +697,7 @@ show_success_message() {
   echo "🚀 Next Steps:"
   echo "   1. Start Claude Code in this directory: claude"
   echo "   2. Try a complex analytical request to trigger COMPASS"
-  echo "   3. Watch the captain coordinate all 25 agents through 7-phase COMPASS methodology"
+  echo "   3. Watch the captain coordinate all 27 agents through 7-phase COMPASS methodology"
   echo "   4. Observe memory-safe agent orchestration and strategic planning optimization"
   echo ""
   echo "🔍 Test COMPASS with prompts like:"
