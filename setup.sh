@@ -206,7 +206,7 @@ setup_directories() {
   fi
 
   # Create COMPASS execution directories  
-  if ! mkdir -p "$CURRENT_DIR/.claude/handlers" "$CURRENT_DIR/.claude/logs" "$CURRENT_DIR/.claude/tests" "$CURRENT_DIR/.claude/temp" "$CURRENT_DIR/.claude/scripts"; then
+  if ! mkdir -p "$CURRENT_DIR/.claude/handlers" "$CURRENT_DIR/.claude/logs" "$CURRENT_DIR/.claude/tests" "$CURRENT_DIR/.claude/temp"; then
     log_error "Failed to create .claude execution directories"
     exit 1
   fi
@@ -253,7 +253,6 @@ install_agents() {
     "compass-svg-analyst"
     "compass-memory-integrator"
     "compass-syntax-validator"
-    "compass-cleanup-coordinator"
   )
 
   # Track installation progress for rollback capability
@@ -292,67 +291,6 @@ install_agents() {
   done
 }
 
-# Install/Update COMPASS scripts
-install_scripts() {
-  local force_update="$1"
-
-  log_info "Installing COMPASS scripts..."
-
-  local claude_scripts_dir="$CURRENT_DIR/.claude/scripts"
-
-  # Create scripts directory if it doesn't exist
-  if ! mkdir -p "$claude_scripts_dir"; then
-    log_error "Failed to create scripts directory: $claude_scripts_dir"
-    exit 1
-  fi
-
-  local scripts=(
-    "safe-cleanup.py"
-    "cleanup"
-    "README-cleanup.md"
-  )
-
-  # Track installation progress for rollback capability
-  local installed_scripts=()
-
-  for script in "${scripts[@]}"; do
-    local script_url="$REPO_URL/claude/scripts/${script}"
-    local target_file="$claude_scripts_dir/${script}"
-
-    if [[ -f "$target_file" ]] && [[ "$force_update" != "true" ]]; then
-      log_warning "Script $script already exists. Use 'update' to overwrite."
-      installed_scripts+=("$script")
-    else
-      if download_file "$script_url" "$target_file" "script: $script"; then
-        # Set proper permissions based on file type
-        if [[ "$script" == "cleanup" ]] || [[ "$script" == "safe-cleanup.py" ]]; then
-          chmod +x "$target_file"
-          log_success "Installed executable script: $script"
-        else
-          log_success "Installed script: $script"
-        fi
-        installed_scripts+=("$script")
-      else
-        log_error "Failed to install script: $script"
-
-        # Rollback: Remove any scripts installed in this session on failure
-        if [[ "$force_update" == "true" ]]; then
-          log_info "Rolling back partial script installation due to failed script: $script"
-          for installed_script in "${installed_scripts[@]}"; do
-            if [[ -f "$claude_scripts_dir/${installed_script}" ]]; then
-              if rm "$claude_scripts_dir/${installed_script}"; then
-                log_info "Removed: $installed_script"
-              else
-                log_warning "Failed to remove: $installed_script"
-              fi
-            fi
-          done
-        fi
-        exit 1
-      fi
-    fi
-  done
-}
 
 # Install/Update COMPASS technical enforcement system
 # Install/Update COMPASS technical enforcement system and tools
@@ -602,7 +540,6 @@ validate_installation() {
     "compass-svg-analyst"
     "compass-memory-integrator"
     "compass-syntax-validator"
-    "compass-cleanup-coordinator"
   )
 
   for agent in "${agents[@]}"; do
@@ -616,7 +553,7 @@ validate_installation() {
     exit 1
   fi
 
-  log_success "All COMPASS agents installed successfully (27 total agents including complexity analyzer, strategy builder, validation coordinator, enhanced knowledge discovery with maps integration, writing/academic/memory specialists, authentication specialists, upstream validation, dependency tracking, breakthrough documentation, todo synchronization, SVG orchestration, memory integration, syntax validation, and cleanup coordination)"
+  log_success "All COMPASS agents installed successfully (26 total agents including complexity analyzer, strategy builder, validation coordinator, enhanced knowledge discovery with maps integration, writing/academic/memory specialists, authentication specialists, upstream validation, dependency tracking, breakthrough documentation, todo synchronization, SVG orchestration, memory integration, and syntax validation)"
 
   # Test .claude/settings.json syntax
   if command -v python3 >/dev/null 2>&1; then
@@ -658,7 +595,6 @@ do_install() {
 
   setup_directories
   install_agents "false"
-  install_scripts "false"
   install_compass_tools "false"
   configure_claude_settings "false"
   validate_installation
@@ -673,7 +609,6 @@ do_update() {
 
   setup_directories
   install_agents "true"
-  install_scripts "true"
   install_compass_tools "true"
   configure_claude_settings "true"
   validate_installation
@@ -687,7 +622,7 @@ show_success_message() {
   echo ""
   echo "📍 Installation Summary:"
   echo "   • Captain and crew agents installed to: $CLAUDE_AGENTS_DIR"
-  echo "   • COMPASS scripts installed to: $CURRENT_DIR/.claude/scripts/"
+  echo ""
   echo "   • Technical enforcement installed to: $CURRENT_DIR/.claude/handlers/compass-handler.py"
 
   echo "   • Configuration file: $CURRENT_DIR/.claude/settings.json"
@@ -697,7 +632,7 @@ show_success_message() {
   echo "🚀 Next Steps:"
   echo "   1. Start Claude Code in this directory: claude"
   echo "   2. Try a complex analytical request to trigger COMPASS"
-  echo "   3. Watch the captain coordinate all 27 agents through 7-phase COMPASS methodology"
+  echo "   3. Watch the captain coordinate all 26 agents through 7-phase COMPASS methodology"
   echo "   4. Observe memory-safe agent orchestration and strategic planning optimization"
   echo ""
   echo "🔍 Test COMPASS with prompts like:"

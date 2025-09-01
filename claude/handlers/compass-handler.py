@@ -2374,7 +2374,6 @@ def detect_compass_agent_in_prompt(prompt):
         "compass-upstream-validator",
         "compass-dependency-tracker",
         "compass-breakthrough-doc",
-        "compass-cleanup-coordinator",
         "compass-todo-sync",
         "compass-svg-analyst",
         "compass-syntax-validator",
@@ -3214,7 +3213,6 @@ def map_agent_to_phase(agent_type):
     """
     phase_mapping = {
         "compass-captain": "coordination",
-        "compass-cleanup-coordinator": "coordination",
         "compass-complexity-analyzer": "strategic_planning",
         "compass-strategy-builder": "strategic_planning",
         "compass-validation-coordinator": "strategic_planning",
@@ -3793,6 +3791,7 @@ def format_phase_breakdown(by_phase):
         "phase5_cross_reference": "Cross-Reference",
         "phase5_svg_analysis": "SVG Analysis",
         "phase6_execution_bridge": "Execution Bridge",
+        "phase7_memory_integration": "Memory Integration",
     }
 
     breakdown = []
@@ -3859,87 +3858,39 @@ def requires_compass_methodology(tool_name, tool_input):
     """
     CRITICAL ENFORCEMENT FUNCTION: Determines when COMPASS methodology is required for tool usage
 
-    WARNING: This function is the core logic for COMPASS methodology enforcement.
-    Modifications can allow ad-hoc analysis to bypass systematic approach requirements.
+    SIMPLIFIED UNIVERSAL ROUTING: This function now enforces COMPASS methodology for ALL tools
+    to ensure systematic approach and institutional knowledge integration for every operation.
 
     PURPOSE:
-    - Analyzes tool usage patterns to detect complex analytical tasks
-    - Enforces institutional knowledge integration requirements
+    - Enforces systematic methodology for ALL tool usage
+    - Ensures institutional knowledge integration for every operation  
     - Prevents ad-hoc analysis that bypasses documented approaches
-    - Ensures systematic methodology for complex operations
-    - Maintains quality and consistency standards across analysis work
+    - Maintains quality and consistency standards across all work
+    - Universal compass-captain routing when no session is active
 
-    ENFORCEMENT CRITERIA:
-    - Complex analysis tools: MCP Serena search and symbol tools
-    - Multi-file operations: Tools working across multiple files
-    - Investigation patterns: grep, find, pattern searches
-    - Documentation tasks: When creating systematic documentation
-    - Pattern recognition: Tools indicating methodical work required
-
-    DETECTION LOGIC:
-    - Tool complexity: Identifies tools requiring systematic approach
-    - Input analysis: Examines parameters for complexity indicators
-    - Usage context: Considers broader operational context
-    - Systematic indicators: Detects when methodology would add value
+    UNIVERSAL ENFORCEMENT:
+    - ALL tools require COMPASS methodology when no session is active
+    - Only gating condition is compass_context_active() check in PreToolUse
+    - Removes complexity-based filtering for universal accessibility
+    - Ensures every tool usage benefits from systematic approach
 
     ARGS:
-        tool_name (str): Name of the tool being executed
-        tool_input (dict): Parameters and input for the tool
+        tool_name (str): Name of the tool being executed (not used in universal mode)
+        tool_input (dict): Parameters and input for the tool (not used in universal mode)
 
     RETURNS:
-        bool: True if COMPASS methodology required, False if tool can proceed independently
+        bool: Always True - all tools require COMPASS methodology unless session active
 
-    CRITICAL FOR:
-    - Quality control: Ensures complex tasks use systematic approaches
-    - Institutional knowledge: Forces consultation of existing patterns
-    - Consistency: Maintains standard approaches across similar work
-    - Bypass prevention: Stops circumvention of methodology requirements
-
-    DO NOT MODIFY WITHOUT:
-    1. Understanding COMPASS methodology value and purpose
-    2. Testing detection accuracy with various tool usage patterns
-    3. Verifying enforcement doesn't block legitimate simple operations
-    4. Ensuring systematic approach is truly beneficial for detected cases
+    UNIVERSAL ROUTING BENEFITS:
+    - Quality control: All tasks use systematic approaches
+    - Institutional knowledge: Forces consultation of existing patterns for every operation
+    - Consistency: Maintains standard approaches across all work
+    - Complete coverage: No tool usage bypasses methodology requirements
     """
-
-    # Tools that always require COMPASS for complex operations
-    complex_tools = [
-        "mcp__serena__search_for_pattern",
-        "mcp__serena__find_symbol",
-        "mcp__serena__find_referencing_symbols",
-        "mcp__serena__get_symbols_overview",
-    ]
-
-    if tool_name in complex_tools:
-        return True
-
-    # Reading multiple files or large analysis operations
-    if tool_name == "mcp__serena__read_file":
-        # Check if this appears to be part of systematic analysis
-        relative_path = tool_input.get("relative_path", "")
-        if any(
-            pattern in relative_path.lower()
-            for pattern in ["src/", "lib/", "components/", "services/", "agents/"]
-        ):
-            return True
-
-    # Directory listing with recursive scanning
-    if tool_name == "mcp__serena__list_dir":
-        if tool_input.get("recursive", False):
-            return True
-
-    # Any regex replacement or symbol modification
-    modification_tools = [
-        "mcp__serena__replace_regex",
-        "mcp__serena__replace_symbol_body",
-        "mcp__serena__insert_after_symbol",
-        "mcp__serena__insert_before_symbol",
-    ]
-
-    if tool_name in modification_tools:
-        return True
-
-    return False
+    
+    # Universal routing: ALL tools require COMPASS methodology
+    # Only gating condition is compass_context_active() in PreToolUse handler
+    return True
 
 
 def compass_context_active():
@@ -4295,7 +4246,7 @@ def complete_compass_analysis():
 
 ANALYSIS COMPLETED: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 
-✓ All 6 phases executed successfully
+✓ All 7 phases executed successfully
 ✓ Institutional knowledge integrated
 ✓ Systematic analysis methodology applied
 ✓ Quality assurance completed
@@ -4463,7 +4414,6 @@ def check_compass_agent_activity(input_data):
         # Map agents to phases
         agent_phase_map = {
             "compass-captain": "coordination",
-            "compass-cleanup-coordinator": "coordination",
             "compass-complexity-analyzer": "strategic-planning",
             "compass-strategy-builder": "strategic-planning",
             "compass-validation-coordinator": "strategic-planning",
@@ -4631,6 +4581,7 @@ def get_phase_description(phase):
         "enhanced-analysis": "Execute enhanced analysis with institutional context",
         "cross-reference": "Cross-reference findings with existing patterns",
         "memory-integration": "Memory Integration - Update institutional knowledge with new insights",
+        "cleanup-coordination": "Cleanup Coordination - Orchestrate systematic cleanup of generated artifacts",
     }
     return descriptions.get(phase, f"Execute {phase} phase")
 

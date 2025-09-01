@@ -275,6 +275,7 @@ When compass-enhanced-analysis identifies coding tasks:
 - **Institutional Knowledge Continuity**: Ensure knowledge capture follows COMPASS documentation standards
 - **Absolute Path Documentation**: All documentation must reference files using absolute paths for clarity
 - **Directory Structure Preservation**: Maintain COMPASS methodology documentation hierarchy through implementation phase
+- **Documentation Consistency Requirement**: When delegating file operations that modify/delete existing files, MUST include directive to update all documentation that references those files
 
 ## Ethical Bypass Resistance
 

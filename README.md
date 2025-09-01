@@ -348,7 +348,7 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/odysseyalive/claude-comp
 
 **What the update accomplishes:**
 
-- **Refreshes all 27 COMPASS agents** with latest behavioral improvements and new capabilities
+- **Refreshes all 26 COMPASS agents** with latest behavioral improvements and new capabilities
 - **Updates technical enforcement systems** including the compass-handler.py in `.claude/handlers/` and hook configurations  
 - **Validates your installation** ensuring all components work together seamlessly
 - **Preserves your institutional knowledge** - your existing `.serena/memories/` and `.serena/maps/` directories remain untouched
@@ -443,7 +443,7 @@ COMPASS doesn't care if you're debugging code or untangling policy contradiction
 
 [↑ Contents](#contents)
 
-The `compass-captain` orchestrates a network of 27 specialized agents through a comprehensive 7-phase methodology, each focused on a specific aspect of analysis. With memory-safe coordination protocols, agents operate with bounded resource usage while building institutional knowledge. Think of them as different experts you might call in for a complex project - each brings their own perspective and can also be called manually when you need targeted help.
+The `compass-captain` orchestrates a network of 26 specialized agents through a comprehensive 7-phase methodology, each focused on a specific aspect of analysis. With memory-safe coordination protocols, agents operate with bounded resource usage while building institutional knowledge. Think of them as different experts you might call in for a complex project - each brings their own perspective and can also be called manually when you need targeted help.
 
 ### The 7-Phase COMPASS Methodology
 
@@ -510,7 +510,6 @@ This methodology ensures that every investigation builds upon previous work whil
 **Development Infrastructure**:
 
 - **compass-dependency-tracker** - Dependency lifecycle management and compliance analysis
-- **compass-cleanup-coordinator** - Project maintenance and cleanup. Safely identifies and cleans up test files while protecting legitimate project files through confidence scoring and backup protocols
 
 Each agent can be called individually when you need specific expertise, but they work together automatically when the `compass-captain` orchestrates a full analysis. The system scales from quick targeted help to comprehensive institutional analysis depending on what your project needs.
 
