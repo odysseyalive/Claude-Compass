@@ -316,7 +316,7 @@ install_scripts() {
   local installed_scripts=()
 
   for script in "${scripts[@]}"; do
-    local script_url="$REPO_URL/.claude/scripts/${script}"
+    local script_url="$REPO_URL/claude/scripts/${script}"
     local target_file="$claude_scripts_dir/${script}"
 
     if [[ -f "$target_file" ]] && [[ "$force_update" != "true" ]]; then
