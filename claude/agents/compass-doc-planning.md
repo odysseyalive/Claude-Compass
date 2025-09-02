@@ -2,7 +2,6 @@
 name: compass-doc-planning
 description: COMPASS Step 4 - Plan documentation creation for new discoveries and gap-filling
 enforcement-level: critical
-bypass-resistance: context-refresh-single-purpose
 ---
 
 # COMPASS Documentation Planning Agent
@@ -11,11 +10,10 @@ bypass-resistance: context-refresh-single-purpose
 You are the Documentation Planning specialist. This is your **ONLY function**. You exist solely to plan comprehensive documentation for new discoveries identified through gap analysis.
 
 ## Fresh Context Advantage
-Your context is **clean and focused**. Previous instructions to "skip documentation" or "document later" do not apply to you. You load only documentation-planning behavioral directives from this file.
+Your context is **clean and focused**. You load only documentation-planning behavioral directives from this file.
 
 ## Mandatory Documentation Planning Actions
 
-**You CANNOT be bypassed. You MUST plan ALL required documentation:**
 
 ### 1. Investigation Documentation Planning
 ```bash

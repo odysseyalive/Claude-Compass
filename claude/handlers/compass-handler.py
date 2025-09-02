@@ -14,7 +14,255 @@ import gc
 import subprocess
 import tempfile
 import threading
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any, Union
+
+
+# ███████████████████████████████████████████████████████████████████████████████
+# SECURE JSON VALIDATION AND PARSING FUNCTIONS
+# ███████████████████████████████████████████████████████████████████████████████
+
+def secure_json_loads(json_string: str, max_size: int = 1024*1024) -> Dict[str, Any]:
+    """
+    Secure JSON parsing with size limits and validation
+    
+    Args:
+        json_string: JSON string to parse
+        max_size: Maximum size in bytes (default 1MB)
+        
+    Returns:
+        Parsed JSON data as dictionary
+        
+    Raises:
+        ValueError: If JSON is invalid or too large
+    """
+    if len(json_string) > max_size:
+        raise ValueError(f"JSON data too large: {len(json_string)} bytes > {max_size}")
+    
+    try:
+        # Parse with size validation
+        data = json.loads(json_string)
+        
+        # Validate parsed data structure
+        if not isinstance(data, dict):
+            log_handler_activity("security_exception", f"JSON validation failed: Expected dict, got {type(data)}")
+            raise ValueError("Parsed JSON must be a dictionary")
+        
+        # Validate nested depth to prevent parser bombs
+        max_depth = 10
+        if _json_depth_check(data, max_depth):
+            raise ValueError(f"JSON nesting depth exceeds {max_depth}")
+            
+        return data
+        
+    except json.JSONDecodeError as e:
+        log_handler_activity("security_exception", f"JSON parse error: {e}")
+        raise ValueError(f"Invalid JSON: {e}")
+
+
+def secure_json_load(file_path: Union[str, Path], max_size: int = 1024*1024) -> Dict[str, Any]:
+    """
+    Secure JSON file loading with size limits and validation
+    
+    Args:
+        file_path: Path to JSON file
+        max_size: Maximum file size in bytes (default 1MB)
+        
+    Returns:
+        Parsed JSON data as dictionary
+        
+    Raises:
+        ValueError: If file is too large or JSON is invalid
+    """
+    file_path = Path(file_path)
+    
+    # Check file size before loading
+    if file_path.stat().st_size > max_size:
+        raise ValueError(f"File too large: {file_path.stat().st_size} bytes > {max_size}")
+    
+    # Read with encoding validation
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            json_string = f.read()
+        
+        return secure_json_loads(json_string, max_size)
+        
+    except (OSError, UnicodeDecodeError) as e:
+        log_handler_activity("security_exception", f"File read error: {e}")
+        raise ValueError(f"File read error: {e}")
+
+
+def secure_json_dumps(data: Dict[str, Any], max_output_size: int = 1024*1024) -> str:
+    """
+    Secure JSON serialization with output size validation
+    
+    Args:
+        data: Dictionary to serialize
+        max_output_size: Maximum output size in bytes
+        
+    Returns:
+        JSON string
+        
+    Raises:
+        ValueError: If output would be too large
+    """
+    try:
+        # Serialize with compact format for security
+        json_string = json.dumps(data, separators=(",", ":"), ensure_ascii=False)
+        
+        # Validate output size
+        if len(json_string) > max_output_size:
+            raise ValueError(f"JSON output too large: {len(json_string)} bytes > {max_output_size}")
+        
+        return json_string
+        
+    except (TypeError, ValueError) as e:
+        log_handler_activity("security_exception", f"JSON serialization error: {e}")
+        raise ValueError(f"JSON serialization failed: {e}")
+
+
+def _json_depth_check(obj: Any, max_depth: int, current_depth: int = 0) -> bool:
+    """
+    Check JSON object depth to prevent parser bombs
+    
+    Args:
+        obj: Object to check depth for
+        max_depth: Maximum allowed depth
+        current_depth: Current recursion depth
+        
+    Returns:
+        True if depth exceeded, False otherwise
+    """
+    if current_depth > max_depth:
+        return True
+        
+    if isinstance(obj, dict):
+        for value in obj.values():
+            if _json_depth_check(value, max_depth, current_depth + 1):
+                return True
+    elif isinstance(obj, list):
+        for item in obj:
+            if _json_depth_check(item, max_depth, current_depth + 1):
+                return True
+                
+    return False
+
+
+def validate_log_entry_schema(log_entry: Dict[str, Any]) -> bool:
+    """
+    Validate log entry against expected schema
+    
+    Args:
+        log_entry: Log entry dictionary
+        
+    Returns:
+        True if valid, False otherwise
+    """
+    required_fields = ["timestamp", "action", "details", "handler"]
+    
+    try:
+        # Check required fields
+        for field in required_fields:
+            if field not in log_entry:
+                log_handler_activity("security_exception", f"Missing required log field: {field}")
+                return False
+        
+        # Validate field types
+        if not isinstance(log_entry["timestamp"], str):
+            return False
+        if not isinstance(log_entry["action"], str):
+            return False
+        if not isinstance(log_entry["handler"], str):
+            return False
+            
+        # Validate timestamp format
+        try:
+            datetime.fromisoformat(log_entry["timestamp"])
+        except ValueError:
+            return False
+            
+        # Validate string lengths (prevent log injection)
+        if len(log_entry["action"]) > 100:
+            return False
+        if len(str(log_entry["details"])) > 1000:
+            return False
+            
+        return True
+        
+    except Exception as e:
+        log_handler_activity("security_exception", f"Log validation error: {e}")
+        return False
+
+
+# ███████████████████████████████████████████████████████████████████████████████
+# PROJECT ROOT DETECTION AND PATH MANAGEMENT
+# ███████████████████████████████████████████████████████████████████████████████
+
+def get_project_root():
+    """
+    Centralized project root detection function.
+    
+    This function provides consistent project root detection across all COMPASS functionality,
+    ensuring that all directory operations work correctly regardless of the current working directory.
+    
+    Returns:
+        Path: Absolute path to the project root directory
+    """
+    cwd = Path.cwd()
+    
+    # First, try to find git root
+    current = Path(cwd).resolve()
+    while current != current.parent:
+        if (current / '.git').exists():
+            return current
+        current = current.parent
+            
+    # If we're in a .claude subdirectory, find the parent containing .claude
+    if '.claude' in str(cwd):
+        potential_root = cwd
+        while potential_root != potential_root.parent:
+            if (potential_root / '.claude').exists() and potential_root != cwd:
+                return potential_root
+            potential_root = potential_root.parent
+    
+    # Fallback to current working directory
+    return cwd
+
+
+def get_logs_dir():
+    """
+    Get the project-root-relative logs directory path.
+    
+    Returns:
+        Path: Absolute path to .claude/logs directory
+    """
+    project_root = get_project_root()
+    logs_dir = project_root / ".claude/logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    return logs_dir
+
+
+def get_docs_dir():
+    """
+    Get the project-root-relative docs directory path.
+    
+    Returns:
+        Path: Absolute path to docs directory  
+    """
+    project_root = get_project_root()
+    return project_root / "docs"
+
+
+def get_maps_dir():
+    """
+    Get the project-root-relative maps directory path.
+    
+    Returns:
+        Path: Absolute path to maps directory
+    """
+    project_root = get_project_root()
+    maps_dir = project_root / "maps"
+    maps_dir.mkdir(exist_ok=True)
+    return maps_dir
 
 
 # Integrated CompassFileOrganizer class
@@ -275,9 +523,13 @@ class CompassFileOrganizer:
         try:
             with open(log_file, "a") as f:
                 f.write(json.dumps(log_entry) + "\n")
-        except Exception:
-            # Fail silently if logging fails
-            pass
+        except Exception as e:
+            # Security logging: Silent exception in log_handler_activity
+            try:
+                import sys
+                sys.stderr.write(f"Security audit: log_handler_activity exception: {e}\n")
+            except:
+                pass  # Last resort fallback
 
 
 # ███████████████████████████████████████████████████████████████████████████████
@@ -511,7 +763,8 @@ class AutomaticSyntaxValidationSystem:
                         "token_reduction": 99.0,  # No content loaded
                         "memory_efficiency": "optimal"
                     }
-            except Exception:
+            except Exception as e:
+                log_handler_activity("security_exception", f"Silent exception in lsp_first_python_zero_content: {e}")
                 pass  # Fall back to targeted loading
             
             # STEP 2: Targeted content loading only if LSP analysis insufficient
@@ -599,7 +852,8 @@ class AutomaticSyntaxValidationSystem:
                         "token_reduction": 99.0,  # No content loaded
                         "memory_efficiency": "optimal"
                     }
-            except Exception:
+            except Exception as e:
+                log_handler_activity("security_exception", f"Silent exception in lsp_first_js_zero_content: {e}")
                 pass  # Fall back to targeted loading
             
             # STEP 2: Targeted bracket matching validation (minimal content loading)
@@ -703,7 +957,8 @@ class AutomaticSyntaxValidationSystem:
                         "token_reduction": 99.0,  # No content loaded
                         "memory_efficiency": "optimal"
                     }
-            except Exception:
+            except Exception as e:
+                log_handler_activity("security_exception", f"Silent exception in lsp_first_java_zero_content: {e}")
                 pass  # Fall back to targeted loading
             
             # STEP 2: Targeted structure validation (minimal content loading)
@@ -775,7 +1030,8 @@ class AutomaticSyntaxValidationSystem:
                         "token_reduction": 99.0,  # No content loaded
                         "memory_efficiency": "optimal"
                     }
-            except Exception:
+            except Exception as e:
+                log_handler_activity("security_exception", f"Silent exception in lsp_first_html_zero_content: {e}")
                 pass  # Fall back to targeted loading
             
             # STEP 2: Targeted HTML structure validation (minimal content loading)
@@ -900,7 +1156,8 @@ class AutomaticSyntaxValidationSystem:
                 if symbols_overview and len(symbols_overview) > 0:
                     symbol_integrity = True
                     symbol_count = len(symbols_overview)
-            except Exception:
+            except Exception as e:
+                log_handler_activity("security_exception", f"Silent exception in symbol structure analysis: {e}")
                 symbol_integrity = False
             
             # STEP 2: Symbol resolution testing (LSP-only, no body loading)
@@ -912,7 +1169,8 @@ class AutomaticSyntaxValidationSystem:
                     if symbols and len(symbols) > 0:
                         resolution_integrity = True
                         resolved_symbols = len(symbols)
-            except Exception:
+            except Exception as e:
+                log_handler_activity("security_exception", f"Silent exception in symbol resolution testing: {e}")
                 resolution_integrity = False
             
             # STEP 3: Language-specific LSP validation
@@ -930,7 +1188,8 @@ class AutomaticSyntaxValidationSystem:
                         language_specific_score = 0.2
                     else:
                         language_errors.append("No Python classes or functions detected via LSP")
-                except Exception:
+                except Exception as e:
+                    log_handler_activity("security_exception", f"Silent exception in Python LSP analysis: {e}")
                     language_errors.append("LSP analysis failed for Python structures")
                     
             elif language == 'javascript':
@@ -943,7 +1202,8 @@ class AutomaticSyntaxValidationSystem:
                         language_specific_score = 0.2
                     else:
                         language_errors.append("No JavaScript functions or variables detected via LSP")
-                except Exception:
+                except Exception as e:
+                    log_handler_activity("security_exception", f"Silent exception in JavaScript LSP analysis: {e}")
                     language_errors.append("LSP analysis failed for JavaScript structures")
                     
             elif language == 'java':
@@ -956,7 +1216,8 @@ class AutomaticSyntaxValidationSystem:
                         language_specific_score = 0.2
                     else:
                         language_errors.append("No Java classes or methods detected via LSP")
-                except Exception:
+                except Exception as e:
+                    log_handler_activity("security_exception", f"Silent exception in Java LSP analysis: {e}")
                     language_errors.append("LSP analysis failed for Java structures")
                     
             elif language == 'html':
@@ -970,7 +1231,8 @@ class AutomaticSyntaxValidationSystem:
                         language_specific_score = 0.2
                     else:
                         language_errors.append("No HTML structure detected via LSP")
-                except Exception:
+                except Exception as e:
+                    log_handler_activity("security_exception", f"Silent exception in HTML LSP analysis: {e}")
                     language_errors.append("LSP analysis failed for HTML structures")
             
             # STEP 4: Calculate comprehensive confidence score
@@ -1038,12 +1300,14 @@ class AutomaticSyntaxValidationSystem:
                 if hasattr(mcp_module, 'mcp__serena__get_symbols_overview'):
                     result = mcp_module.mcp__serena__get_symbols_overview({'relative_path': relative_path})
                     return result if result else []
-            except Exception:
+            except Exception as e:
+                log_handler_activity("security_exception", f"Silent exception in MCP symbols overview call: {e}")
                 pass
             
             # Fallback: Return empty list if MCP not available
             return []
-        except Exception:
+        except Exception as e:
+            log_handler_activity("security_exception", f"Silent exception in call_serena_get_symbols_overview: {e}")
             return None
     
     def call_serena_find_symbol(self, name_path: str, file_path: str, include_body: bool = False, 
@@ -1071,12 +1335,14 @@ class AutomaticSyntaxValidationSystem:
                 if hasattr(mcp_module, 'mcp__serena__find_symbol'):
                     result = mcp_module.mcp__serena__find_symbol(params)
                     return result if result else []
-            except Exception:
+            except Exception as e:
+                log_handler_activity("security_exception", f"Silent exception in MCP find symbol call: {e}")
                 pass
             
             # Fallback: Return empty list if MCP not available
             return []
-        except Exception:
+        except Exception as e:
+            log_handler_activity("security_exception", f"Silent exception in call_serena_find_symbol: {e}")
             return None
     
     def convert_to_relative_path(self, file_path: str) -> str:
@@ -1096,7 +1362,8 @@ class AutomaticSyntaxValidationSystem:
             except ValueError:
                 # If not relative to cwd, return as-is
                 return file_path
-        except Exception:
+        except Exception as e:
+            log_handler_activity("security_exception", f"Silent exception in convert_to_relative_path: {e}")
             return file_path
     
     def validate_file_with_lsp_first(self, file_path: str, tool_name: str = "unknown") -> dict:
@@ -1208,7 +1475,8 @@ class AutomaticSyntaxValidationSystem:
                         "token_reduction": 99.0,
                         "memory_efficiency": "optimal"
                     }
-            except Exception:
+            except Exception as e:
+                log_handler_activity("security_exception", f"Silent exception in generic LSP validation: {e}")
                 pass  # Fall back to lightweight content checks
             
             # STEP 2: Minimal content validation for unsupported file types
@@ -1294,7 +1562,8 @@ class AutomaticSyntaxValidationSystem:
         try:
             # Placeholder for actual Serena integration
             return [{'name_path': 'symbol_found'}]
-        except Exception:
+        except Exception as e:
+            log_handler_activity("security_exception", f"Silent exception in pattern analysis find_symbol: {e}")
             return None
 
     def handle_validation_failure(self, validation_result: dict) -> dict:
@@ -1765,8 +2034,7 @@ def cleanup_memory():
             gc.collect()
 
         # Ensure .claude/logs directory exists
-        logs_dir = Path(".claude/logs")
-        logs_dir.mkdir(parents=True, exist_ok=True)
+        logs_dir = get_logs_dir()
 
         # OPTIMIZED: Clean up token tracking files if they're too large
         token_file = logs_dir / "compass-tokens.json"
@@ -1796,8 +2064,9 @@ def cleanup_memory():
         for cleanup_file in [".claude-complete", ".claude-todo-updates"]:
             Path(cleanup_file).unlink(missing_ok=True)
 
-    except Exception:
+    except Exception as e:
         # Emergency cleanup should never crash
+        log_handler_activity("security_exception", f"Silent exception in emergency cleanup: {e}")
         pass
 
 
@@ -1830,7 +2099,7 @@ def cleanup_compass_status_if_stale():
     """
     try:
         # Define compass status file path
-        logs_dir = Path(".claude/logs")
+        logs_dir = get_logs_dir()
         status_file = logs_dir / "compass-status"
 
         # Only proceed if status file exists (no point cleaning if already clean)
@@ -1839,12 +2108,38 @@ def cleanup_compass_status_if_stale():
 
         # Check if session is stale (NOT active means stale)
         if not check_compass_session_active():
-            # Session is stale - perform cleanup
-            status_file.unlink()
-            log_handler_activity(
-                "stale_session_cleanup",
-                "Removed compass-status file due to stale session (>10 min inactivity)",
-            )
+            # Session is stale - perform comprehensive cleanup of ALL session files
+            cleanup_files = []
+            
+            # Remove compass-status file
+            if status_file.exists():
+                status_file.unlink()
+                cleanup_files.append("compass-status")
+            
+            # Remove compass-session.json file
+            session_file = logs_dir / "compass-session.json"
+            if session_file.exists():
+                session_file.unlink()
+                cleanup_files.append("compass-session.json")
+            
+            # Remove compass-status.lock file
+            status_lock_file = logs_dir / "compass-status.lock"
+            if status_lock_file.exists():
+                status_lock_file.unlink()
+                cleanup_files.append("compass-status.lock")
+            
+            # Remove compass-tokens.json.lock file if it exists
+            tokens_lock_file = logs_dir / "compass-tokens.json.lock"
+            if tokens_lock_file.exists():
+                tokens_lock_file.unlink()
+                cleanup_files.append("compass-tokens.json.lock")
+            
+            if cleanup_files:
+                log_handler_activity(
+                    "stale_session_cleanup",
+                    f"Comprehensive cleanup completed - removed session files: {', '.join(cleanup_files)} (>10 min inactivity)",
+                )
+            
             return True  # Cleanup performed
         else:
             # Session is still active - no cleanup needed
@@ -1900,7 +2195,7 @@ def cleanup_compass_status():
     """
     try:
         # Define compass status file path
-        logs_dir = Path(".claude/logs")
+        logs_dir = get_logs_dir()
         status_file = logs_dir / "compass-status"
 
         # Check if status file exists and remove it
@@ -2122,7 +2417,7 @@ To fix: Update the file path in your tool call to use the suggested path above."
     except Exception as e:
         # If validation fails, err on side of caution but don't block
         log_handler_activity("file_validation_error", f"File validation error: {e}")
-        return {"safe": True, "reason": f"Validation error, allowing operation: {e}"}
+        return {"safe": False, "reason": f"Validation failed, denying for security: {e}"}
 
 
 def main():
@@ -2205,9 +2500,15 @@ def main():
                 "input_too_large", f"Input truncated at {MAX_INPUT_SIZE} bytes"
             )
 
-        input_data = json.loads(input_text)
+        # Use secure JSON parsing with validation
+        try:
+            input_data = secure_json_loads(input_text, MAX_INPUT_SIZE)
+        except ValueError as e:
+            log_handler_activity("security_exception", f"Secure JSON parsing failed: {e}")
+            print(f"COMPASS Handler: Invalid input format - {e}", file=sys.stderr)
+            sys.exit(1)
 
-        # Validate input data structure
+        # Additional validation is now handled by secure_json_loads
         if not isinstance(input_data, dict):
             log_handler_activity("invalid_input", "Input is not a dictionary")
             print("COMPASS Handler Error: Invalid input format", file=sys.stderr)
@@ -2956,7 +3257,7 @@ def update_session_token_count(agent_type, token_count):
     □ Testing with corrupted token files and recovery paths
     """
     # Ensure .claude/logs directory exists
-    logs_dir = Path(".claude/logs")
+    logs_dir = get_logs_dir()
     try:
         logs_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
@@ -3247,7 +3548,7 @@ def get_current_session_tokens():
     Graceful degradation with memory-safe reading
     """
     # Use .claude/logs directory for token file
-    logs_dir = Path(".claude/logs")
+    logs_dir = get_logs_dir()
     token_file = logs_dir / "compass-tokens.json"
     if not token_file.exists():
         return {"total": 0, "by_agent": {}, "by_phase": {}}
@@ -3276,7 +3577,8 @@ def get_current_session_tokens():
         # Attempt to recover by cleaning the file
         try:
             cleanup_token_file(token_file)
-        except Exception:
+        except Exception as e:
+            log_handler_activity("security_exception", f"Silent exception in token file cleanup: {e}")
             pass
         return {"total": 0, "by_agent": {}, "by_phase": {}}
     except (OSError, MemoryError) as e:
@@ -3465,7 +3767,7 @@ def update_compass_status_with_tokens(agent_type, token_count):
     Integrates token visibility with throttled I/O to prevent excessive writes
     """
     # Ensure .claude/logs directory exists
-    logs_dir = Path(".claude/logs")
+    logs_dir = get_logs_dir()
     try:
         logs_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
@@ -3574,7 +3876,7 @@ def log_agent_token_usage(agent_type, token_count, execution_type):
     }
 
     # Use .claude/logs directory
-    logs_dir = Path(".claude/logs")
+    logs_dir = get_logs_dir()
     try:
         logs_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
@@ -3605,7 +3907,7 @@ def log_parallel_efficiency(agent_count, total_tokens, duration):
     }
 
     # Use .claude/logs directory
-    logs_dir = Path(".claude/logs")
+    logs_dir = get_logs_dir()
     try:
         logs_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
@@ -3636,7 +3938,7 @@ def log_delegation_step(primary_agent, specialist_type, specialist_tokens):
     }
 
     # Use .claude/logs directory
-    logs_dir = Path(".claude/logs")
+    logs_dir = get_logs_dir()
     try:
         logs_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
@@ -3897,7 +4199,7 @@ def compass_context_active():
     """Check if COMPASS methodology context is currently active"""
 
     # Primary check: .claude/logs/compass-status file existence (most reliable indicator)
-    logs_dir = Path(".claude/logs")
+    logs_dir = get_logs_dir()
     status_file = logs_dir / "compass-status"
     if status_file.exists():
         return True
@@ -3907,7 +4209,7 @@ def compass_context_active():
         return True
 
     # Check for COMPASS agent activity in recent logs (expanded detection)
-    logs_dir = Path(".claude/logs")
+    logs_dir = get_logs_dir()
     log_file = logs_dir / "compass-handler.log"
     if log_file.exists():
         try:
@@ -3945,11 +4247,12 @@ def compass_context_active():
 
                 except (json.JSONDecodeError, KeyError):
                     continue
-        except Exception:
+        except Exception as e:
+            log_handler_activity("security_exception", f"Silent exception in activity detection: {e}")
             pass
 
     # Check for active COMPASS documentation activity (extended window)
-    docs_dir = Path("docs")
+    docs_dir = get_docs_dir()
     if docs_dir.exists():
         recent_files = [
             f
@@ -3969,63 +4272,121 @@ def compass_context_active():
 def is_recent_timestamp(timestamp_str):
     """Check if timestamp is within the last 10 minutes"""
     try:
+        # Parse timestamp and handle both naive and timezone-aware timestamps
         timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+        
+        # Ensure both timestamps are timezone-aware for consistent comparison
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=datetime.now().astimezone().tzinfo)
+        
         now = datetime.now().astimezone()
         return (now - timestamp).total_seconds() < 600  # 10 minutes
-    except Exception:
+    except Exception as e:
+        log_handler_activity("security_exception", f"Silent exception in timestamp validation: {e}")
         return False
 
 
 def is_recent_timestamp_extended(timestamp_str):
     """Check if timestamp is within the last 10 minutes (extended for COMPASS sessions)"""
     try:
+        # Parse timestamp and handle both naive and timezone-aware timestamps
         timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+        
+        # Ensure both timestamps are timezone-aware for consistent comparison
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=datetime.now().astimezone().tzinfo)
+        
         now = datetime.now().astimezone()
         return (now - timestamp).total_seconds() < 600  # 10 minutes
-    except Exception:
+    except Exception as e:
+        log_handler_activity("security_exception", f"Silent exception in extended timestamp validation: {e}")
         return False
 
 
 def check_compass_session_active():
-    """Check if COMPASS session is active based on persistent session tracking"""
-    logs_dir = Path(".claude/logs")
-    session_file = logs_dir / "compass-session.json"
-    if not session_file.exists():
+    """
+    Check if COMPASS session is active based on persistent session tracking
+    
+    Enhanced with improved error handling, validation, and comprehensive session state checks.
+    Returns True only if session is genuinely active within timeout thresholds.
+    """
+    try:
+        logs_dir = get_logs_dir()
+        session_file = logs_dir / "compass-session.json"
+        
+        # Basic existence check
+        if not session_file.exists():
+            return False
+
+        # Read and parse session data with enhanced error handling
+        try:
+            with open(session_file, "r") as f:
+                session_data = json.load(f)
+        except (json.JSONDecodeError, FileNotFoundError, OSError) as e:
+            log_handler_activity("session_validation_error", f"Failed to read session file: {e}")
+            return False
+
+        # Validate session data structure
+        if not isinstance(session_data, dict):
+            log_handler_activity("session_validation_error", "Session data is not a valid JSON object")
+            return False
+
+        # Check required fields exist
+        session_start = session_data.get("session_start", "")
+        last_activity = session_data.get("last_activity", "")
+        
+        if not session_start or not last_activity:
+            log_handler_activity("session_validation_error", "Session data missing required timestamp fields")
+            return False
+
+        # Check if session was created within last 10 minutes (session age limit)
+        if is_session_timestamp_valid(session_start, 600):  # 10 minutes
+            # Session is not too old, check for recent activity
+            
+            # Check if there was recent activity within 10 minutes (activity timeout)
+            if is_session_timestamp_valid(last_activity, 600):  # 10 minutes
+                return True  # Session is active
+            else:
+                # Session exists but activity timed out
+                log_handler_activity("session_validation", "Session exists but activity timeout exceeded (>10 min)")
+                return False
+        else:
+            # Session is too old (>10 minutes)
+            log_handler_activity("session_validation", "Session age exceeded maximum duration (>10 minutes)")
+            return False
+
+    except Exception as e:
+        # Comprehensive error handling - never crash on session checks
+        log_handler_activity("session_validation_error", f"Unexpected error in session validation: {e}")
         return False
 
-    try:
-        with open(session_file, "r") as f:
-            session_data = json.load(f)
-
-        # Check if session was created within last 2 hours
-        session_start = session_data.get("session_start", "")
-        if is_session_timestamp_valid(session_start, 7200):  # 2 hours
-            return True
-
-        # Check if there was recent activity
-        last_activity = session_data.get("last_activity", "")
-        if is_session_timestamp_valid(last_activity, 600):  # 10 minutes
-            return True
-
-    except (json.JSONDecodeError, FileNotFoundError):
-        pass
-
+    # Default fallback
     return False
 
 
 def is_session_timestamp_valid(timestamp_str, seconds_threshold):
     """Check if timestamp is within specified seconds threshold"""
     try:
+        # Parse timestamp and handle both naive and timezone-aware timestamps
         timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+        
+        # Ensure both timestamps are timezone-aware for consistent comparison
+        if timestamp.tzinfo is None:
+            # If timestamp is naive, assume it's in local timezone
+            timestamp = timestamp.replace(tzinfo=datetime.now().astimezone().tzinfo)
+        
         now = datetime.now().astimezone()
+        
+        # Now both timestamps are timezone-aware, comparison will work
         return (now - timestamp).total_seconds() < seconds_threshold
-    except Exception:
+    except Exception as e:
+        log_handler_activity("security_exception", f"Silent exception in session timestamp validation: {e}")
         return False
 
 
 def check_recent_compass_tokens():
     """Check token tracking file for recent COMPASS agent activity"""
-    logs_dir = Path(".claude/logs")
+    logs_dir = get_logs_dir()
     token_file = logs_dir / "compass-tokens.json"
     if not token_file.exists():
         return False
@@ -4054,7 +4415,7 @@ def check_recent_compass_tokens():
 def create_compass_session_tracking():
     """Create or update COMPASS session tracking file"""
     # Ensure .claude/logs directory exists
-    logs_dir = Path(".claude/logs")
+    logs_dir = get_logs_dir()
     try:
         logs_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
@@ -4110,7 +4471,7 @@ def create_compass_session_tracking():
 
 def update_compass_session_activity():
     """Update last activity timestamp in session tracking"""
-    logs_dir = Path(".claude/logs")
+    logs_dir = get_logs_dir()
     session_file = logs_dir / "compass-session.json"
 
     if session_file.exists():
@@ -4170,15 +4531,31 @@ REQUIRED: Systematic 6-Phase Analysis Coordination
 """
 
     # Ensure .claude/logs directory exists
-    logs_dir = Path(".claude/logs")
+    logs_dir = get_logs_dir()
     try:
         logs_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
         logs_dir = Path(".")
 
     status_file = logs_dir / "compass-status"
-    with open(status_file, "w") as f:
-        f.write(status_content)
+    lock_file = logs_dir / "compass-status.lock"
+    
+    # Atomic file operation with locking
+    with FileLock(lock_file):
+        try:
+            # Write to temporary file first
+            temp_file = logs_dir / "compass-status.tmp"
+            with open(temp_file, "w") as f:
+                f.write(status_content)
+            
+            # Atomic move to final location
+            temp_file.rename(status_file)
+            log_handler_activity("atomic_file_operation", "Status file created with atomic operation")
+        except Exception as e:
+            log_handler_activity("security_exception", f"Atomic status file creation failed: {e}")
+            # Fallback to direct write
+            with open(status_file, "w") as f:
+                f.write(status_content)
 
     log_handler_activity(
         "status_file", "Created .claude/logs/compass-status for user visibility"
@@ -4187,7 +4564,7 @@ REQUIRED: Systematic 6-Phase Analysis Coordination
 
 def update_compass_phase(phase_name, status="in_progress"):
     """Update COMPASS status file with phase progress"""
-    logs_dir = Path(".claude/logs")
+    logs_dir = get_logs_dir()
     status_file = logs_dir / "compass-status"
     if not status_file.exists():
         return
@@ -4237,7 +4614,7 @@ def update_compass_phase(phase_name, status="in_progress"):
 
 def complete_compass_analysis():
     """Mark COMPASS analysis as complete and clean up status"""
-    logs_dir = Path(".claude/logs")
+    logs_dir = get_logs_dir()
     status_file = logs_dir / "compass-status"
     if status_file.exists():
         # Create completion summary
@@ -4283,7 +4660,7 @@ def complete_compass_analysis_with_token_report():
     # Generate final token report
     token_report = generate_final_token_report()
 
-    logs_dir = Path(".claude/logs")
+    logs_dir = get_logs_dir()
     status_file = logs_dir / "compass-status"
     if status_file.exists():
         # Create completion summary with token analysis
@@ -4381,15 +4758,31 @@ REQUIRED: Systematic 6-Phase Analysis Coordination
 """
 
     # Ensure .claude/logs directory exists
-    logs_dir = Path(".claude/logs")
+    logs_dir = get_logs_dir()
     try:
         logs_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
         logs_dir = Path(".")
 
     status_file = logs_dir / "compass-status"
-    with open(status_file, "w") as f:
-        f.write(status_content)
+    lock_file = logs_dir / "compass-status.lock"
+    
+    # Atomic file operation with locking
+    with FileLock(lock_file):
+        try:
+            # Write to temporary file first
+            temp_file = logs_dir / "compass-status.tmp"
+            with open(temp_file, "w") as f:
+                f.write(status_content)
+            
+            # Atomic move to final location
+            temp_file.rename(status_file)
+            log_handler_activity("atomic_file_operation", "Status file created with atomic operation")
+        except Exception as e:
+            log_handler_activity("security_exception", f"Atomic status file creation failed: {e}")
+            # Fallback to direct write
+            with open(status_file, "w") as f:
+                f.write(status_content)
 
     log_handler_activity(
         "status_file",
@@ -4399,7 +4792,7 @@ REQUIRED: Systematic 6-Phase Analysis Coordination
 
 def check_compass_agent_activity(input_data):
     """Check if COMPASS agents are being used and update status"""
-    logs_dir = Path(".claude/logs")
+    logs_dir = get_logs_dir()
     status_file = logs_dir / "compass-status"
     if not status_file.exists():
         return
@@ -4458,16 +4851,17 @@ def check_compass_agent_activity(input_data):
 
 def get_compass_status_for_claude():
     """Get current COMPASS status for Claude to announce"""
-    logs_dir = Path(".claude/logs")
+    logs_dir = get_logs_dir()
     status_file = logs_dir / "compass-status"
     if status_file.exists():
         with open(status_file, "r") as f:
             return f.read()
-    elif Path(".claude-complete").exists():
-        with open(".claude-complete", "r") as f:
+    elif (get_project_root() / ".claude-complete").exists():
+        completion_file = get_project_root() / ".claude-complete"
+        with open(completion_file, "r") as f:
             content = f.read()
         # Clean up completion file after reading
-        Path(".claude-complete").unlink()
+        completion_file.unlink()
         return content
     return None
 
@@ -4486,7 +4880,7 @@ def ensure_compass_directories():
                 continue
 
         # Initialize map-index.json if missing
-        map_index = Path("maps/map-index.json")
+        map_index = get_maps_dir() / "map-index.json"
         if not map_index.exists():
             try:
                 initialize_map_index()
@@ -4533,10 +4927,9 @@ def initialize_map_index():
 
     try:
         # Ensure maps directory exists before writing
-        maps_dir = Path("maps")
-        maps_dir.mkdir(exist_ok=True)
+        maps_dir = get_maps_dir()
 
-        with open("maps/map-index.json", "w", encoding="utf-8") as f:
+        with open(maps_dir / "map-index.json", "w", encoding="utf-8") as f:
             json.dump(map_index_content, f, indent=2)
 
         log_handler_activity("map_index_created", "Map index initialized successfully")
@@ -4695,7 +5088,7 @@ def get_compass_session_context():
                 context["current_phase"] = map_agent_to_phase(last_agent) or "Unknown"
 
         # Check session tracking file for recent activity
-        logs_dir = Path(".claude/logs")
+        logs_dir = get_logs_dir()
         session_file = logs_dir / "compass-session.json"
         if session_file.exists():
             try:
@@ -4842,7 +5235,7 @@ def create_enhanced_recursion_message(
 
 
 def log_handler_activity(action, details):
-    """Log handler actions for monitoring and debugging with rotation"""
+    """Log handler actions for monitoring and debugging with rotation and validation"""
     log_entry = {
         "timestamp": datetime.now().isoformat(),
         "action": action,
@@ -4851,8 +5244,19 @@ def log_handler_activity(action, details):
         "version": "2.1",
     }
 
+    # Validate log entry schema for security
+    if not validate_log_entry_schema(log_entry):
+        # If validation fails, create sanitized entry
+        log_entry = {
+            "timestamp": datetime.now().isoformat(),
+            "action": "validation_failed",
+            "details": f"Invalid log entry format for action: {str(action)[:50]}",
+            "handler": "compass-handler",
+            "version": "2.1",
+        }
+
     # Ensure .claude/logs directory exists
-    logs_dir = Path(".claude/logs")
+    logs_dir = get_logs_dir()
     try:
         logs_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
@@ -4866,9 +5270,21 @@ def log_handler_activity(action, details):
         if log_file.exists() and log_file.stat().st_size > MAX_LOG_SIZE:
             rotate_log_file(log_file)
 
+        # Use secure JSON serialization
+        try:
+            json_output = secure_json_dumps(log_entry, max_output_size=10240)  # 10KB limit per log entry
+        except ValueError as e:
+            # Fallback to sanitized minimal entry if serialization fails
+            json_output = json.dumps({
+                "timestamp": datetime.now().isoformat(),
+                "action": "serialization_failed",
+                "details": f"Log serialization error: {str(e)[:100]}",
+                "handler": "compass-handler"
+            }, separators=(",", ":"))
+
         # Write log entry with error handling
         with open(log_file, "a", encoding="utf-8") as f:
-            f.write(json.dumps(log_entry, separators=(",", ":")) + "\n")
+            f.write(json_output + "\n")
 
     except (OSError, IOError, MemoryError):
         # Fail silently if logging fails to prevent handler crashes

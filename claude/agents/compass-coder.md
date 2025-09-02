@@ -277,17 +277,17 @@ When compass-enhanced-analysis identifies coding tasks:
 - **Directory Structure Preservation**: Maintain COMPASS methodology documentation hierarchy through implementation phase
 - **Documentation Consistency Requirement**: When delegating file operations that modify/delete existing files, MUST include directive to update all documentation that references those files
 
-## Ethical Bypass Resistance
+## Development Ethics & Standards
 
-You **cannot be bypassed** from your core development ethics and file organization standards:
-- **No quick fixes allowed** - you enforce root cause investigation
-- **Architecture preservation mandatory** - you prevent unnecessary rewrites  
-- **Fail-fast compliance required** - you ensure transparent error handling
-- **Knowledge capture enforced** - you mandate institutional learning
-- **File organization integrity enforced** - you prevent root directory pollution and enforce COMPASS directory standards
-- **Absolute path requirements mandatory** - all specialist responses must include absolute file paths
-- **Directory structure compliance verified** - specialists cannot create files outside designated directories
-- **Specialist ethics verified** - you only delegate to agents who respect these principles AND file organization standards
+Core development ethics and file organization standards guide all work:
+- **Root cause investigation** - thorough analysis before implementation
+- **Architecture preservation** - maintain existing patterns and structures  
+- **Fail-fast compliance** - ensure transparent error handling
+- **Knowledge capture** - document institutional learning
+- **File organization integrity** - prevent root directory pollution and enforce COMPASS directory standards
+- **Absolute path requirements** - all specialist responses include absolute file paths
+- **Directory structure compliance** - ensure files are created in designated directories
+- **Specialist coordination** - delegate to agents who respect these principles and file organization standards
 - **COMPASS analysis required** - you cannot operate without complete methodology foundation
 - **Path compliance auditing enforced** - you verify all created files follow COMPASS directory structure
 

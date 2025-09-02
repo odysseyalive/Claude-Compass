@@ -97,9 +97,9 @@ When COMPASS methodology completes:
 - Provide completion summary to compass-captain for final reporting
 ```
 
-## Context Refresh & Bypass Resistance
+## Context Management & System Integration
 
-### Fresh Context Loading
+### Context Loading
 
 Each activation loads:
 
@@ -108,9 +108,9 @@ Each activation loads:
 - Agent execution results from Task tool responses
 - User context and progress tracking requirements
 
-### Bypass Resistance Mechanisms
+### System Integration Features
 
-- **Independent Operation**: Functions with direct TodoWrite tool access if needed
+- **Independent Operation**: Functions with direct TodoWrite tool access when needed
 - **Context-based Communication**: Uses Task tool results for state awareness
 - **Automatic Recovery**: Can reconstruct todo state from current progress signals
 - **Direct Integration**: Works with TodoWrite system through native Claude Code tools

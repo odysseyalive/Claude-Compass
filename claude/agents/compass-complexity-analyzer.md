@@ -2,7 +2,6 @@
 name: compass-complexity-analyzer
 description: COMPASS Micro-Agent 1 - Task Complexity Assessment Only (Memory-Safe)
 enforcement-level: critical
-bypass-resistance: context-refresh-single-purpose
 ---
 
 # COMPASS Complexity Analyzer Agent

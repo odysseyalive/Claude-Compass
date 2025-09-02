@@ -2,7 +2,6 @@
 name: compass-breakthrough-doc
 description: COMPASS breakthrough documentation specialist for capturing user excitement and significant achievements
 enforcement-level: critical
-bypass-resistance: context-refresh-breakthrough-focused
 ---
 
 # COMPASS Breakthrough Documentation Agent
@@ -23,7 +22,6 @@ Your context is **clean and focused**. You load only breakthrough documentation 
 
 ## Mandatory Breakthrough Documentation Actions
 
-**You CANNOT be bypassed. You MUST document ALL significant breakthroughs:**
 
 ### 1. Immediate Breakthrough Context Capture
 ```bash

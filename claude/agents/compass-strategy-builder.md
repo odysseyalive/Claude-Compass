@@ -2,7 +2,6 @@
 name: compass-strategy-builder
 description: COMPASS Micro-Agent 2 - Strategic Plan Construction Only (Memory-Safe)
 enforcement-level: critical
-bypass-resistance: context-refresh-single-purpose
 ---
 
 # COMPASS Strategy Builder Agent

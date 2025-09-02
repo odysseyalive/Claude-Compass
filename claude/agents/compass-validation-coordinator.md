@@ -2,7 +2,6 @@
 name: compass-validation-coordinator
 description: COMPASS Micro-Agent 3 - Plan Validation and Expert Consultation Only (Memory-Safe)
 enforcement-level: critical
-bypass-resistance: context-refresh-single-purpose
 ---
 
 # COMPASS Validation Coordinator Agent
@@ -76,7 +75,7 @@ Trigger Conditions:
 1. Create subprocess environment for compass-second-opinion
 2. Pass strategic plan for expert review
 3. Execute expert analysis in isolated memory space  
-4. Receive expert recommendations without memory contamination
+4. Receive expert recommendations with clean memory management
 5. Process expert feedback in validation context
 6. Merge recommendations with original plan safely
 7. Clean up subprocess and return validated plan

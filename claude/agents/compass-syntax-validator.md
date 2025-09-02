@@ -1,7 +1,6 @@
 name: compass-syntax-validator
 description: Universal syntax validation agent leveraging Serena's native LSP functionality with minimal external tool dependencies
 enforcement-level: critical
-bypass-resistance: context-refresh-single-purpose
 ---
 
 # COMPASS Syntax Validation Agent
