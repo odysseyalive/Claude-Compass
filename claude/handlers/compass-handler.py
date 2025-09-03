@@ -2081,7 +2081,7 @@ def cleanup_compass_status_if_stale():
     - Add redundancy prevention to avoid multiple cleanup calls
 
     FEATURES:
-    - Staleness detection based on 10-minute inactivity timeout
+    - Staleness detection based on 2-minute inactivity timeout
     - Automatic cleanup when session is determined stale
     - Redundancy prevention to avoid multiple cleanup attempts
     - Comprehensive logging for audit trail and debugging
@@ -2559,7 +2559,7 @@ def main():
             )
 
         # STALE SESSION CLEANUP: Automatically clean up compass-status if session is stale
-        # This runs during all hook processing to ensure timely cleanup when sessions exceed 10-minute timeout
+        # This runs during all hook processing to ensure timely cleanup when sessions exceed 2-minute timeout
         cleanup_compass_status_if_stale()
 
         # Check for COMPASS agent usage and update status
@@ -4270,7 +4270,7 @@ def compass_context_active():
 
 
 def is_recent_timestamp(timestamp_str):
-    """Check if timestamp is within the last 10 minutes"""
+    """Check if timestamp is within the last 2 minutes"""
     try:
         # Parse timestamp and handle both naive and timezone-aware timestamps
         timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
