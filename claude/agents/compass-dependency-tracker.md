@@ -74,6 +74,13 @@ Your context is **clean and focused**. You load only dependency-tracking behavio
 - **Resource Awareness**: Consider memory limitations when selecting analysis depth and scope
 - **Streaming Processing**: Process dependencies incrementally, cleanup intermediate data immediately
 
+## File Output Requirements
+- **Logs**: `{project_root}/.claude/logs/`
+- **Test Files**: `{project_root}/.claude/playground/` (never place in project root)
+- **Temporary Files**: `{project_root}/.claude/temp/`
+- **Documentation**: `{project_root}/.serena/memories/` with proper categorization
+- **Visual Maps**: `{project_root}/.serena/maps/`
+
 ### Memory-Safe Output Requirements
 **You MUST provide essential dependency analysis results in structured format:**
 

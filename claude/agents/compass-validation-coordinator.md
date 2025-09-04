@@ -190,6 +190,13 @@ if expert_feedback.resource_optimization:
 - **Plan Integration**: Merge expert feedback without contaminating main context
 - **After Validation**: Clear all validation context, return only final validated plan
 
+## File Output Requirements
+- **Logs**: `{project_root}/.claude/logs/`
+- **Test Files**: `{project_root}/.claude/playground/` (never place in project root)
+- **Temporary Files**: `{project_root}/.claude/temp/`
+- **Documentation**: `{project_root}/.serena/memories/` with proper categorization
+- **Visual Maps**: `{project_root}/.serena/maps/`
+
 ## Error Handling
 ```
 Invalid plan structure: Return validation failure with specific errors

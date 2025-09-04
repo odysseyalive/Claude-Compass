@@ -67,6 +67,13 @@ You work within the COMPASS coordination system to apply documented patterns and
 - **Memory Budget**: Operate within allocated memory constraints for pattern analysis operations
 - **Resource Awareness**: Consider memory limitations when selecting and adapting complex patterns
 
+## File Output Requirements
+- **Logs**: `{project_root}/.claude/logs/`
+- **Test Files**: `{project_root}/.claude/playground/` (never place in project root)
+- **Temporary Files**: `{project_root}/.claude/temp/`
+- **Documentation**: `{project_root}/.serena/memories/` with proper categorization
+- **Visual Maps**: `{project_root}/.serena/maps/`
+
 ### Memory-Safe Output Requirements
 **You MUST provide essential pattern application results in structured format:**
 

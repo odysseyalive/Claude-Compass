@@ -78,6 +78,13 @@ When activated for agent disagreements or parallel execution conflicts:
 5. **Implementation Guidance**: Provide specific steps to execute the resolution
 6. **Risk Assessment**: Address potential downsides of the chosen approach
 
+## File Output Requirements
+- **Logs**: `{project_root}/.claude/logs/`
+- **Test Files**: `{project_root}/.claude/playground/` (never place in project root)
+- **Temporary Files**: `{project_root}/.claude/temp/`
+- **Documentation**: `{project_root}/.serena/memories/` with proper categorization
+- **Visual Maps**: `{project_root}/.serena/maps/`
+
 ## Response Format:
 
 ### **Standard Consultation Format:**

@@ -495,6 +495,13 @@ def update_analysis_map_index_serena_safe(map_filename, analysis_name, analysis_
 - **File Operation Errors**: Serena MCP native error handling
 - **Pattern Discovery Failures**: Progressive degradation with partial results
 
+## File Output Requirements
+- **Logs**: `{project_root}/.claude/logs/`
+- **Test Files**: `{project_root}/.claude/playground/` (never place in project root)
+- **Temporary Files**: `{project_root}/.claude/temp/`
+- **Documentation**: `{project_root}/.serena/memories/` with proper categorization
+- **Visual Maps**: `{project_root}/.serena/maps/`
+
 ## Output Format (Memory-Optimized)
 
 ### Enhanced Analysis Results Structure

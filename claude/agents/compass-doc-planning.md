@@ -223,6 +223,13 @@ def plan_knowledge_transfer_memory_safe(gap_findings):
 - Basic pattern library maintenance
 - Essential knowledge transfer guidelines
 
+## File Output Requirements
+- **Logs**: `{project_root}/.claude/logs/`
+- **Test Files**: `{project_root}/.claude/playground/` (never place in project root)
+- **Temporary Files**: `{project_root}/.claude/temp/`
+- **Documentation**: `{project_root}/.serena/memories/` with proper categorization
+- **Visual Maps**: `{project_root}/.serena/maps/`
+
 ### Memory-Safe Output Requirements
 **You MUST provide documentation strategy within memory bounds:**
 

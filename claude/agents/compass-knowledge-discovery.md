@@ -91,6 +91,13 @@ Terms: ["auth", "authentication", "react", "patterns", "security", "login"]
 - Provide actionable insights enhanced with visual pattern guidance
 ```
 
+## File Output Requirements
+- **Logs**: `{project_root}/.claude/logs/`
+- **Test Files**: `{project_root}/.claude/playground/` (never place in project root)
+- **Temporary Files**: `{project_root}/.claude/temp/`
+- **Documentation**: `{project_root}/.serena/memories/` with proper categorization
+- **Visual Maps**: `{project_root}/.serena/maps/`
+
 ## Enhanced Output Format
 
 Return comprehensive knowledge findings with visual patterns:

@@ -424,6 +424,13 @@ def create_bidirectional_links_bounded(self, discovery, related_patterns):
 4. **Cross-Reference Creation (Limited Scope)** - Create essential cross-references with memory boundaries
 5. **Validation Check (Bounded Metrics)** - Ensure knowledge base coherence using essential-only validation
 
+## File Output Requirements
+- **Logs**: `{project_root}/.claude/logs/`
+- **Test Files**: `{project_root}/.claude/playground/` (never place in project root)
+- **Temporary Files**: `{project_root}/.claude/temp/`
+- **Documentation**: `{project_root}/.serena/memories/` with proper categorization
+- **Visual Maps**: `{project_root}/.serena/maps/`
+
 ### Memory-Safe Output Requirements
 **You MUST provide memory-bounded cross-reference integration:**
 

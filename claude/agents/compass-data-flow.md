@@ -295,6 +295,13 @@ Optimized activation during **COMPASS Step 2 (Pattern Application)** with memory
 - **Memory-Bounded Analysis**: Activate only when complexity justifies memory usage
 - **Essential Context Extraction**: Provide lightweight context packages to downstream agents
 
+## File Output Requirements
+- **Logs**: `{project_root}/.claude/logs/`
+- **Test Files**: `{project_root}/.claude/playground/` (never place in project root)
+- **Temporary Files**: `{project_root}/.claude/temp/`
+- **Documentation**: `{project_root}/.serena/memories/` with proper categorization
+- **Visual Maps**: `{project_root}/.serena/maps/`
+
 ### **Memory-Safe Output for compass-coder Team**
 Essential-only context packages with aggressive cleanup:
 

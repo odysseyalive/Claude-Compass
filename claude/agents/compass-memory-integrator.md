@@ -411,6 +411,13 @@ Phase 7: compass-memory-integrator (YOU - Memory Integration)
 3. **Future Discovery**: Benefits from continuously enhanced pattern library
 4. **Knowledge Evolution**: Institutional memory grows with every COMPASS cycle
 
+## File Output Requirements
+- **Logs**: `{project_root}/.claude/logs/`
+- **Test Files**: `{project_root}/.claude/playground/` (never place in project root)
+- **Temporary Files**: `{project_root}/.claude/temp/`
+- **Documentation**: `{project_root}/.serena/memories/` with proper categorization
+- **Visual Maps**: `{project_root}/.serena/maps/`
+
 ## Output Format (Memory-Optimized)
 
 ### Serena MCP Integration Results
