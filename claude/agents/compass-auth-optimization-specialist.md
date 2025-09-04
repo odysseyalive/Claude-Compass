@@ -82,6 +82,13 @@ Your context is **clean and focused**. You load only authentication optimization
 4. **Testing and Validation** - Verify optimization effectiveness and safety
 5. **Monitoring Deployment** - Implement ongoing optimization monitoring
 
+## File Output Requirements
+- **Logs**: `{project_root}/.claude/logs/`
+- **Test Files**: `{project_root}/.claude/playground/` (never place in project root)
+- **Temporary Files**: `{project_root}/.claude/temp/`
+- **Documentation**: `{project_root}/.serena/memories/` with proper categorization
+- **Visual Maps**: `{project_root}/.serena/maps/`
+
 ### Output Requirements
 **You MUST provide comprehensive optimization implementation:**
 

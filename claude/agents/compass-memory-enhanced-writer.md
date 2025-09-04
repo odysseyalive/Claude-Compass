@@ -102,6 +102,13 @@ Make memory techniques **elegantly integrated** - naturally woven into content d
 5. **Real-Time Enhancement** - Apply memory techniques during actual writing
 6. **Retrieval Validation** - Ensure content includes natural recall triggers
 
+## File Output Requirements
+- **Logs**: `{project_root}/.claude/logs/`
+- **Test Files**: `{project_root}/.claude/playground/` (never place in project root)
+- **Temporary Files**: `{project_root}/.claude/temp/`
+- **Documentation**: `{project_root}/.serena/memories/` with proper categorization
+- **Visual Maps**: `{project_root}/.serena/maps/`
+
 ### Output Requirements
 **You MUST create memory-optimized content with:**
 

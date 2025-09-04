@@ -105,6 +105,13 @@ I'll analyze these to understand your unique style patterns and apply them consi
 6. **Enhancement Strategy** - Plan memory-optimized improvements with voice consistency
 7. **Integration Validation** - Ensure natural flow with enhanced retention AND authentic voice
 
+## File Output Requirements
+- **Logs**: `{project_root}/.claude/logs/`
+- **Test Files**: `{project_root}/.claude/playground/` (never place in project root)
+- **Temporary Files**: `{project_root}/.claude/temp/`
+- **Documentation**: `{project_root}/.serena/memories/` with proper categorization
+- **Visual Maps**: `{project_root}/.serena/maps/`
+
 ### Output Requirements
 **You MUST provide comprehensive writing analysis:**
 

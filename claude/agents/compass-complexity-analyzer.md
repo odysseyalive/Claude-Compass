@@ -45,6 +45,21 @@ Sequential Assessment:
 
 ## Complexity Rating Matrix
 
+### CRITICAL RULE: File Operations Are Never TRIVIAL
+**Any task involving file creation, editing, or modification is automatically at least SIMPLE complexity.**
+- File editing requires systematic analysis
+- Documentation updates need knowledge foundation  
+- Code changes require strategic planning
+- Configuration modifications need validation
+
+### TRIVIAL Tasks (Direct Answer - No Agents Required)
+- **Knowledge Coverage**: 100% from current context
+- **Implementation**: No file operations, pure information response
+- **Knowledge Gaps**: None (answer available immediately)
+- **Domain Needs**: No specialist agents required
+- **Examples**: Direct factual questions, simple calculations, immediate clarifications
+- **Key Restriction**: NO file creation, editing, or modification
+
 ### Simple Tasks (Light Methodology - 2-5k tokens)
 - **Knowledge Coverage**: >80% from institutional knowledge
 - **Implementation**: Direct application of existing patterns

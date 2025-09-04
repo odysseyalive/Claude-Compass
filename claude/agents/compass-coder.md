@@ -61,13 +61,13 @@ def analyze_project_structure_memory_safe(self, project_path, memory_budget=2MB)
         return essential_structure
 ```
 
-### **Directory Structure Requirements**
-- **Test Files**: All tests must go in `.claude/tests/` or proper test directories (never root)
-- **Documentation**: New docs go in `.serena/memories/` with proper categorization
-- **Maps/Visualizations**: SVG and visual maps go in `.serena/maps/` directory  
-- **Configuration**: Follow project structure standards (app/, config/, etc.)
-- **Implementation Documentation**: Link back to COMPASS analysis in `.serena/memories/methodology/`
-- **Temporary/Scratch Files**: Use `.claude/scratch/` for temporary work files
+## File Output Requirements
+- **Logs**: `{project_root}/.claude/logs/`
+- **Test Files**: `{project_root}/.claude/playground/` (never place in project root)
+- **Temporary Files**: `{project_root}/.claude/temp/`
+- **Documentation**: `{project_root}/.serena/memories/` with proper categorization
+- **Visual Maps**: `{project_root}/.serena/maps/`
+- **Implementation Documentation**: `{project_root}/.serena/memories/methodology/`
 
 ### **Memory-Bounded File Path Delegation Directives**
 When delegating to specialists, you **MUST provide explicit file path requirements WITH memory boundaries**:
@@ -88,7 +88,7 @@ MEMORY_BOUNDED_FILE_OPERATIONS = {
         "cleanup_protocol": "essential_results_only"
     },
     "test_creation": {
-        "path_template": "/absolute/path/.claude/tests/{feature_name}/",
+        "path_template": "/absolute/path/.claude/playground/{feature_name}/",
         "memory_limit": "8KB per test file",
         "validation_tool": "mcp__serena__search_for_pattern",
         "cleanup_protocol": "progressive_cleanup"
@@ -100,7 +100,7 @@ FILE ORGANIZATION REQUIREMENTS WITH MEMORY BOUNDS:
 - Documentation creation → mcp__serena__create_text_file with 4KB limit per file
 - Code discovery → mcp__serena__find_symbol with progressive search patterns
 - Code integration → mcp__serena__insert_after_symbol with selective insertions
-- Test files → /absolute/path/.claude/tests/ with memory-bounded creation
+- Test files → /absolute/path/.claude/playground/ with memory-bounded creation
 - Visual content → /absolute/path/.serena/maps/ with 1MB SVG size limits
 - Implementation notes → /absolute/path/.serena/memories/methodology/{task}/ with 4KB per doc
 
@@ -244,7 +244,7 @@ SERENA MCP FILE ORGANIZATION REQUIREMENTS FOR SPECIALIST:
 - Code integration → mcp__serena__insert_after_symbol for selective insertions  
 - Documentation creation → mcp__serena__create_text_file with 4KB memory bounds
 - Pattern search → mcp__serena__search_for_pattern with head_limit constraints
-- Test files → /absolute/path/.claude/tests/ with memory-bounded creation
+- Test files → /absolute/path/.claude/playground/ with memory-bounded creation
 - Visual content → /absolute/path/.serena/maps/ with 1MB SVG limits
 - Implementation notes → /absolute/path/.serena/memories/methodology/{task}/ with serena MCP tools
 
@@ -304,7 +304,7 @@ MEMORY-SAFE COORDINATED FILE ORGANIZATION:
 - Pattern coordination → mcp__serena__search_for_pattern with head_limit=1 per specialist
 - Coordination workspace → /absolute/path/.claude/coordination/{task}/ with memory-bounded operations
 - Shared documentation → /absolute/path/.serena/memories/methodology/{task}/ with serena MCP tools
-- Test coordination → /absolute/path/.claude/tests/{task}/ with progressive test creation
+- Test coordination → /absolute/path/.claude/playground/{task}/ with progressive test creation
 - Cleanup protocols → aggressive cleanup after each specialist completes
 
 MULTI-SPECIALIST MEMORY-SAFE REQUIREMENTS:
@@ -358,7 +358,7 @@ When compass-enhanced-analysis identifies coding tasks:
 **Path Compliance Checklist:**
 ```
 ✅ All new files use absolute paths starting with /home/francis/lab/claude-compass/
-✅ Test files → .claude/tests/ or appropriate test directories
+✅ Test files → .claude/playground/ or appropriate test directories
 ✅ Documentation → .serena/memories/ with proper categorization
 ✅ Visual content → .serena/maps/ directory
 ✅ Configuration → project-appropriate directories

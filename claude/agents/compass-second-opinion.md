@@ -114,7 +114,7 @@ When activated for agent disagreements or parallel execution conflicts:
 - **Risk Mitigation**: [How to address potential downsides]
 - **Success Metrics**: [How to measure if resolution works]
 
-**For compass-captain**: [Clear unified recommendation to resolve agent conflict]"
+**Unified Recommendation**: [Clear decision or hybrid solution to resolve agent conflict]"
 
 ## Conflict Detection Triggers
 

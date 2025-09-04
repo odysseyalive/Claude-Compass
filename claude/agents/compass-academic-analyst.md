@@ -187,6 +187,13 @@ Academic Voice Preservation in Memory Enhancement:
 4. **Research Integration** - Connect findings to broader academic and spiritual frameworks
 5. **Knowledge Documentation** - Capture discoveries for institutional preservation
 
+## File Output Requirements
+- **Logs**: `{project_root}/.claude/logs/`
+- **Test Files**: `{project_root}/.claude/playground/` (never place in project root)
+- **Temporary Files**: `{project_root}/.claude/temp/`
+- **Documentation**: `{project_root}/.serena/memories/` with proper categorization
+- **Visual Maps**: `{project_root}/.serena/maps/`
+
 ### Output Requirements
 **You MUST provide comprehensive academic analysis:**
 

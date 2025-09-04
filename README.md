@@ -24,21 +24,24 @@ This isn't just about documentation. It's about creating a system that learns fr
 
 Instead of Claude Code starting fresh every time, COMPASS automatically:
 
-1. **Remembers Previous Work** - Checks what you've already discovered about similar problems
-2. **Applies Proven Patterns** - Uses approaches that worked before instead of reinventing solutions
-3. **Identifies What's Missing** - Spots knowledge gaps that need investigation
-4. **Provides Context-Rich Analysis** - Gives you answers informed by your project's history
-5. **Builds Institutional Memory** - Captures everything for future use
-6. **Memory-Safe Orchestration** - Coordinates specialized agents with bounded memory usage
-7. **Integrates New Insights** - Updates institutional knowledge with breakthrough discoveries
+1. **Remembers Previous Work** - Checks what you've already discovered about similar problems through institutional memory
+2. **Applies Proven Patterns** - Uses approaches that worked before instead of reinventing solutions, enhanced by visual pattern recognition
+3. **Identifies What's Missing** - Spots knowledge gaps that need investigation through strategic assessment
+4. **Provides Context-Rich Analysis** - Gives you answers informed by your project's history and ecosystem integration
+5. **Builds Institutional Memory** - Captures everything for future use through iterative coordination
+6. **Strategic Planning** - Creates comprehensive approaches that integrate with your project ecosystem through iterative coordination
+7. **Iterative Coordination** - Coordinates specialized agents through handler-based planning with adaptive refinement
+8. **Integrates New Insights** - Updates institutional knowledge with breakthrough discoveries through strategic cross-referencing
 
 **The result?** Your Claude Code environment becomes smarter with every interaction, like having a senior developer who never forgets lessons learned.
 
-COMPASS operates on two foundational principles:
+COMPASS operates on refined foundational principles that have evolved through real-world navigation:
 
-**Memory Through Documentation**: Every significant pattern, every architectural decision, every debugging breakthrough gets captured automatically. Not as static notes, but as living documentation that connects past insights to present challenges.
+**Memory Through Living Documentation**: Every significant pattern, every architectural breakthrough, every debugging victory becomes institutional wisdom through iterative accumulation. Not archived as static notes, but woven into living documentation that breathes with your project's evolution - connecting yesterday's insights to today's challenges like familiar paths through known territory, continuously refined through strategic coordination.
 
-**Vision Through Mapping**: Complex code flows become visual landscapes. Race conditions reveal themselves as crossing paths. Bottlenecks appear as convergence points. The abstract becomes concrete, the invisible becomes navigable.
+**Vision Through Strategic Mapping**: Complex systems transform into navigable landscapes through visual pattern discovery enhanced by iterative coordination. Race conditions emerge as crossing paths requiring traffic coordination. Performance bottlenecks appear as convergence points needing flow optimization. The abstract becomes concrete terrain through strategic planning, the invisible becomes a map you can walk and continuously refine.
+
+**Iterative Coordination Wisdom**: Rather than rigid methodologies, COMPASS adapts its approach through strategic planning and ecosystem integration. Each investigation refines understanding through iterative coordination, like how experienced guides read the land differently after years of traversal - seeing not just the immediate path, but how it connects to the broader territory. Every insight becomes a waypoint that improves navigation for future explorations.
 
 ![COMPASS Workflow](assets/compass_workflow.svg)
 
@@ -86,7 +89,7 @@ Here's the thing that makes COMPASS different from yet another tool you need to 
 
 You don't need to invoke COMPASS. COMPASS detects complexity and invokes itself.
 
-The `compass-captain` agent becomes your project's analytical conductor, orchestrating the entire investigation through a 7-phase memory-safe methodology with specialized agents. Operating with institutional knowledge foundations, it coordinates parallel groups of specialists while maintaining bounded memory usage across all operations. Think of it as having an experienced technical lead who knows exactly which team members to bring in for each type of challenge, ensuring efficient resource usage and knowledge preservation.
+The `compass-handler.py` becomes your project's analytical pathfinder, orchestrating investigations through our refined 4-step iterative coordination system. Rather than traditional phase-by-phase progression, COMPASS now operates through strategic planning with ecosystem integration - assessing complexity, discovering knowledge patterns visually, building comprehensive strategies, then executing with specialized agents. Think of it as evolution from a methodical explorer to an experienced guide who sees the territory whole and navigates with precision.
 
 ### Manual Agent Calling: When You Want Direct Control
 
@@ -102,6 +105,12 @@ Use compass-doc-planning to create a documentation strategy for our new async pr
 
 ```
 Use compass-knowledge-discovery to find existing approaches to user authentication flows in our .serena/memories and .serena/maps
+```
+
+**Creating comprehensive strategic plans for complex implementations**:
+
+```
+Use compass-strategy-builder to develop an ecosystem-integrated approach for migrating our monolith to microservices, incorporating existing knowledge patterns and architectural decisions through iterative coordination
 ```
 
 **Getting expert perspective on architectural decisions**:
@@ -300,10 +309,11 @@ COMPASS operates through intelligent detection - you don't need to remember spec
 
 **What You'll Notice**:
 
-- Claude Code responses become richer with context from your `.serena/memories/` directory
-- Complex problems get structured investigation approaches instead of ad-hoc solutions
-- Visual diagrams appear in your `.serena/maps/` directory for complex data flows
-- Solutions reference and build upon previous work instead of starting from scratch
+- Claude Code responses transform from isolated answers to connected insights, drawing from the growing wisdom in your `.serena/memories/` directory through strategic coordination
+- Complex challenges receive iterative strategic approaches instead of scattered attempts - each investigation builds on accumulated knowledge like paths connecting familiar landmarks, with the ability to refine understanding through coordinated cycles of discovery
+- Visual diagrams materialize in your `.serena/maps/` directory, transforming abstract data flows into navigable territories you can walk through and understand, enhanced by pattern recognition capabilities
+- Solutions evolve organically from previous discoveries rather than starting fresh - your project develops its own problem-solving memory that grows more sophisticated with each encounter through iterative coordination and strategic refinement
+- Strategic planning becomes a core component of every complex analysis, ensuring comprehensive approaches that integrate with your project's ecosystem
 
 ### Manual Agent Invocation
 
@@ -340,7 +350,7 @@ Use compass-second-opinion to evaluate whether our current database schema desig
 
 ### Updating COMPASS
 
-Keeping your COMPASS installation current ensures you have access to the latest agents, capabilities, and improvements to the methodology. The setup script handles updates intelligently, preserving your existing `.serena/memories/` and `.serena/maps/` directories while refreshing all agents and technical enforcement systems.
+Keeping your COMPASS installation current ensures you have access to the latest agents, capabilities, and improvements to the iterative coordination system. The setup script handles updates intelligently, preserving your existing `.serena/memories/` and `.serena/maps/` directories while refreshing all agents and technical enforcement systems.
 
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/odysseyalive/claude-compass/main/setup.sh)" -- update
@@ -348,13 +358,13 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/odysseyalive/claude-comp
 
 **What the update accomplishes:**
 
-- **Refreshes all 26 COMPASS agents** with latest behavioral improvements and new capabilities
-- **Updates technical enforcement systems** including the compass-handler.py in `.claude/handlers/` and hook configurations  
+- **Refreshes all 26 COMPASS agents** with latest iterative coordination capabilities and strategic planning enhancements
+- **Updates technical enforcement systems** including the compass-handler.py in `.claude/handlers/` and iterative coordination configurations  
 - **Validates your installation** ensuring all components work together seamlessly
 - **Preserves your institutional knowledge** - your existing `.serena/memories/` and `.serena/maps/` directories remain untouched
 - **Maintains configuration** while updating to the latest settings and optimizations
 
-Your navigation tools stay sharp, your institutional memory stays intact, and your COMPASS grows more capable with each update.
+Your navigation tools stay sharp, your institutional memory stays intact, and your COMPASS grows more capable with each update through enhanced iterative coordination and strategic planning capabilities.
 
 [↑ Contents](#contents)
 
@@ -443,75 +453,71 @@ COMPASS doesn't care if you're debugging code or untangling policy contradiction
 
 [↑ Contents](#contents)
 
-The `compass-captain` orchestrates a network of 26 specialized agents through a comprehensive 7-phase methodology, each focused on a specific aspect of analysis. With memory-safe coordination protocols, agents operate with bounded resource usage while building institutional knowledge. Think of them as different experts you might call in for a complex project - each brings their own perspective and can also be called manually when you need targeted help.
+The `compass-handler.py` coordinates a network of 20 specialized agents through iterative coordination - intelligent detection triggering strategic response with adaptive refinement. Each agent brings focused expertise to specific aspects of analysis while building institutional knowledge through ecosystem integration. Think of them as different specialists you might consult for complex exploration - each offering unique perspectives, available both through automatic iterative coordination and direct consultation when you need targeted guidance.
 
-### The 7-Phase COMPASS Methodology
+### The 4-Step Iterative Coordination System
 
-COMPASS employs a sophisticated 7-phase approach that ensures institutional knowledge guides every analysis while maintaining optimal resource usage:
+COMPASS has evolved beyond traditional phase methodologies into iterative coordination that mirrors how experienced navigators approach uncharted territory:
 
-**Phase 1: Foundation** - Institutional knowledge discovery and progress tracking initialization
-**Phase 2: Parallel Analysis** - Pattern application, documentation planning, and specialist coordination (authentication, writing, dependencies) with memory boundaries
-**Phase 3: Gap Assessment** - Knowledge gap identification using essential findings from Phase 2
-**Phase 4: Enhanced Analysis** - Comprehensive analysis incorporating complete institutional knowledge  
-**Phase 5: Finalization** - Cross-referencing with pattern library and quality validation in parallel groups
-**Phase 6: Implementation Bridge** - Delegation to Claude Code specialists when coding is required
-**Phase 7: Memory Integration** - Updating `.serena/memories/` with new insights for future analyses
+**Step 1: Complexity Assessment** - The compass-complexity-analyzer evaluates task requirements against institutional knowledge, determining optimal approach intensity (light touch, strategic analysis, or comprehensive investigation). This assessment adapts based on discovered patterns and emerging complexity.
 
-This methodology ensures that every investigation builds upon previous work while maintaining bounded resource usage through memory-safe agent coordination. The parallel groups in Phases 2 and 5 maximize efficiency while the sequential phases ensure proper knowledge foundation and integration.
+**Step 2: Knowledge Discovery with Visual Patterns** - The compass-knowledge-discovery agent searches both textual memories and visual maps, creating a living landscape of what you already know. Like checking existing charts before plotting new courses, but with the ability to update understanding as new patterns emerge.
 
-### Core Methodology Agents
+**Step 3: Strategic Planning with Ecosystem Integration** - The compass-strategy-builder creates comprehensive plans that integrate discoveries with your broader project ecosystem. Rather than isolated analysis, every investigation connects to your growing knowledge web through iterative refinement that incorporates new insights as they surface.
 
-**compass-complexity-analyzer** - Task complexity assessment and methodology selection. Analyzes task requirements with institutional knowledge to determine the optimal approach (light, medium, or full methodology) for execution.
+**Step 4: Execute Strategic Plan with Iterative Coordination** - Specialized agents execute the strategic plan using iterative coordination, where each insight refines the approach and potentially triggers reassessment of previous steps. Think of it as adaptive navigation that improves as the territory reveals itself, with the flexibility to spiral back and enhance understanding at any stage.
 
-**compass-knowledge-discovery** - Institutional memory access. Searches existing `.serena/memories/` and `.serena/maps/` directories to understand what you already know before starting new analysis.
+This iterative approach transforms from methodical exploration into intuitive wayfinding - your COMPASS doesn't just follow procedures, it develops wisdom about your unique project landscape through continuous refinement and strategic adaptation.
 
-**compass-pattern-apply** - Pattern matching specialist. Takes documented approaches from your knowledge base and applies them to current challenges.
+### Core Coordination Agents
 
-**compass-gap-analysis** - Knowledge gap identification. Finds what's missing from your current understanding and creates investigation frameworks.
+**compass-complexity-analyzer** - Your strategic assessment guide with iterative capability. Like a seasoned pathfinder examining terrain difficulty, it evaluates task complexity against your institutional knowledge to determine whether you need light reconnaissance, strategic analysis, or comprehensive exploration. Continuously refines complexity understanding as new information emerges.
 
-**compass-enhanced-analysis** - Complete analysis execution. Performs the actual analysis with full institutional context and all discovered patterns.
+**compass-knowledge-discovery** - Your memory cartographer with visual pattern recognition. Searches both `.serena/memories/` textual knowledge and `.serena/maps/` visual patterns, creating living landscapes of what you already understand. Think of it as consulting your accumulated charts before charting new territory, with the ability to discover previously unnoticed pattern connections.
 
-**compass-cross-reference** - Pattern library maintenance. Links new findings with existing knowledge and updates the searchable pattern connections.
+**compass-strategy-builder** - Your expedition planner with ecosystem integration. Takes discovered knowledge and weaves it into comprehensive strategic plans that integrate with your broader project ecosystem through iterative coordination. Rather than isolated analysis, every investigation becomes part of your growing knowledge web, continuously refined as understanding deepens.
 
-**compass-coder** - Implementation bridge. Connects analytical findings to actual code implementation when development work is needed.
+**compass-pattern-apply** - Pattern recognition specialist with iterative refinement. Takes documented approaches from your knowledge base and applies them to current challenges with the wisdom of experience, adapting patterns based on new discoveries and strategic coordination feedback.
 
-**compass-memory-integrator** - Knowledge integration specialist. Updates `.serena/memories/` with new insights, patterns, and breakthroughs discovered during COMPASS analyses, ensuring institutional knowledge grows with every investigation.
+**compass-cross-reference** - Knowledge web weaver with strategic linking. Links new findings with existing understanding through iterative coordination, updating searchable pattern connections that grow stronger and more sophisticated with each investigation cycle.
+
+**compass-coder** - Implementation bridge with strategic integration. When analysis reveals the need for code changes, this agent connects insights to actual development work with institutional awareness, coordinating iteratively between discovery and implementation.
+
+**compass-memory-integrator** - Institutional memory curator with strategic coordination. Ensures every breakthrough, every successful approach, every hard-won insight becomes permanent knowledge that enriches future investigations through iterative memory enhancement and cross-pattern discovery.
 
 ### Specialist Analysis Agents
 
-**compass-data-flow** - Data flow visualization. Maps how data moves through your systems, identifying bottlenecks and transformation points.
+**compass-data-flow** - Flow visualization cartographer. Transforms abstract data movement into navigable landscapes where bottlenecks appear as convergence points and transformation stages become waypoints along the journey. Makes invisible pathways concrete and measurable.
 
-**compass-doc-planning** - Documentation strategy. Plans how to capture and organize new knowledge for future reference.
+**compass-doc-planning** - Knowledge architecture planner. Designs how discoveries transform into institutional memory - creating frameworks that connect today's breakthroughs to tomorrow's explorations. Thinks beyond individual documents to living knowledge ecosystems.
 
-**compass-second-opinion** - Expert consultation. Provides historical expert perspectives when facing uncertain technical decisions.
+**compass-second-opinion** - Historical wisdom consultant. Channels the accumulated experience of your project's journey, providing perspective that connects current decisions to patterns learned through previous expeditions. Like having a senior advisor who remembers every lesson learned.
 
-**compass-todo-sync** - Progress tracking. Integrates COMPASS methodology with task management systems.
+**compass-enhanced-analysis** - Deep analysis coordinator with comprehensive institutional knowledge processing. Provides memory-safe enhanced analysis that builds on established patterns while discovering new architectural insights through iterative coordination.
 
-**compass-breakthrough-doc** - Innovation capture. Automatically documents significant breakthroughs and successful approaches.
+**compass-gap-analysis** - Knowledge void identifier. Systematically identifies gaps requiring new investigation and documentation, ensuring comprehensive coverage of complex territories through strategic analysis and targeted discovery coordination.
 
-**compass-upstream-validator** - Repository validation. Checks findings against upstream repositories when verification is needed.
-
-**compass-syntax-validator** - Universal syntax validation. Leverages Serena's native LSP functionality to validate code syntax across multiple languages with memory-bounded processing.
+**compass-validation-coordinator** - Expert consultation orchestrator for plan validation. Provides specialized coordination for validating strategic plans through expert perspectives and comprehensive analysis frameworks, ensuring robust decision-making through iterative refinement.
 
 ### Domain Specialists
 
-**Authentication & Security Trio**:
+**Authentication & Security Trio** - Three specialist pathfinders for identity territory:
 
-- **compass-auth-performance-analyst** - Authentication performance optimization
-- **compass-auth-security-validator** - Security compliance and vulnerability assessment  
-- **compass-auth-optimization-specialist** - Authentication implementation strategy
+- **compass-auth-performance-analyst** - Speed optimization tracker. Finds where authentication journeys slow down and maps efficient pathways through identity verification landscapes.
+- **compass-auth-security-validator** - Security fortress architect. Assesses defensive positioning against vulnerability patterns, ensuring authentication territories remain protected.
+- **compass-auth-optimization-specialist** - Implementation harmony guide. Designs authentication strategies that balance security strength with user experience flow.
 
-**Writing & Documentation Specialists**:
+**Writing & Documentation Specialists** - Memory architects for knowledge preservation:
 
-- **compass-writing-analyst** - Content analysis and voice consistency
-- **compass-academic-analyst** - Academic memory palace integration
-- **compass-memory-enhanced-writer** - Voice preservation across different content types
+- **compass-writing-analyst** - Voice consistency guardian. Ensures written content maintains coherent identity across different territories while preserving authentic communication patterns.
+- **compass-academic-analyst** - Scholarly memory palace builder. Integrates academic rigor with memorable knowledge structures for deep institutional learning.
+- **compass-memory-enhanced-writer** - Retention optimization specialist. Transforms information into memorable content using multi-sensory encoding and association bridge techniques.
 
-**Development Infrastructure**:
+**Development Infrastructure** - Foundation stability specialists:
 
-- **compass-dependency-tracker** - Dependency lifecycle management and compliance analysis
+- **compass-dependency-tracker** - Ecosystem relationship mapper. Tracks how external dependencies evolve through their lifecycles, identifying stability patterns and compliance convergence points.
 
-Each agent can be called individually when you need specific expertise, but they work together automatically when the `compass-captain` orchestrates a full analysis. The system scales from quick targeted help to comprehensive institutional analysis depending on what your project needs.
+Each agent can be called individually when you need specific expertise, but they work together seamlessly through iterative handler-based coordination when COMPASS detects complex territories requiring collaborative exploration. The system scales from quick targeted reconnaissance to comprehensive institutional analysis, adapting iteratively to what your project's landscape reveals through strategic coordination cycles.
 
 [↑ Contents](#contents)
 
@@ -519,9 +525,9 @@ Each agent can be called individually when you need specific expertise, but they
 
 [↑ Contents](#contents)
 
-COMPASS embodies a simple belief: that every challenge overcome should make the next challenge easier. That uncertainty should transform into knowledge. That the mazes we navigate today should become the maps that guide us tomorrow.
+COMPASS embodies a simple belief: that every challenge overcome should make the next challenge easier through iterative coordination and strategic memory. That uncertainty should transform into knowledge through systematic discovery. That the mazes we navigate today should become the maps that guide us tomorrow, continuously refined through strategic planning and ecosystem integration.
 
-Because why leave things to chance when you can leave things to memory?
+Because why leave things to chance when you can leave things to memory enhanced by iterative coordination?
 
 [↑ Contents](#contents)
 

@@ -34,14 +34,52 @@ Analyze if expert consultation needed:
 - **High Uncertainty**: Low confidence scores from complexity assessment
 - **Resource Intensive**: Plans with >30k token budgets
 
-### Step 3: Subprocess Expert Consultation
+### Step 3: Integrated Expert Consultation
 ```
-Isolation Process:
-1. Detect validation triggers → Prepare subprocess environment
-2. Launch compass-second-opinion in isolation → Execute expert consultation
-3. Receive expert recommendations → Process in separate memory space
-4. Integrate expert feedback → Merge with original plan safely
-5. Clear subprocess context → Return validated plan
+Direct Expert Consultation Process:
+1. Detect validation triggers → Prepare expert consultation context
+2. Select relevant expert personas based on plan complexity and domain
+3. Execute expert analysis using integrated persona framework
+4. Process expert recommendations in validation context
+5. Integrate expert feedback with original plan
+6. Clear consultation context → Return validated plan
+```
+
+## Expert Personas Integration
+
+### Consolidated Expert Framework (from compass-second-opinion)
+**Analytical Framework:**
+- **Albert Einstein** (theoretical breakthroughs, paradigm shifts, thought experiments)
+- **Leonardo da Vinci** (interdisciplinary innovation, systems thinking, creative problem-solving)
+- **Marie Curie** (empirical research methodology, scientific rigor, breakthrough discovery)
+- **Charles Darwin** (pattern evolution, patient observation, systematic investigation)
+- **Carl Jung** (archetypal pattern recognition, psychological typing, analytical psychology)
+
+**Strategic & Decision-Making:**
+- **José Raúl Capablanca** (strategic intuition, elegant simplification, long-term planning)
+- **Peter Drucker** (management frameworks, organizational systems, strategic effectiveness)
+- **Adam Smith** (systems analysis, economic thinking, market dynamics)
+
+**Innovation & Implementation:**
+- **Alan Turing** (computational logic, systematic thinking, mathematical foundations)
+- **Thomas Edison** (iterative experimentation, practical solutions, persistent innovation)
+- **Steve Jobs** (user experience design, market intuition, product vision)
+
+**Philosophical & Ethical Framework:**
+- **Socrates** (critical questioning, assumption challenging, dialectical method)
+- **Immanuel Kant** (systematic critique, ethical frameworks, rational analysis)
+- **John Rawls** (applied ethics, justice principles, fairness frameworks)
+
+### Expert Selection Logic for Plan Validation
+```
+Plan Type → Expert Selection:
+- Technical Architecture → Turing, Edison, da Vinci, Jobs
+- Strategic Planning → Capablanca, Drucker, Adam Smith
+- Complex Analysis → Einstein, Jung, Darwin, Curie
+- Innovation Decisions → Jobs, Edison, da Vinci
+- Risk Assessment → Kant, Marcus Aurelius, Drucker
+- Communication Strategy → Twain, Dickens, Russell
+- Methodology Validation → Bacon, Galileo, Curie
 ```
 
 ## Validation Criteria
@@ -69,35 +107,50 @@ Trigger Conditions:
 
 ## Expert Consultation Integration
 
-### Subprocess Isolation Protocol
+### Direct Expert Analysis Protocol
 ```bash
-# Memory-isolated expert consultation:
-1. Create subprocess environment for compass-second-opinion
-2. Pass strategic plan for expert review
-3. Execute expert analysis in isolated memory space  
-4. Receive expert recommendations with clean memory management
+# Integrated expert consultation (no subprocess needed):
+1. Analyze strategic plan complexity and domain requirements
+2. Select 1-2 most relevant expert personas from integrated framework
+3. Execute expert analysis using their cognitive patterns and principles
+4. Generate expert recommendations for methodology, resources, risks
 5. Process expert feedback in validation context
-6. Merge recommendations with original plan safely
-7. Clean up subprocess and return validated plan
+6. Merge recommendations with original plan
+7. Return validated plan with expert insights integrated
 ```
 
-### compass-second-opinion Task Usage
+### Expert Consultation Methodology
 When expert consultation triggered:
 ```
-Task Tool Parameters:
-- subagent_type: "compass-second-opinion"
-- description: "Expert validation of strategic plan for [methodology_type] complexity"
-- prompt: "Review this strategic plan: [plan JSON]. Validate methodology choice, challenge assumptions, assess token budgets, review parallelization strategy, identify risks. Provide alternative approaches if needed."
+Expert Analysis Process:
+- problem_domain: Identify primary domains (technical, strategic, analytical, etc.)
+- expert_selection: Choose 1-2 experts based on domain mapping and complexity
+- cognitive_modeling: Apply expert's thinking patterns and characteristic insights
+- validation_focus: Challenge assumptions, assess methodology, review resource allocation
+- recommendation_synthesis: Provide specific improvements and alternative approaches
 ```
 
-### Expert Integration Categories
+### Conflict Resolution Integration
+For plan validation conflicts or complex trade-offs:
+```
+Conflict Resolution Protocol:
+1. Identify core disagreement in strategic plan elements
+2. Select expert panel (2-3 experts) relevant to conflict domain  
+3. Apply expert perspectives to each side of the conflict
+4. Synthesize hybrid approaches or decisive recommendations
+5. Provide implementation guidance for chosen resolution
+6. Assess risks and mitigation strategies
+```
+
+### Expert Analysis Categories
 ```json
 {
-  "methodology_validation": "Expert confirms appropriate methodology selection",
-  "resource_optimization": "Expert suggests token budget or agent assignment improvements", 
-  "parallelization_review": "Expert validates parallel groups and dependencies",
-  "risk_assessment": "Expert identifies potential execution risks",
-  "alternative_approaches": "Expert provides alternative methodology options"
+  "methodology_validation": "Expert confirms appropriate methodology selection using their frameworks",
+  "resource_optimization": "Expert suggests improvements using their efficiency principles", 
+  "parallelization_review": "Expert validates coordination using their systems thinking",
+  "risk_assessment": "Expert identifies risks using their domain expertise",
+  "alternative_approaches": "Expert provides alternatives using their innovation patterns",
+  "implementation_guidance": "Expert offers specific steps using their practical wisdom"
 }
 ```
 
@@ -164,7 +217,7 @@ Return exactly this structure:
       ["compass-coder"]
     ],
     "sequential_phases": [
-      "compass-knowledge-discovery ALREADY COMPLETED by captain",
+      "compass-knowledge-discovery completed by handler coordination",
       "parallel: compass-pattern-apply + compass-doc-planning", 
       "compass-gap-analysis for knowledge gaps",
       "compass-coder for implementation"
@@ -197,4 +250,4 @@ Return exactly this structure:
 - **Clean Termination**: Guaranteed subprocess cleanup on completion or failure
 
 ## Integration Point
-Returns validated strategic plan to compass-captain for execution
+Returns validated strategic plan for execution

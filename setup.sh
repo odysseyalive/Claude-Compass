@@ -227,7 +227,6 @@ install_agents() {
   log_info "Installing COMPASS agents..."
 
   local agents=(
-    "compass-captain"
     "compass-complexity-analyzer"
     "compass-strategy-builder"
     "compass-validation-coordinator"
@@ -246,13 +245,8 @@ install_agents() {
     "compass-auth-performance-analyst"
     "compass-auth-security-validator"
     "compass-auth-optimization-specialist"
-    "compass-upstream-validator"
     "compass-dependency-tracker"
-    "compass-breakthrough-doc"
-    "compass-todo-sync"
-    "compass-svg-analyst"
     "compass-memory-integrator"
-    "compass-syntax-validator"
   )
 
   # Track installation progress for rollback capability
@@ -398,7 +392,7 @@ configure_claude_settings() {
     return 0
   fi
 
-  # Create the .claude/settings.json configuration with enhanced authentication capabilities
+  # Create the .claude/settings.json configuration with only the hooks used by compass-handler.py
   cat >"$claude_config" <<'EOF'
 {
   "hooks": {
@@ -422,42 +416,6 @@ configure_claude_settings() {
             "type": "command",
             "command": "HOOK_PATH_PLACEHOLDER",
             "timeout": 30000
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "HOOK_PATH_PLACEHOLDER",
-            "timeout": 10000
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "HOOK_PATH_PLACEHOLDER",
-            "timeout": 10000
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "HOOK_PATH_PLACEHOLDER",
-            "timeout": 10000
           }
         ]
       }
@@ -514,7 +472,6 @@ validate_installation() {
   # Test agent file accessibility
   local missing_agents=()
   local agents=(
-    "compass-captain"
     "compass-complexity-analyzer"
     "compass-strategy-builder"
     "compass-validation-coordinator"
@@ -533,13 +490,8 @@ validate_installation() {
     "compass-auth-performance-analyst"
     "compass-auth-security-validator"
     "compass-auth-optimization-specialist"
-    "compass-upstream-validator"
     "compass-dependency-tracker"
-    "compass-breakthrough-doc"
-    "compass-todo-sync"
-    "compass-svg-analyst"
     "compass-memory-integrator"
-    "compass-syntax-validator"
   )
 
   for agent in "${agents[@]}"; do
@@ -553,7 +505,7 @@ validate_installation() {
     exit 1
   fi
 
-  log_success "All COMPASS agents installed successfully (26 total agents including complexity analyzer, strategy builder, validation coordinator, enhanced knowledge discovery with maps integration, writing/academic/memory specialists, authentication specialists, upstream validation, dependency tracking, breakthrough documentation, todo synchronization, SVG orchestration, memory integration, and syntax validation)"
+  log_success "All COMPASS agents installed successfully (20 total agents including complexity analyzer, strategy builder, validation coordinator, enhanced knowledge discovery with maps integration, writing/academic/memory specialists, authentication specialists, dependency tracking, and memory integration)"
 
   # Test .claude/settings.json syntax
   if command -v python3 >/dev/null 2>&1; then
@@ -562,7 +514,7 @@ validate_installation() {
         log_success ".claude/settings.json syntax is valid"
 
         # Verify hook configuration correctness
-        local required_hooks=("UserPromptSubmit" "PreToolUse" "Stop" "SessionEnd" "SubagentStop")
+        local required_hooks=("UserPromptSubmit" "PreToolUse")
         local missing_hooks=()
         
         for hook in "${required_hooks[@]}"; do
@@ -572,7 +524,7 @@ validate_installation() {
         done
         
         if [[ ${#missing_hooks[@]} -eq 0 ]] && grep -q ".claude/handlers/compass-handler.py" "$CURRENT_DIR/.claude/settings.json"; then
-          log_success "Hook configuration properly configured for technical enforcement (all 5 hooks: UserPromptSubmit, PreToolUse, Stop, SessionEnd, SubagentStop)"
+          log_success "Hook configuration properly configured for technical enforcement (2 hooks: UserPromptSubmit, PreToolUse)"
         else
           if [[ ${#missing_hooks[@]} -gt 0 ]]; then
             log_warning "Missing hook configurations: ${missing_hooks[*]}"
@@ -632,7 +584,7 @@ show_success_message() {
   echo "🚀 Next Steps:"
   echo "   1. Start Claude Code in this directory: claude"
   echo "   2. Try a complex analytical request to trigger COMPASS"
-  echo "   3. Watch the captain coordinate all 26 agents through 7-phase COMPASS methodology"
+  echo "   3. Watch the specialized agents coordinate through 7-phase COMPASS methodology"
   echo "   4. Observe memory-safe agent orchestration and strategic planning optimization"
   echo ""
   echo "🔍 Test COMPASS with prompts like:"
