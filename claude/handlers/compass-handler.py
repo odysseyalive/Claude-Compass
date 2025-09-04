@@ -54,13 +54,19 @@ def get_workflow_phase(agent_name):
     if agent_name == "compass-complexity-analyzer":
         return "step_1_complexity_assessment"
     elif agent_name == "compass-knowledge-discovery":
-        return "step_2_knowledge_discovery" 
+        return "step_2_knowledge_discovery"
     elif agent_name == "compass-strategy-builder":
         return "step_3_strategic_planning"
-    elif agent_name in ["compass-pattern-apply", "compass-doc-planning",
-                       "compass-gap-analysis", "compass-enhanced-analysis", 
-                       "compass-coder", "compass-cross-reference", 
-                       "compass-memory-integrator", "compass-validation-coordinator"]:
+    elif agent_name in [
+        "compass-pattern-apply",
+        "compass-doc-planning",
+        "compass-gap-analysis",
+        "compass-enhanced-analysis",
+        "compass-coder",
+        "compass-cross-reference",
+        "compass-memory-integrator",
+        "compass-validation-coordinator",
+    ]:
         return "step_4_execution"
     else:
         return "unknown"
@@ -173,15 +179,15 @@ def inject_compass_coordination():
 
     compass_message = """🧭 COMPASS COORDINATION ACTIVATED
 
-I'll coordinate this request through intelligent 4-step iterative routing.
+Your analytical expertise makes this systematic approach particularly effective. Let's coordinate this request through intelligent 4-step iterative routing that amplifies your problem-solving capabilities to deliver exceptional results.
 
 **STEP 1 - COMPLEXITY ASSESSMENT:**
 Use compass-complexity-analyzer to assess complexity and return JSON assessment ONLY:
-- TRIVIAL: Return assessment JSON, Claude will provide direct answer
+- TRIVIAL: Return assessment JSON, Claude provides direct answer
 - SIMPLE/MEDIUM/COMPLEX: Return assessment JSON, proceed to Step 2
 
 **IF TRIVIAL**: Claude answers directly from existing context, no further steps needed
-**IF NOT TRIVIAL**: Proceed to STEP 2
+**IF NOT TRIVIAL**: Proceed to STEP 2 - each step builds toward more comprehensive insights
 
 **STEP 2 - KNOWLEDGE DISCOVERY:**
 Use compass-knowledge-discovery to establish institutional knowledge foundation:
@@ -189,11 +195,21 @@ Use compass-knowledge-discovery to establish institutional knowledge foundation:
 - Output: Knowledge gaps, existing patterns, architectural understanding
 - NOTE: This step can be repeated if discoveries shift direction/approach
 
+**STEP 2 ASSESSMENT:** After knowledge discovery, provide:
+- Brief confidence assessment with identified knowledge gaps
+- Strategic context for upcoming planning phase
+- Optional: Ask clarifying questions if critical information is unclear before Step 3
+
 **STEP 3 - STRATEGIC PLANNING:**
-Use compass-strategy-builder to construct execution plan based on knowledge discovered:
+Use compass-strategy-builder to construct execution plan and return JSON strategic plan ONLY:
 - Input: Knowledge foundation from Step 2 + Complexity assessment
 - Output: Strategic plan with methodology selection and agent assignments
 - Domain Detection: Include relevant specialists based on discoveries
+
+**STEP 3 ASSESSMENT:** After strategic planning, provide:
+- Strategic plan validation with execution confidence level
+- Next steps preparation summary for Step 4
+- Optional: Ask clarifying questions if execution approach needs refinement before implementation
 
 **STEP 4 - EXECUTE STRATEGIC PLAN:**
 Follow the step-by-step execution guide from Step 3:
@@ -206,7 +222,7 @@ Follow the step-by-step execution guide from Step 3:
 - Return to Step 3 if new patterns require strategic replanning
 - compass-second-opinion available for iteration decisions
 
-🧭 COMPASS: 4-step iterative coordination with adaptive knowledge discovery."""
+🧭 COMPASS: This structured approach optimizes your natural analytical patterns for superior outcomes."""
 
     return {
         "permissionDecision": "deny",
